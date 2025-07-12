@@ -1,20 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { authService, type User } from "@/lib/auth"
+import { useSession } from "next-auth/react"
 import { EmployeeDashboard } from "@/components/dashboards/employee-dashboard"
 import { CompanyDashboard } from "@/components/dashboards/company-dashboard"
 import { AdminDashboard } from "@/components/dashboards/admin-dashboard"
 
 export default function Dashboard() {
-  const [user, setUser] = useState<User | null>(null)
+  const { data: session, status } = useSession()
 
-  useEffect(() => {
-    const currentUser = authService.getUser()
-    setUser(currentUser)
-  }, [])
-
-  if (!user) {
+  if (status === "loading") {
     return (
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center space-y-4">
@@ -25,6 +19,16 @@ export default function Dashboard() {
         </div>
       </div>
     )
+  }
+
+  if (status === "unauthenticated") {
+    return <p>Access Denied</p>
+  }
+
+  const user = session?.user
+
+  if (!user) {
+    return <p>Something went wrong</p>
   }
 
   // Render different dashboards based on user role

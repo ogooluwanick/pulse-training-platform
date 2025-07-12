@@ -15,7 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Building2, Users, TrendingUp, AlertTriangle, Search, Pause, Play, Trash2, Eye } from "lucide-react"
-import type { User } from "@/lib/auth"
+import type { User } from "next-auth"
 
 interface AdminDashboardProps {
   user: User

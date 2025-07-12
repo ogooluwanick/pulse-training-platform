@@ -15,8 +15,7 @@ import {
   Menu,
   X,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { authService } from "@/lib/auth"
+import { useSession, signOut } from "next-auth/react"
 
 import {
   Sidebar,
@@ -106,17 +105,11 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
-  const router = useRouter()
-  const [user, setUser] = useState(authService.getUser())
-
-  useEffect(() => {
-    const currentUser = authService.getUser()
-    setUser(currentUser)
-  }, [])
+  const { data: session } = useSession()
+  const user = session?.user
 
   const handleSignOut = () => {
-    authService.removeUser()
-    router.push("/")
+    signOut({ callbackUrl: "/" })
   }
 
   if (!user) return null
@@ -240,17 +233,17 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                   <AvatarImage src="/placeholder.svg?height=32&width=32" />
                   <AvatarFallback className="bg-charcoal text-alabaster">
                     {user.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()}
+                      ? user.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase()
+                      : ""}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-charcoal truncate">{user.name}</p>
-                  <p className="text-xs text-warm-gray truncate">
-                    {user.role} • {user.organizationName}
-                  </p>
+                  <p className="text-xs text-warm-gray truncate">{user.role}</p>
                 </div>
               </div>
               <Button

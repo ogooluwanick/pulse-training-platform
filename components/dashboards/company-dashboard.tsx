@@ -17,7 +17,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Users, AlertTriangle, UserPlus, Mail, Download, FileText, Shield, Clock } from "lucide-react"
-import type { User } from "@/lib/auth"
+import type { User } from "next-auth"
 
 interface CompanyDashboardProps {
   user: User
@@ -109,7 +109,7 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
         <div className="flex items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-charcoal">Company Dashboard</h1>
-            <p className="text-warm-gray">{user.organizationName} - Compliance Overview</p>
+            <p className="text-warm-gray">Compliance Overview</p>
           </div>
         </div>
         <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>

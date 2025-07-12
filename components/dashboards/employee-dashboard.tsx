@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { BookOpen, Clock, Award, Play, CheckCircle, AlertTriangle, TrendingUp, Users } from "lucide-react"
-import type { User } from "@/lib/auth"
+import type { User } from "next-auth"
 import Link from "next/link"
 
 interface Course {
@@ -107,7 +107,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-charcoal">Welcome back, {user.name.split(" ")[0]}</h1>
+            <h1 className="text-3xl font-bold text-charcoal">Welcome back, {user.name ? user.name.split(" ")[0] : ""}</h1>
             <p className="text-warm-gray">Continue your learning journey</p>
           </div>
         </div>
