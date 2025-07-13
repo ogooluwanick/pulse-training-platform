@@ -1,23 +1,40 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react" // Added useEffect
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
 import Link from "next/link"
+import { useSession } from "next-auth/react" // Import useSession
 
 export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
+  const [role, setRole] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const router = useRouter()
+  const { data: session } = useSession() // Get session data
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (session?.user) {
+      let redirectPath = "/dashboard"; // Default redirect path
+      if (session.user.role === "ADMIN") {
+        redirectPath = "/dashboard/admin";
+      } else if (session.user.role === "COMPANY") {
+        redirectPath = "/dashboard/company"; // Or just /dashboard if company dashboard is the default
+      } else if (session.user.role === "EMPLOYEE") {
+        redirectPath = "/dashboard/employee"; // Or just /dashboard
+      }
+      router.push(redirectPath);
+    }
+  }, [session, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -30,7 +47,6 @@ export default function SignUpPage() {
     const password = formData.get("password") as string
     const confirmPassword = formData.get("confirmPassword") as string
     const name = formData.get("name") as string
-    const role = formData.get("role") as string
     const organizationName = formData.get("organizationName") as string
 
     if (password !== confirmPassword) {
@@ -50,7 +66,8 @@ export default function SignUpPage() {
           lastName: name.split(' ').slice(1).join(' '),
           email,
           password,
-          role,
+          role: 'COMPANY', // Explicitly set role to COMPANY for this signup page
+          organizationName,
         }),
       });
 
@@ -85,8 +102,8 @@ export default function SignUpPage() {
         {/* Sign Up Card */}
         <Card className="bg-parchment border-warm-gray/20 shadow-soft-lg">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl text-charcoal">Create your account</CardTitle>
-            <CardDescription className="text-warm-gray">Fill in your details to get started</CardDescription>
+            <CardTitle className="text-xl text-charcoal">Create your company account</CardTitle>
+            <CardDescription className="text-warm-gray">Fill in your company's details to get started</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {error && (
@@ -130,22 +147,6 @@ export default function SignUpPage() {
                   className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft"
                   required
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-charcoal font-medium">
-                  Role
-                </Label>
-                <Select name="role" required>
-                  <SelectTrigger className="bg-alabaster border-warm-gray/30 focus:border-charcoal">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ADMIN">Administrator</SelectItem>
-                    <SelectItem value="COMPANY">Company Manager</SelectItem>
-                    <SelectItem value="EMPLOYEE">Employee</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               <div className="space-y-2">
@@ -205,7 +206,7 @@ export default function SignUpPage() {
                 />
               </div>
 
-              <Button type="submit" className="btn-primary w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-charcoal text-white hover:bg-charcoal/90" disabled={isLoading}>
                 {isLoading ? "Creating account..." : "Create account"}
               </Button>
             </form>

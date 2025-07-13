@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import { NextAuthProvider } from "@/components/next-auth-provider"
 import "./globals.css"
 import { getServerSession } from "next-auth"
+import { Toaster } from "sonner" // Import Toaster from sonner
 
 const inter = Inter({
   subsets: ["latin"],
@@ -29,6 +30,7 @@ export default async function RootLayout({
         <NextAuthProvider session={session}>
           <div className="min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
             {children}
+          <Toaster richColors={true} />
           </div>
         </NextAuthProvider>
       </body>

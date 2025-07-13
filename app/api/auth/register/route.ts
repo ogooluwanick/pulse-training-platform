@@ -3,17 +3,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { ObjectId } from 'mongodb';
 import clientPromise from "../../../../lib/mongodb";
 import { sendVerificationEmail } from "../../../../lib/email";
 
 export async function POST(req: NextRequest) {
   try {
-    const { firstName, lastName, email, password, role } = await req.json();
+    const { firstName, lastName, email, password, role, organizationName } = await req.json();
 
     // ... validation logic ...
-
+    
     const client = await clientPromise();
-    const usersCollection = client.db().collection("users");
+    const db = client.db();
+    const usersCollection = db.collection("users");
+    const companiesCollection = db.collection("companies");
 
     const existingUser = await usersCollection.findOne({ email });
     if (existingUser) {
@@ -24,18 +27,40 @@ export async function POST(req: NextRequest) {
     const verificationToken = crypto.randomBytes(32).toString("hex");
     const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    const newUser = {
+    let companyId;
+    if (role === 'COMPANY' && organizationName) {
+      const newCompany = {
+        name: organizationName,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const companyResult = await companiesCollection.insertOne(newCompany);
+      companyId = companyResult.insertedId;
+    }
+
+    const newUser: any = {
       firstName,
       lastName,
       email,
       password: hashedPassword,
       role: role || 'submitter',
-      emailVerified: null, 
+      emailVerified: null,
       verificationToken,
       verificationTokenExpires,
     };
 
+    if (companyId) {
+      newUser.companyId = companyId;
+    }
+
     const result = await usersCollection.insertOne(newUser);
+
+    if (companyId) {
+      await companiesCollection.updateOne(
+        { _id: companyId },
+        { $push: { employees: result.insertedId } }
+      );
+    }
 
     await sendVerificationEmail(newUser.email, `${firstName} ${lastName}`, verificationToken);
 

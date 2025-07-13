@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, AlertCircle } from "lucide-react"
 import Link from "next/link"
-import { signIn } from "next-auth/react"
+import { signIn, useSession } from "next-auth/react" // Import useSession
 import { TopMenu } from "@/components/top-menu"
 
 export default function SignInPage() {
@@ -19,6 +19,22 @@ export default function SignInPage() {
   const [error, setError] = useState("")
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { data: session } = useSession() // Get session data
+
+  // Redirect if user is already logged in
+  useEffect(() => {
+    if (session?.user) {
+      let redirectPath = "/dashboard"; // Default redirect path
+      if (session.user.role === "ADMIN") {
+        redirectPath = "/dashboard/admin";
+      } else if (session.user.role === "COMPANY") {
+        redirectPath = "/dashboard/company"; // Or just /dashboard if company dashboard is the default
+      } else if (session.user.role === "EMPLOYEE") {
+        redirectPath = "/dashboard/employee"; // Or just /dashboard
+      }
+      router.push(redirectPath);
+    }
+  }, [session, router])
 
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -51,8 +67,8 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
-      <TopMenu />
+    <div className="min-h-screen" style={{ backgroundColor: "#fcf8f9" }}>
+      {/* <TopMenu /> */}
       <div className="flex items-center justify-center p-4 pt-20">
         <div className="w-full max-w-md space-y-6">
           {/* Logo */}
@@ -140,7 +156,7 @@ export default function SignInPage() {
                   </Link>
                 </div>
 
-                <Button type="submit" className="btn-primary w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full bg-charcoal text-white hover:bg-charcoal/90" disabled={isLoading}>
                   {isLoading ? "Signing in..." : "Sign in"}
                 </Button>
               </form>
@@ -150,29 +166,6 @@ export default function SignInPage() {
                 <Link href="/auth/signup" className="text-charcoal hover:underline font-medium transition-soft">
                   Sign up
                 </Link>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Demo Credentials */}
-          <Card className="bg-alabaster border-warm-gray/20 shadow-soft">
-            <CardContent className="p-4">
-              <div className="space-y-3">
-                <h3 className="font-medium text-charcoal text-center">Demo Credentials</h3>
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-warm-gray">Admin:</span>
-                    <span className="text-charcoal">admin@pulse.com / password123</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-warm-gray">Company:</span>
-                    <span className="text-charcoal">company@example.com / password123</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-warm-gray">Employee:</span>
-                    <span className="text-charcoal">employee@example.com / password123</span>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>

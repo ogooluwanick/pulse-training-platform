@@ -21,6 +21,7 @@ import {
 import { UserPlus, Mail, Search, Edit, Trash2, BookOpen } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
 
+
 interface Employee {
   id: string
   name: string
@@ -202,7 +203,7 @@ export default function TeamManagementPage() {
           </div>
           <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="btn-primary">
+              <Button className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Invite Employees
               </Button>

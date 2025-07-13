@@ -9,6 +9,6 @@ type Props = {
   session: Session | null
 }
 
-export function NextAuthProvider({ children }: Props) {
-  return <>{children}</>
+export function NextAuthProvider({ children, session }: Props) {
+  return <SessionProvider session={session}>{children}</SessionProvider>
 }

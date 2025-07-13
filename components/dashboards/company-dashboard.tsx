@@ -114,7 +114,7 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
         </div>
         <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="btn-primary">
+            <Button className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors">
               <UserPlus className="h-4 w-4 mr-2" />
               Invite Employees
             </Button>
@@ -141,7 +141,7 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
                 />
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleInviteEmployees} className="btn-primary">
+                <Button onClick={handleInviteEmployees} className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors">
                   <Mail className="h-4 w-4 mr-2" />
                   Send Invitations
                 </Button>

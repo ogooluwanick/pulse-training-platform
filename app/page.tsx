@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Users, BarChart3, Award } from "lucide-react"
 import Image from "next/image"
 import { TopMenu } from "@/components/top-menu"
+import AnimatedDiv from "@/components/AnimatedDiv"
 
 export default function LandingPage() {
   return (
@@ -29,14 +30,14 @@ export default function LandingPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="btn-primary shadow-soft-lg">
+                <Button size="lg" className="px-4 py-2 rounded-md border border-charcoal text-charcoal hover:bg-charcoal hover:text-white transition-colors">
                   Request a Demo
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
                   size="lg"
-                  className="border-warm-gray/30 hover:bg-parchment transition-soft bg-transparent"
+                  className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
                 >
                   Watch Overview
                 </Button>
@@ -58,16 +59,17 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative">
-              <div className="relative z-10">
+            <div className="relative h-full flex items-center justify-center">
+              <div className="relative  flex-1 group">
                 <Image
-                  src="/images/hero-illustration.png"
+                  src="/hr-meet.jpg"
                   alt="Corporate training workspace illustration"
                   width={600}
                   height={500}
-                  className="w-full h-auto"
+                  className="w-full h-auto rounded-3xl object-cover shadow-lg relative z-10"
                   priority
                 />
+                <AnimatedDiv className="absolute top-0 left-0 h-full w-full  bg-warm-gray  rounded-3xl"/>
               </div>
               {/* Subtle background decoration */}
               <div className="absolute inset-0 bg-gradient-to-br from-parchment/30 to-transparent rounded-3xl -z-10 transform rotate-3"></div>
