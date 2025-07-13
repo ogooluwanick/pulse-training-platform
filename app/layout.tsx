@@ -5,6 +5,9 @@ import { NextAuthProvider } from "@/components/next-auth-provider"
 import "./globals.css"
 import { getServerSession } from "next-auth"
 import { Toaster } from "sonner" // Import Toaster from sonner
+import { NotificationProvider } from "@/app/contexts/NotificationContext";
+import { NotificationDisplay } from "@/components/notification-display";
+import QueryProvider from "@/components/query-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -28,10 +31,15 @@ export default async function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className={inter.className}>
         <NextAuthProvider session={session}>
-          <div className="min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
-            {children}
-          <Toaster richColors={true} />
-          </div>
+          <QueryProvider>
+            <NotificationProvider>
+              <div className="min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
+                {children}
+              <Toaster richColors={true} />
+              <NotificationDisplay />
+              </div>
+            </NotificationProvider>
+          </QueryProvider>
         </NextAuthProvider>
       </body>
     </html>

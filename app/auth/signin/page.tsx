@@ -19,23 +19,14 @@ export default function SignInPage() {
   const [error, setError] = useState("")
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { data: session } = useSession() // Get session data
+  const { data: session, status } = useSession() // Get session data and status
 
   // Redirect if user is already logged in
   useEffect(() => {
-    if (session?.user) {
-      let redirectPath = "/dashboard"; // Default redirect path
-      if (session.user.role === "ADMIN") {
-        redirectPath = "/dashboard/admin";
-      } else if (session.user.role === "COMPANY") {
-        redirectPath = "/dashboard/company"; // Or just /dashboard if company dashboard is the default
-      } else if (session.user.role === "EMPLOYEE") {
-        redirectPath = "/dashboard/employee"; // Or just /dashboard
-      }
-      router.push(redirectPath);
+    if (status === "authenticated") {
+      router.push("/dashboard")
     }
-  }, [session, router])
-
+  }, [status, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -56,8 +47,8 @@ export default function SignInPage() {
       if (result?.error) {
         setError(result.error)
       } else {
-        const returnUrl = searchParams.get("returnUrl")
-        router.push(returnUrl || "/dashboard")
+        // On successful sign-in, NextAuth will update the session
+        // The useEffect hook will then handle the redirection
       }
     } catch (err) {
       setError("An error occurred during sign in")

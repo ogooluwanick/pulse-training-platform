@@ -1,13 +1,18 @@
 "use client"
 
+import { useState } from "react";
 import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react"; // Import useSession
+import NotificationPanel from "@/components/notification-panel";
+import { useNotificationContext } from "@/app/contexts/NotificationContext";
 
 export function TopMenu() {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
   const user = session?.user; // Assuming session.user contains the user data
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const { unreadNotificationCount } = useNotificationContext();
 
   // Add a check for user existence before accessing properties
   // The conditional rendering below already handles cases where user might be null.
@@ -28,17 +33,15 @@ export function TopMenu() {
           {isAuthenticated ? (
             <>
               {/* Notifications Bell */}
-              <div className="relative cursor-pointer group"> {/* Added group for hover */}
-                {/* Placeholder for notification bell icon */}
-                <Bell />
-                {/* Placeholder for notification count badge */}
-                <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">3</span>
-                {/* Placeholder for dropdown */}
-                <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg py-2 px-3 hidden group-hover:block md:block">
-                  <div className="text-sm font-medium text-gray-900">Notifications</div>
-                  <div className="mt-2 text-xs text-gray-500">No new notifications.</div>
-                </div>
+              <div className="relative cursor-pointer" onClick={() => setIsPanelOpen(true)}>
+                <button className="flex justify-center items-center bg-white rounded-full h-8 w-8 transition hover:bg-charcoal hover:text-white"><Bell size={18} /></button>
+                {unreadNotificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-xs text-white flex items-center justify-center">
+                    {unreadNotificationCount}
+                  </span>
+                )}
               </div>
+              <NotificationPanel isOpen={isPanelOpen} onClose={() => setIsPanelOpen(false)} />
 
               {/* User Info */}
               <div className="flex items-center cursor-pointer">

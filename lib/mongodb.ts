@@ -1,6 +1,9 @@
 import { MongoClient, MongoClientOptions } from "mongodb";
 
-const options: MongoClientOptions = {};
+const options: MongoClientOptions = {
+  tls: true,
+  tlsAllowInvalidCertificates: true,
+};
 
 let client: MongoClient | null = null;
 let clientPromise: Promise<MongoClient> | null = null;

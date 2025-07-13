@@ -162,14 +162,14 @@ export default function LandingPage() {
             learning experiences.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="btn-primary shadow-soft-lg">
+            <Button size="lg" className="border-solid border border-charcoal bg-white hover:border-white hover:bg-charcoal hover:text-white  shadow-soft-lg">
               Request a Demo
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
             <Button
               variant="outline"
               size="lg"
-              className="border-alabaster/30 text-alabaster hover:bg-alabaster/10 transition-soft bg-transparent"
+              className="border-alabaster/30 text-alabaster hover:text-alabaster hover:bg-alabaster/10 transition-soft bg-transparent"
             >
               Start Free Trial
             </Button>
