@@ -1,12 +1,3 @@
-export default function Loading() {
-  return (
-    <div className="flex-1 flex items-center justify-center p-6">
-      <div className="text-center space-y-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-charcoal text-alabaster mx-auto animate-pulse">
-          <span className="text-lg font-bold">P</span>
-        </div>
-        <p className="text-warm-gray">Loading your workspace...</p>
-      </div>
-    </div>
-  );
-}
+import FullPageLoader from "@/components/full-page-loader";
+
+export default FullPageLoader;
