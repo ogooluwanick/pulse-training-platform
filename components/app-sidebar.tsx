@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   X,
+  User,
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 
@@ -78,6 +79,14 @@ const managementItems = [
     title: "Organization",
     url: "/dashboard/organization",
     icon: Building2,
+  },
+]
+
+const accountItems = [
+  {
+    title: "Profile",
+    url: "/dashboard/profile",
+    icon: User,
   },
   {
     title: "Settings",
@@ -153,42 +162,95 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
           </SidebarHeader>
 
           <SidebarContent>
-            {/* Learning Section - All users */}
+            {/* Main Navigation */}
             <SidebarGroup>
-              <SidebarGroupLabel className="text-warm-gray font-medium">Learning</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-warm-gray font-medium">Menu</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {navigationItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild className="hover:bg-alabaster" onClick={onToggle}>
-                        <a href={item.url} className="flex items-center gap-3">
-                          <item.icon className="h-4 w-4" />
-                          <span>{item.title}</span>
-                          {item.badge && (
-                            <Badge variant="secondary" className="ml-auto bg-success-green text-alabaster">
-                              {item.badge}
-                            </Badge>
-                          )}
-                        </a>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  ))}
+                  {/* Dashboard and Employee items */}
+                  {navigationItems.map(item => {
+                    const employeeOnlyItems = [
+                      "My Learning",
+                      "Course Catalog",
+                      "Calendar",
+                      "Discussions",
+                    ]
+                    if (
+                      employeeOnlyItems.includes(item.title) &&
+                      user?.role !== "EMPLOYEE"
+                    ) {
+                      return null
+                    }
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          className="hover:bg-alabaster"
+                          onClick={onToggle}
+                        >
+                          <a
+                            href={item.url}
+                            className="flex items-center gap-3"
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                            {item.badge && (
+                              <Badge
+                                variant="secondary"
+                                className="ml-auto bg-success-green text-alabaster"
+                              >
+                                {item.badge}
+                              </Badge>
+                            )}
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )
+                  })}
+                  {/* Management items for Company and Admin */}
+                  {(user?.role === "COMPANY" || user?.role === "ADMIN") &&
+                    managementItems.map(item => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          className="hover:bg-alabaster"
+                          onClick={onToggle}
+                        >
+                          <a
+                            href={item.url}
+                            className="flex items-center gap-3"
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {/* Management Section - Company & Admin */}
+            {/* Account Section - Company & Admin */}
             {(user?.role === "COMPANY" || user?.role === "ADMIN") && (
               <>
                 <SidebarSeparator className="bg-warm-gray/20" />
                 <SidebarGroup>
-                  <SidebarGroupLabel className="text-warm-gray font-medium">Management</SidebarGroupLabel>
+                  <SidebarGroupLabel className="text-warm-gray font-medium">
+                    Account
+                  </SidebarGroupLabel>
                   <SidebarGroupContent>
                     <SidebarMenu>
-                      {managementItems.map((item) => (
+                      {accountItems.map(item => (
                         <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild className="hover:bg-alabaster" onClick={onToggle}>
-                            <a href={item.url} className="flex items-center gap-3">
+                          <SidebarMenuButton
+                            asChild
+                            className="hover:bg-alabaster"
+                            onClick={onToggle}
+                          >
+                            <a
+                              href={item.url}
+                              className="flex items-center gap-3"
+                            >
                               <item.icon className="h-4 w-4" />
                               <span>{item.title}</span>
                             </a>
@@ -228,12 +290,12 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
 
           <SidebarFooter className="p-4">
             <div className="space-y-3">
-              <div className="flex items-center gap-3 rounded-lg bg-alabaster p-3">
+              <div className="group/profile flex items-center gap-3 rounded-lg bg-alabaster p-3 transition hover:bg-charcoal">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" />
-                  <AvatarFallback className="bg-charcoal text-alabaster">
-                    {user.name
-                      ? user.name
+                  <AvatarImage src={user?.profileImageUrl} />
+                  <AvatarFallback className="border border-alabaster bg-charcoal text-alabaster group-hover/profile:bg-alabaster group-hover/profile:text-charcoal">
+                    {user.firstName
+                      ? `${user.firstName} ${user.lastName}`
                           .split(" ")
                           .map((n) => n[0])
                           .join("")
@@ -241,9 +303,14 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                       : ""}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-charcoal truncate">{user.name}</p>
-                  <p className="text-xs text-warm-gray truncate">{user.role}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="max-w-[180px] truncate text-sm font-medium capitalize text-charcoal group-hover/profile:text-alabaster">
+                    {user.firstName || "User"}
+                  </p>
+                  <span className="-mb-1.5 block max-w-[180px] truncate text-xs capitalize text-gray-700 group-hover/profile:text-gray-400">
+                    {user?.companyName}
+                  </span>
+                  <span className="text-[10px] text-gray-500 group-hover/profile:text-gray-400">{user?.role}</span>
                 </div>
               </div>
               <Button

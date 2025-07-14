@@ -24,8 +24,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Call clientPromise() to get the Promise<MongoClient>, then await it.
-        const client: MongoClient = await clientPromise(); 
-        const usersCollection = client.db().collection("users");
+        const client: MongoClient = await clientPromise();
+        const db = client.db();
+        const usersCollection = db.collection("users");
+        const companiesCollection = db.collection("companies");
         const dbUser = await usersCollection.findOne({ email: credentials.email });
 
         if (!dbUser) {
@@ -77,16 +79,29 @@ export const authOptions: NextAuthOptions = {
           sessionTimeoutInHours = parseInt(dbUser.submitterSettings.security.sessionTimeout, 10);
         }
 
+        let companyName = dbUser.companyName;
+        if (!companyName && dbUser.companyId) {
+          const company = await companiesCollection.findOne({ _id: new ObjectId(dbUser.companyId) });
+          if (company) {
+            companyName = company.name;
+            // Optionally, update the user document to include the company name for future logins
+            await usersCollection.updateOne(
+              { _id: new ObjectId(dbUser._id) },
+              { $set: { companyName: company.name } }
+            );
+          }
+        }
         // Return user object without password
         return {
           id: dbUser._id.toString(),
-          name: dbUser.name, 
+          name: dbUser.name,
           email: dbUser.email,
           role: dbUser.role,
           firstName: dbUser.firstName,
           lastName: dbUser.lastName,
           profileImageUrl: dbUser.profileImageUrl,
-          sessionTimeoutInHours: sessionTimeoutInHours 
+          companyName: companyName,
+          sessionTimeoutInHours: sessionTimeoutInHours
         };
       }
     })
@@ -123,6 +138,7 @@ export const authOptions: NextAuthOptions = {
         token.firstName = (user as any).firstName;
         token.lastName = (user as any).lastName;
         token.profileImageUrl = (user as any).profileImageUrl;
+        token.companyName = (user as any).companyName;
 
         // Set JWT expiration based on user's sessionTimeout setting
         const sessionTimeoutInHours = (user as any).sessionTimeoutInHours || 4; // Default to 4 hours if not set
@@ -138,6 +154,7 @@ export const authOptions: NextAuthOptions = {
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
         session.user.profileImageUrl = token.profileImageUrl as string;
+        session.user.companyName = token.companyName as string;
       }
       return session;
     },

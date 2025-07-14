@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, User } from "lucide-react";
 import Link from "next/link";
 import { useSession } from "next-auth/react"; // Import useSession
 import NotificationPanel from "@/components/notification-panel";
@@ -44,11 +44,19 @@ export function TopMenu() {
               <NotificationPanel isOpen={isPanelOpen} onClose={() => setIsPanelOpen(false)} />
 
               {/* User Info */}
-              <div className="flex items-center cursor-pointer">
-                <img src={user?.image || "/placeholder-user.jpg"} alt="Profile" className="h-8 w-8 rounded-full mr-2" />
+              <div className="flex items-center cursor-pointer group">
+                {
+                  user?.profileImageUrl?
+                    <img src={user?.profileImageUrl} alt="Profile" className="h-8 w-8 rounded-full mr-2" />
+                    :
+                    <div className="h-8 w-8 rounded-full mr-2" >
+                      <button className="flex justify-center items-center bg-white rounded-full h-8 w-8 transition group-hover:bg-charcoal group-hover:text-white"><User size={18} /></button>
+                    </div> 
+                }
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-charcoal">{user?.name || "User"}</span>
-                  {/* Removed company and role display due to TS errors */}
+                  <span className="text-sm font-semibold text-charcoal capitalize truncate max-w-[180px]">{user?.firstName || "User"}</span>
+                  <span className="text-xs text-gray-700 capitalize truncate max-w-[180px]">{user?.companyName}</span>
+                  <span className="text-[10px] text-gray-500">{ user?.role}</span>
                 </div>
               </div>
             </>

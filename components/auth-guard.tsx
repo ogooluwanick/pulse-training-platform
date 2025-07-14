@@ -3,6 +3,7 @@
 import { ReactNode } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
+import FullPageLoader from "./full-page-loader"
 
 interface AuthGuardProps {
   children: ReactNode
@@ -14,7 +15,7 @@ export const AuthGuard = ({ children, allowedRoles }: AuthGuardProps) => {
   const router = useRouter()
 
   if (status === "loading") {
-    return <div>Loading...</div>
+    return <FullPageLoader />
   }
 
   if (!session) {
@@ -23,8 +24,7 @@ export const AuthGuard = ({ children, allowedRoles }: AuthGuardProps) => {
   }
 
   if (allowedRoles && !allowedRoles.some((role) => session.user?.role === role)) {
-    // Optionally redirect to an unauthorized page or show a message
-    router.push("/unauthorized") // Assuming you have an unauthorized page
+    router.push("/dashboard/unauthorized")
     return null
   }
 

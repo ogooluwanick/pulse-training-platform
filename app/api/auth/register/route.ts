@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
 
     if (companyId) {
       newUser.companyId = companyId;
+      newUser.companyName = organizationName;
     }
 
     const result = await usersCollection.insertOne(newUser);
