@@ -85,12 +85,12 @@ const managementItems = [
 const accountItems = [
   {
     title: "Profile",
-    url: "/dashboard/profile",
+    url: "/profile",
     icon: User,
   },
   {
     title: "Settings",
-    url: "/dashboard/settings",
+    url: "/settings",
     icon: Settings,
   },
 ]
