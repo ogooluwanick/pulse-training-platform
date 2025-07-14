@@ -82,6 +82,29 @@ const managementItems = [
   },
 ]
 
+const companyItems = [
+  {
+    title: "Employee Management",
+    url: "/dashboard/employee-management",
+    icon: Users,
+  },
+  {
+    title: "Course Assignment",
+    url: "/dashboard/course-assignment",
+    icon: BookOpen,
+  },
+  {
+    title: "Culture Builder",
+    url: "/dashboard/culture-builder",
+    icon: Building2,
+  },
+  {
+    title: "Reports",
+    url: "/dashboard/reports",
+    icon: BarChart3,
+  },
+]
+
 const accountItems = [
   {
     title: "Profile",
@@ -207,9 +230,28 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                       </SidebarMenuItem>
                     )
                   })}
-                  {/* Management items for Company and Admin */}
-                  {(user?.role === "COMPANY" || user?.role === "ADMIN") &&
+                  {/* Management items for Admin */}
+                  {user?.role === "ADMIN" &&
                     managementItems.map(item => (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          asChild
+                          className="hover:bg-alabaster"
+                          onClick={onToggle}
+                        >
+                          <a
+                            href={item.url}
+                            className="flex items-center gap-3"
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </a>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  {/* Company items */}
+                  {user?.role === "COMPANY" &&
+                    companyItems.map(item => (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
                           asChild
