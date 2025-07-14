@@ -18,7 +18,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Pulse - The Intelligent Workspace",
   description: "Multi-tenant corporate training platform",
-  generator: "v0.dev",
+  icons: {
+    icon: "/pulse-logo.png",
+  },
 }
 
 export default async function RootLayout({
