@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -9,92 +9,75 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ArrowLeft, Play, CheckCircle, Lock, Award, BookOpen } from "lucide-react"
 import Link from "next/link"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Lesson {
-  id: string
+  _id: string
   title: string
-  description: string
-  duration: string
-  type: "video" | "reading" | "quiz"
-  isCompleted: boolean
-  isLocked: boolean
+  type: "text" | "video" | "image"
+  content: string
+}
+
+interface Quiz {
+  _id: string
+  title: string
+  questions: {
+    _id: string
+    question: string
+    options: string[]
+    answer: string
+  }[]
 }
 
 interface Course {
-  id: string
+  _id: string
   title: string
   description: string
-  progress: number
+  category: string
   lessons: Lesson[]
-}
-
-const mockCourse: Course = {
-  id: "1",
-  title: "Data Privacy & GDPR Compliance",
-  description: "Essential training on data protection regulations and best practices",
-  progress: 75,
-  lessons: [
-    {
-      id: "1",
-      title: "Introduction to Data Privacy",
-      description: "Overview of data privacy concepts and importance",
-      duration: "15 min",
-      type: "video",
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: "2",
-      title: "GDPR Fundamentals",
-      description: "Understanding the General Data Protection Regulation",
-      duration: "20 min",
-      type: "reading",
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: "3",
-      title: "Data Subject Rights",
-      description: "Rights of individuals under GDPR",
-      duration: "18 min",
-      type: "video",
-      isCompleted: true,
-      isLocked: false,
-    },
-    {
-      id: "4",
-      title: "Privacy Impact Assessments",
-      description: "When and how to conduct PIAs",
-      duration: "25 min",
-      type: "reading",
-      isCompleted: false,
-      isLocked: false,
-    },
-    {
-      id: "5",
-      title: "Data Breach Response",
-      description: "Procedures for handling data breaches",
-      duration: "22 min",
-      type: "video",
-      isCompleted: false,
-      isLocked: true,
-    },
-    {
-      id: "6",
-      title: "Final Assessment",
-      description: "Test your knowledge of GDPR compliance",
-      duration: "30 min",
-      type: "quiz",
-      isCompleted: false,
-      isLocked: true,
-    },
-  ],
+  quiz?: Quiz
 }
 
 export default function CoursePage() {
   const params = useParams()
   const router = useRouter()
+  const [course, setCourse] = useState<Course | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [showCelebration, setShowCelebration] = useState(false)
+  // Mock progress and completion status for now
+  const [progress, setProgress] = useState(0)
+  const [completedItems, setCompletedItems] = useState<string[]>([])
+
+  useEffect(() => {
+    const fetchCourse = async () => {
+      if (!params.id) return
+      try {
+        const response = await fetch(`/api/course/${params.id}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch course")
+        }
+        const data = await response.json()
+        setCourse(data)
+        // Mock progress calculation
+        const totalItems = data.lessons.length + (data.quiz ? 1 : 0)
+        const completedCount = Math.floor(Math.random() * totalItems) // Mock completed count
+        setCompletedItems(
+          [...data.lessons, data.quiz]
+            .filter(Boolean)
+            .slice(0, completedCount)
+            .map((item) => item._id)
+        )
+        setProgress(Math.round((completedCount / totalItems) * 100))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCourse()
+  }, [params.id])
 
   const handleLessonComplete = (lessonId: string) => {
     // Handle lesson completion logic
@@ -102,11 +85,12 @@ export default function CoursePage() {
     setTimeout(() => setShowCelebration(false), 3000)
   }
 
-  const getTypeIcon = (type: Lesson["type"]) => {
+  const getTypeIcon = (type: Lesson["type"] | "quiz") => {
     switch (type) {
       case "video":
         return <Play className="h-4 w-4" />
-      case "reading":
+      case "text":
+      case "image":
         return <BookOpen className="h-4 w-4" />
       case "quiz":
         return <Award className="h-4 w-4" />
@@ -115,11 +99,12 @@ export default function CoursePage() {
     }
   }
 
-  const getTypeColor = (type: Lesson["type"]) => {
+  const getTypeColor = (type: Lesson["type"] | "quiz") => {
     switch (type) {
       case "video":
         return "bg-charcoal text-alabaster"
-      case "reading":
+      case "text":
+      case "image":
         return "bg-success-green text-alabaster"
       case "quiz":
         return "bg-warning-ochre text-alabaster"
@@ -127,6 +112,42 @@ export default function CoursePage() {
         return "bg-warm-gray text-alabaster"
     }
   }
+
+  if (loading) {
+    return (
+      <div className="flex-1 space-y-6 p-6" style={{ backgroundColor: "#f5f4ed" }}>
+        <Skeleton className="h-10 w-1/4" />
+        <Skeleton className="h-24 w-full" />
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 space-y-6 p-6 text-center text-warning-ochre" style={{ backgroundColor: "#f5f4ed" }}>
+        <h1 className="text-2xl">Error: {error}</h1>
+      </div>
+    )
+  }
+
+  if (!course) {
+    return (
+      <div className="flex-1 space-y-6 p-6 text-center" style={{ backgroundColor: "#f5f4ed" }}>
+        <h1 className="text-2xl">Course not found.</h1>
+      </div>
+    )
+  }
+
+  const totalItems = course.lessons.length + (course.quiz ? 1 : 0)
+  const isCompleted = (itemId: string) => completedItems.includes(itemId)
+  // For now, we'll say nothing is locked.
+  const isLocked = (itemId: string, index: number) => false
 
   return (
     <div className="flex-1 space-y-6 p-6" style={{ backgroundColor: "#f5f4ed" }}>
@@ -139,8 +160,8 @@ export default function CoursePage() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-charcoal">{mockCourse.title}</h1>
-          <p className="text-warm-gray">{mockCourse.description}</p>
+          <h1 className="text-3xl font-bold text-charcoal">{course.title}</h1>
+          <p className="text-warm-gray">{course.description}</p>
         </div>
       </div>
 
@@ -151,18 +172,17 @@ export default function CoursePage() {
             <div>
               <CardTitle className="text-charcoal">Course Progress</CardTitle>
               <CardDescription className="text-warm-gray">
-                {mockCourse.lessons.filter((l) => l.isCompleted).length} of {mockCourse.lessons.length} lessons
-                completed
+                {completedItems.length} of {totalItems} items completed
               </CardDescription>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-charcoal">{mockCourse.progress}%</div>
+              <div className="text-2xl font-bold text-charcoal">{progress}%</div>
               <p className="text-sm text-warm-gray">Complete</p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Progress value={mockCourse.progress} className="h-3" />
+          <Progress value={progress} className="h-3" />
         </CardContent>
       </Card>
 
@@ -170,11 +190,11 @@ export default function CoursePage() {
       <div className="space-y-4">
         <h2 className="text-2xl font-bold text-charcoal">Course Content</h2>
         <div className="space-y-3">
-          {mockCourse.lessons.map((lesson, index) => (
+          {course.lessons.map((lesson, index) => (
             <Card
-              key={lesson.id}
+              key={lesson._id}
               className={`bg-card border-warm-gray/20 transition-soft ${
-                lesson.isLocked ? "opacity-60" : "hover:shadow-soft-lg cursor-pointer"
+                isLocked(lesson._id, index) ? "opacity-60" : "hover:shadow-soft-lg cursor-pointer"
               }`}
             >
               <CardContent className="p-4">
@@ -183,11 +203,11 @@ export default function CoursePage() {
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-parchment text-sm font-medium text-charcoal">
                       {index + 1}
                     </div>
-                    {lesson.isCompleted ? (
+                    {isCompleted(lesson._id) ? (
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success-green">
                         <CheckCircle className="h-4 w-4 text-alabaster" />
                       </div>
-                    ) : lesson.isLocked ? (
+                    ) : isLocked(lesson._id, index) ? (
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-warm-gray">
                         <Lock className="h-4 w-4 text-alabaster" />
                       </div>
@@ -202,12 +222,11 @@ export default function CoursePage() {
                         <span className="ml-1 capitalize">{lesson.type}</span>
                       </Badge>
                     </div>
-                    <p className="text-sm text-warm-gray">{lesson.description}</p>
-                    <p className="text-xs text-warm-gray mt-1">{lesson.duration}</p>
+                    {/* <p className="text-sm text-warm-gray">{lesson.content}</p> */}
                   </div>
 
                   <div className="flex gap-2">
-                    {lesson.isCompleted ? (
+                    {isCompleted(lesson._id) ? (
                       <Button
                         variant="outline"
                         size="sm"
@@ -216,13 +235,13 @@ export default function CoursePage() {
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Completed
                       </Button>
-                    ) : lesson.isLocked ? (
+                    ) : isLocked(lesson._id, index) ? (
                       <Button variant="outline" size="sm" disabled className="bg-transparent">
                         <Lock className="h-4 w-4 mr-2" />
                         Locked
                       </Button>
                     ) : (
-                      <Link href={`/dashboard/course/${params.id}/lesson/${lesson.id}`}>
+                      <Link href={`/dashboard/course/${params.id}/lesson/${lesson._id}`}>
                         <Button size="sm" className="bg-charcoal hover:bg-charcoal/90 text-alabaster">
                           <Play className="h-4 w-4 mr-2" />
                           Start
@@ -234,6 +253,70 @@ export default function CoursePage() {
               </CardContent>
             </Card>
           ))}
+          {course.quiz && (
+            <Card
+              key={course.quiz._id}
+              className={`bg-card border-warm-gray/20 transition-soft ${
+                isLocked(course.quiz._id, course.lessons.length)
+                  ? "opacity-60"
+                  : "hover:shadow-soft-lg cursor-pointer"
+              }`}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-parchment text-sm font-medium text-charcoal">
+                      {course.lessons.length + 1}
+                    </div>
+                    {isCompleted(course.quiz._id) ? (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-success-green">
+                        <CheckCircle className="h-4 w-4 text-alabaster" />
+                      </div>
+                    ) : isLocked(course.quiz._id, course.lessons.length) ? (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-warm-gray">
+                        <Lock className="h-4 w-4 text-alabaster" />
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-charcoal">{course.quiz.title}</h3>
+                      <Badge className={getTypeColor("quiz")} variant="secondary">
+                        {getTypeIcon("quiz")}
+                        <span className="ml-1 capitalize">Quiz</span>
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    {isCompleted(course.quiz._id) ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-transparent border-success-green text-success-green"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Completed
+                      </Button>
+                    ) : isLocked(course.quiz._id, course.lessons.length) ? (
+                      <Button variant="outline" size="sm" disabled className="bg-transparent">
+                        <Lock className="h-4 w-4 mr-2" />
+                        Locked
+                      </Button>
+                    ) : (
+                      <Link href={`/dashboard/course/${params.id}/quiz/${course.quiz._id}`}>
+                        <Button size="sm" className="bg-charcoal hover:bg-charcoal/90 text-alabaster">
+                          <Play className="h-4 w-4 mr-2" />
+                          Start Quiz
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
