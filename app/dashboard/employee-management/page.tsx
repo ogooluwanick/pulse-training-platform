@@ -1,63 +1,155 @@
-"use client"
+'use client';
 
-import { useQuery } from "@tanstack/react-query"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import FullPageLoader from "@/components/full-page-loader"
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import FullPageLoader from '@/components/full-page-loader';
+import EditEmployeeModal from '@/components/edit-employee-modal';
+import AssignCourseModal from '@/components/assign-course-modal';
 
 interface Employee {
-  id: string
-  name: string
-  email: string
-  role: string
-  department: string
-  overallProgress: number
-  coursesAssigned: number
-  coursesCompleted: number
-  lastActivity: string
-  status: "on-track" | "at-risk" | "overdue"
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  overallProgress: number;
+  coursesAssigned: number;
+  coursesCompleted: number;
+  lastActivity: string;
+  status: 'on-track' | 'at-risk' | 'overdue';
 }
+
+const updateEmployee = async (employee: Employee): Promise<Employee> => {
+  const res = await fetch(`/api/company/employees/${employee.id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(employee),
+  });
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+};
+
+const assignCourses = async ({
+  employeeId,
+  courseIds,
+}: {
+  employeeId: string;
+  courseIds: string[];
+}) => {
+  const res = await fetch(
+    `/api/company/employees/${employeeId}/assign-courses`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ courseIds }),
+    }
+  );
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+};
 
 const fetchEmployees = async (): Promise<Employee[]> => {
-  const res = await fetch("/api/company/employees")
+  const res = await fetch('/api/company/employees');
   if (!res.ok) {
-    throw new Error("Network response was not ok")
+    throw new Error('Network response was not ok');
   }
-  return res.json()
-}
+  return res.json();
+};
 
-const getStatusColor = (status: Employee["status"]) => {
+const getStatusColor = (status: Employee['status']) => {
   switch (status) {
-    case "on-track":
-      return "bg-success-green text-alabaster hover:bg-success-green/90"
-    case "at-risk":
-      return "bg-warning-ochre text-alabaster hover:bg-warning-ochre/90"
-    case "overdue":
-      return "bg-error-red text-alabaster hover:bg-error-red/90"
+    case 'on-track':
+      return 'bg-success-green text-alabaster hover:bg-success-green/90';
+    case 'at-risk':
+      return 'bg-warning-ochre text-alabaster hover:bg-warning-ochre/90';
+    case 'overdue':
+      return 'bg-red-500 text-alabaster hover:bg-red-500/90';
     default:
-      return "bg-warm-gray text-alabaster hover:bg-warm-gray/90"
+      return 'bg-warm-gray text-alabaster hover:bg-warm-gray/90';
   }
-}
+};
 
 export default function EmployeeManagementPage() {
+  const queryClient = useQueryClient();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
+    null
+  );
+
   const {
     data: employees,
     isLoading,
     error,
   } = useQuery<Employee[]>({
-    queryKey: ["employees"],
+    queryKey: ['employees'],
     queryFn: fetchEmployees,
-  })
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: updateEmployee,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      setIsEditModalOpen(false);
+    },
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: assignCourses,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      setIsAssignModalOpen(false);
+    },
+  });
+
+  const handleEditClick = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSave = (employee: Employee) => {
+    updateMutation.mutate(employee);
+  };
+
+  const handleAssignClick = (employee: Employee) => {
+    setSelectedEmployee(employee);
+    setIsAssignModalOpen(true);
+  };
+
+  const handleAssign = (courseIds: string[]) => {
+    if (selectedEmployee) {
+      assignMutation.mutate({ employeeId: selectedEmployee.id, courseIds });
+    }
+  };
 
   if (isLoading) {
-    return <FullPageLoader />
+    return <FullPageLoader />;
   }
 
   if (error) {
     return (
-      <div className="flex-1 space-y-6 p-6 min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
+      <div
+        className="flex-1 space-y-6 p-6 min-h-screen"
+        style={{ backgroundColor: '#f5f4ed' }}
+      >
         <Card className="bg-card border-warm-gray/20">
           <CardHeader>
             <CardTitle className="text-charcoal">Employee Management</CardTitle>
@@ -70,11 +162,14 @@ export default function EmployeeManagementPage() {
           </CardContent>
         </Card>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="flex-1 space-y-6 p-6 min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
+    <div
+      className="flex-1 space-y-6 p-6 min-h-screen"
+      style={{ backgroundColor: '#f5f4ed' }}
+    >
       <Card className="bg-card border-warm-gray/20">
         <CardHeader>
           <CardTitle className="text-charcoal">Employee Management</CardTitle>
@@ -91,37 +186,62 @@ export default function EmployeeManagementPage() {
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="font-medium text-charcoal">{employee.name||"-"}</p>
-                    <p className="text-sm text-warm-gray">{employee.email}</p>
+                    <p className="font-medium text-charcoal truncate">
+                      {employee.name || '-'}
+                    </p>
+                    <p className="text-sm text-warm-gray truncate">
+                      {employee.email}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-warm-gray">Department</p>
-                    <p className="text-sm text-charcoal">{employee.department}</p>
+                    <p className="text-sm text-charcoal">
+                      {employee.department}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-warm-gray">Progress</p>
                     <div className="flex items-center gap-2">
                       <Progress
-                        value={employee.overallProgress === 0 ? 1 : employee.overallProgress}
+                        value={
+                          employee.overallProgress === 0
+                            ? 1
+                            : employee.overallProgress
+                        }
                         className="flex-1 h-2"
                       />
-                      <span className="text-sm text-charcoal">{employee.overallProgress}%</span>
+                      <span className="text-sm text-charcoal">
+                        {employee.overallProgress}%
+                      </span>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm text-warm-gray">Status</p>
-                    <Badge className={getStatusColor(employee.status)} variant="secondary">
-                      {employee.status === "on-track" && "On Track"}
-                      {employee.status === "at-risk" && "At Risk"}
-                      {employee.status === "overdue" && "Overdue"}
+                    <Badge
+                      className={getStatusColor(employee.status)}
+                      variant="secondary"
+                    >
+                      {employee.status === 'on-track' && 'On Track'}
+                      {employee.status === 'at-risk' && 'At Risk'}
+                      {employee.status === 'overdue' && 'Overdue'}
                     </Badge>
                   </div>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="bg-transparent border-warm-gray/30">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                    onClick={() => handleEditClick(employee)}
+                  >
                     Edit
                   </Button>
-                  <Button variant="outline" size="sm" className="bg-transparent border-warm-gray/30">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-transparent border-warm-gray/30"
+                    onClick={() => handleAssignClick(employee)}
+                  >
                     Assign
                   </Button>
                 </div>
@@ -130,6 +250,18 @@ export default function EmployeeManagementPage() {
           </div>
         </CardContent>
       </Card>
+      <EditEmployeeModal
+        employee={selectedEmployee}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleSave}
+      />
+      <AssignCourseModal
+        employee={selectedEmployee}
+        isOpen={isAssignModalOpen}
+        onClose={() => setIsAssignModalOpen(false)}
+        onAssign={handleAssign}
+      />
     </div>
-  )
+  );
 }
