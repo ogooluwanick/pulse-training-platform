@@ -1,58 +1,57 @@
-"use client"
+'use client';
 
-import type React from "react"
-import { useState, useEffect } from "react" // Added useEffect
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react"
-import Link from "next/link"
-import { useSession } from "next-auth/react" // Import useSession
+import type React from 'react';
+import { useState, useEffect } from 'react'; // Added useEffect
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useSession } from 'next-auth/react'; // Import useSession
 
 export default function SignUpPage() {
-  const [showPassword, setShowPassword] = useState(false)
-  const [role, setRole] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const router = useRouter()
-  const { data: session } = useSession() // Get session data
+  const [showPassword, setShowPassword] = useState(false);
+  const [role, setRole] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const router = useRouter();
+  const { data: session } = useSession(); // Get session data
 
   // Redirect if user is already logged in
   useEffect(() => {
     if (session?.user) {
-      let redirectPath = "/dashboard"; // Default redirect path
-      if (session.user.role === "ADMIN") {
-        redirectPath = "/dashboard/admin";
-      } else if (session.user.role === "COMPANY") {
-        redirectPath = "/dashboard/company"; // Or just /dashboard if company dashboard is the default
-      } else if (session.user.role === "EMPLOYEE") {
-        redirectPath = "/dashboard/employee"; // Or just /dashboard
-      }
+      let redirectPath = '/dashboard'; // Default redirect path
       router.push(redirectPath);
     }
-  }, [session, router])
+  }, [session, router]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-    setSuccess("")
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
 
-    const formData = new FormData(e.currentTarget)
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-    const confirmPassword = formData.get("confirmPassword") as string
-    const name = formData.get("name") as string
-    const organizationName = formData.get("organizationName") as string
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get('email') as string;
+    const password = formData.get('password') as string;
+    const confirmPassword = formData.get('confirmPassword') as string;
+    const name = formData.get('name') as string;
+    const organizationName = formData.get('organizationName') as string;
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match")
-      setIsLoading(false)
-      return
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
     }
 
     try {
@@ -83,10 +82,13 @@ export default function SignUpPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: "#fcf8f9" }}>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ backgroundColor: '#fcf8f9' }}
+    >
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center space-y-2">
@@ -96,27 +98,37 @@ export default function SignUpPage() {
             </div>
           </div>
           <h1 className="text-2xl font-bold text-charcoal">Join Pulse</h1>
-          <p className="text-warm-gray">Create your intelligent workspace account</p>
+          <p className="text-warm-gray">
+            Create your intelligent workspace account
+          </p>
         </div>
 
         {/* Sign Up Card */}
         <Card className="bg-parchment border-warm-gray/20 shadow-soft-lg">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl text-charcoal">Create your company account</CardTitle>
-            <CardDescription className="text-warm-gray">Fill in your company's details to get started</CardDescription>
+            <CardTitle className="text-xl text-charcoal">
+              Create your company account
+            </CardTitle>
+            <CardDescription className="text-warm-gray">
+              Fill in your company's details to get started
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {error && (
               <Alert className="border-warning-ochre/20 bg-warning-ochre/10">
                 <AlertCircle className="h-4 w-4 text-warning-ochre" />
-                <AlertDescription className="text-warning-ochre">{error}</AlertDescription>
+                <AlertDescription className="text-warning-ochre">
+                  {error}
+                </AlertDescription>
               </Alert>
             )}
 
             {success && (
               <Alert className="border-success-green/20 bg-success-green/10">
                 <CheckCircle className="h-4 w-4 text-success-green" />
-                <AlertDescription className="text-success-green">{success}</AlertDescription>
+                <AlertDescription className="text-success-green">
+                  {success}
+                </AlertDescription>
               </Alert>
             )}
 
@@ -150,7 +162,10 @@ export default function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="organizationName" className="text-charcoal font-medium">
+                <Label
+                  htmlFor="organizationName"
+                  className="text-charcoal font-medium"
+                >
                   Organization Name
                 </Label>
                 <Input
@@ -171,7 +186,7 @@ export default function SignUpPage() {
                   <Input
                     id="password"
                     name="password"
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="Create a password"
                     className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft pr-10"
                     required
@@ -193,7 +208,10 @@ export default function SignUpPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-charcoal font-medium">
+                <Label
+                  htmlFor="confirmPassword"
+                  className="text-charcoal font-medium"
+                >
                   Confirm Password
                 </Label>
                 <Input
@@ -206,14 +224,21 @@ export default function SignUpPage() {
                 />
               </div>
 
-              <Button type="submit" className="w-full bg-charcoal text-white hover:bg-charcoal/90" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Create account"}
+              <Button
+                type="submit"
+                className="w-full bg-charcoal text-white hover:bg-charcoal/90"
+                disabled={isLoading}
+              >
+                {isLoading ? 'Creating account...' : 'Create account'}
               </Button>
             </form>
 
             <div className="text-center text-sm text-warm-gray">
-              Already have an account?{" "}
-              <Link href="/auth/signin" className="text-charcoal hover:underline font-medium transition-soft">
+              Already have an account?{' '}
+              <Link
+                href="/auth/signin"
+                className="text-charcoal hover:underline font-medium transition-soft"
+              >
                 Sign in
               </Link>
             </div>
@@ -221,5 +246,5 @@ export default function SignUpPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

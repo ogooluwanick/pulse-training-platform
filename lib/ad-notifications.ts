@@ -35,15 +35,15 @@ export async function sendAdReviewNotifications(params: NotificationParams) {
 
     emailSubject = `Ad Approved: "${title}"`;
     emailText = `Hi,\n\nYour ad titled "${title}" (ID: ${adId}) has been approved.\n\Thank you for complying!`;
-    emailHtmlContent = `<p>Hi,</p><p>Your ad titled "<strong>${title}</strong>" (ID: ${adId}) has been approved.</p><p>Thank you for complying with AdScreener!</p>`;
+    emailHtmlContent = `<p>Hi,</p><p>Your ad titled "<strong>${title}</strong>" (ID: ${adId}) has been approved.</p><p>Thank you for complying with Pulse!</p>`;
   } else { // 'rejected'
     submitterNotificationTitle = 'Your Ad Has Been Rejected';
     submitterNotificationMessage = `Unfortunately, your ad "${title}" (ID: ${adId}) has been rejected. Reason: ${rejectionReason}`;
     submitterNotificationLevel = 'error';
 
     emailSubject = `Ad Rejected: "${title}"`;
-    emailText = `Hi,\n\nYour ad titled "${title}" (ID: ${adId}) has been rejected.\nReason: ${rejectionReason}\n\nPlease review the feedback and make necessary changes if you wish to resubmit.\n\nAdScreener Team`;
-    emailHtmlContent = `<p>Hi,</p><p>Your ad titled "<strong>${title}</strong>" (ID: ${adId}) has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason}</p><p>Please review the feedback and resubmit if applicable.</p><p>AdScreener Team</p>`;
+    emailText = `Hi,\n\nYour ad titled "${title}" (ID: ${adId}) has been rejected.\nReason: ${rejectionReason}\n\nPlease review the feedback and make necessary changes if you wish to resubmit.\n\nPulse Team`;
+    emailHtmlContent = `<p>Hi,</p><p>Your ad titled "<strong>${title}</strong>" (ID: ${adId}) has been rejected.</p><p><strong>Reason:</strong> ${rejectionReason}</p><p>Please review the feedback and resubmit if applicable.</p><p>Pulse Team</p>`;
   }
 
   // 1. In-App Notification to Submitter

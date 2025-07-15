@@ -9,6 +9,8 @@ import FullPageLoader from "@/components/full-page-loader"
 export default function Dashboard() {
   const { data: session, status } = useSession()
 
+  console.log("Session data:", session)
+
   const user = session?.user
 
   if (status === "loading" || !user) {
@@ -24,6 +26,6 @@ export default function Dashboard() {
     case "ADMIN":
       return <AdminDashboard user={user} />
     default:
-      return <EmployeeDashboard user={user} />
+      return <FullPageLoader />
   }
 }

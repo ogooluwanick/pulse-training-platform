@@ -101,10 +101,11 @@ export const authOptions: NextAuthOptions = {
           lastName: dbUser.lastName,
           profileImageUrl: dbUser.profileImageUrl,
           companyName: companyName,
-          sessionTimeoutInHours: sessionTimeoutInHours
+          companyId: dbUser.companyId ? dbUser.companyId.toString() : null,
+          sessionTimeoutInHours: sessionTimeoutInHours,
         };
-      }
-    })
+      },
+    }),
   ],
   session: {
     strategy: "jwt",
@@ -113,7 +114,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
   },
   pages: {
-    signIn: '/login',
+    signIn: "/login",
     // signOut: '/auth/signout', // Optional: Custom signout page
     // error: '/auth/error', // Optional: Custom error page
     // verifyRequest: '/auth/verify-request', // Optional: Custom verify request page (for email provider)
@@ -124,39 +125,42 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       // Update lastOnline on every JWT refresh (user activity)
       if (token.id) {
-        const client: MongoClient = await clientPromise();
-        const usersCollection = client.db().collection("users");
+        const client: MongoClient = await clientPromise()
+        const usersCollection = client.db().collection("users")
         await usersCollection.updateOne(
           { _id: new ObjectId(token.id as string) },
           { $set: { lastOnline: new Date() } }
-        );
+        )
       }
 
       if (user) {
-        token.id = user.id;
-        token.role = (user as any).role;
-        token.firstName = (user as any).firstName;
-        token.lastName = (user as any).lastName;
-        token.profileImageUrl = (user as any).profileImageUrl;
-        token.companyName = (user as any).companyName;
+        token.id = user.id
+        token.role = (user as any).role
+        token.firstName = (user as any).firstName
+        token.lastName = (user as any).lastName
+        token.profileImageUrl = (user as any).profileImageUrl
+        token.companyName = (user as any).companyName
+        token.companyId = (user as any).companyId
 
         // Set JWT expiration based on user's sessionTimeout setting
-        const sessionTimeoutInHours = (user as any).sessionTimeoutInHours || 4; // Default to 4 hours if not set
-        const sessionTimeoutInSeconds = sessionTimeoutInHours * 60 * 60;
-        token.exp = Math.floor(Date.now() / 1000) + sessionTimeoutInSeconds;
+        const sessionTimeoutInHours =
+          (user as any).sessionTimeoutInHours || 4 // Default to 4 hours if not set
+        const sessionTimeoutInSeconds = sessionTimeoutInHours * 60 * 60
+        token.exp = Math.floor(Date.now() / 1000) + sessionTimeoutInSeconds
       }
-      return token;
+      return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as string; // Add role to session
-        session.user.firstName = token.firstName as string;
-        session.user.lastName = token.lastName as string;
-        session.user.profileImageUrl = token.profileImageUrl as string;
-        session.user.companyName = token.companyName as string;
+        session.user.id = token.id as string
+        session.user.role = token.role as string // Add role to session
+        session.user.firstName = token.firstName as string
+        session.user.lastName = token.lastName as string
+        session.user.profileImageUrl = token.profileImageUrl as string
+        session.user.companyName = token.companyName as string
+        session.user.companyId = token.companyId as string
       }
-      return session;
+      return session
     },
   },
   // debug: process.env.NODE_ENV === 'development', // Optional: Enable debug messages

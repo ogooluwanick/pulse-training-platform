@@ -10,6 +10,7 @@ declare module "next-auth" {
       lastName: string;
       profileImageUrl: string;
       companyName?: string;
+      companyId?: string;
     } & DefaultSession["user"];
   }
 
@@ -19,6 +20,7 @@ declare module "next-auth" {
     lastName: string;
     profileImageUrl: string;
     companyName?: string;
+    companyId?: string;
   }
 }
 
