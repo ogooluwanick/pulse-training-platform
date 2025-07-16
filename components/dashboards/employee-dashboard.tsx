@@ -31,6 +31,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [activeFilter, setActiveFilter] = useState<"all" | "in-progress" | "completed">("all")
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -80,6 +81,16 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
   const inProgressCourses = courses.filter((course) => course.status === "in-progress")
   const completedCourses = courses.filter((course) => course.status === "completed")
   const timeInvested = courses.reduce((acc, course) => acc + course.duration, 0)
+
+  const filteredCourses = courses.filter(course => {
+    if (activeFilter === "in-progress") {
+      return course.status === "in-progress"
+    }
+    if (activeFilter === "completed") {
+      return course.status === "completed"
+    }
+    return true
+  })
 
   return (
     <div
@@ -191,21 +202,24 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="bg-transparent border-warm-gray/30"
+              className={activeFilter === 'all' ? 'bg-charcoal text-white' : 'bg-transparent border-warm-gray/30'}
+              onClick={() => setActiveFilter('all')}
             >
               All Courses
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="bg-transparent border-warm-gray/30"
+              className={activeFilter === 'in-progress' ? 'bg-charcoal text-white' : 'bg-transparent border-warm-gray/30'}
+              onClick={() => setActiveFilter('in-progress')}
             >
               In Progress
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="bg-transparent border-warm-gray/30"
+              className={activeFilter === 'completed' ? 'bg-charcoal text-white' : 'bg-transparent border-warm-gray/30'}
+              onClick={() => setActiveFilter('completed')}
             >
               Completed
             </Button>
@@ -221,27 +235,27 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
               >
                 <CardHeader className="space-y-4">
                   <div className="flex items-start justify-between">
-                    <Skeleton className="h-12 w-12 rounded-lg" />
-                    <Skeleton className="h-6 w-24 rounded-full" />
+                    <Skeleton className="h-12 w-12 rounded-lg bg-gray-300" />
+                    <Skeleton className="h-6 w-24 rounded-full bg-gray-300" />
                   </div>
                   <div>
-                    <Skeleton className="h-6 w-3/4" />
-                    <Skeleton className="h-4 w-full mt-2" />
+                    <Skeleton className="h-6 w-3/4 bg-gray-300" />
+                    <Skeleton className="h-4 w-full mt-2 bg-gray-300" />
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Skeleton className="h-4 w-1/4" />
-                      <Skeleton className="h-4 w-1/4" />
+                      <Skeleton className="h-4 w-1/4 bg-gray-300" />
+                      <Skeleton className="h-4 w-1/4 bg-gray-300" />
                     </div>
-                    <Skeleton className="h-2 w-full" />
+                    <Skeleton className="h-2 w-full bg-gray-300" />
                     <div className="flex items-center justify-between">
-                      <Skeleton className="h-3 w-1/3" />
-                      <Skeleton className="h-3 w-1/4" />
+                      <Skeleton className="h-3 w-1/3 bg-gray-300" />
+                      <Skeleton className="h-3 w-1/4 bg-gray-300" />
                     </div>
                   </div>
-                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full bg-gray-300" />
                 </CardContent>
               </Card>
             ))
@@ -250,8 +264,8 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
               <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
               <p>Error loading courses: {error}</p>
             </div>
-          ) : (
-            courses.map((course) => (
+          ) : filteredCourses.length > 0 ? (
+            filteredCourses.map((course) => (
               <Card
                 key={course.id}
                 className="bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft cursor-pointer group"
@@ -341,6 +355,11 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                 </CardContent>
               </Card>
             ))
+          ) : (
+            <div className="col-span-full text-center text-warm-gray min-h-[200px] flex flex-col items-center justify-center">
+              <BookOpen className="h-8 w-8 mx-auto mb-2" />
+              <p>No courses to display in this category.</p>
+            </div>
           )}
         </div>
       </div>

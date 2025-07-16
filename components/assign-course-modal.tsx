@@ -69,7 +69,8 @@ export default function AssignCourseModal({
       <DialogContent className="bg-parchment border-warm-gray/20 shadow-xl max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl text-charcoal">
-            Assign Courses to {employee?.name}
+            Assign Courses to{' '}
+            <span className="capitalize">{employee?.name}</span>
           </DialogTitle>
           <DialogDescription className="text-warm-gray">
             Select the courses you want to assign to this employee.

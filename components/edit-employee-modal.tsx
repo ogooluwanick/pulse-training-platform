@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 import {
   Dialog,
@@ -7,30 +7,30 @@ import {
   DialogTitle,
   DialogFooter,
   DialogDescription,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useState, useEffect } from "react"
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useState, useEffect } from 'react';
 
 interface Employee {
-  id: string
-  name: string
-  email: string
-  role: string
-  department: string
-  overallProgress: number
-  coursesAssigned: number
-  coursesCompleted: number
-  lastActivity: string
-  status: "on-track" | "at-risk" | "overdue"
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  department: string;
+  overallProgress: number;
+  coursesAssigned: number;
+  coursesCompleted: number;
+  lastActivity: string;
+  status: 'on-track' | 'at-risk' | 'overdue';
 }
 
 interface EditEmployeeModalProps {
-  employee: Employee | null
-  isOpen: boolean
-  onClose: () => void
-  onSave: (employee: Employee) => void
+  employee: Employee | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (employee: Employee) => void;
 }
 
 export default function EditEmployeeModal({
@@ -39,23 +39,23 @@ export default function EditEmployeeModal({
   onClose,
   onSave,
 }: EditEmployeeModalProps) {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [department, setDepartment] = useState("")
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [department, setDepartment] = useState('');
 
   useEffect(() => {
     if (employee) {
-      setName(employee.name)
-      setEmail(employee.email)
-      setDepartment(employee.department)
+      setName(employee.name);
+      setEmail(employee.email);
+      setDepartment(employee.department);
     }
-  }, [employee])
+  }, [employee]);
 
   const handleSave = () => {
     if (employee) {
-      onSave({ ...employee, name, email, department })
+      onSave({ ...employee, name, email, department });
     }
-  }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -65,7 +65,8 @@ export default function EditEmployeeModal({
             Edit Employee
           </DialogTitle>
           <DialogDescription className="text-warm-gray">
-            Update the details for {employee?.name}.
+            Update the details for{' '}
+            <span className="capitalize">{employee?.name}.</span>
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-6 py-2 px-1">
@@ -108,7 +109,10 @@ export default function EditEmployeeModal({
           </div>
         </div>
         <DialogFooter className="flex flex-row-reverse gap-2 pt-4">
-          <Button onClick={handleSave} className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors">
+          <Button
+            onClick={handleSave}
+            className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+          >
             Save Changes
           </Button>
           <Button
@@ -121,5 +125,5 @@ export default function EditEmployeeModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

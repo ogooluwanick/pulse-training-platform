@@ -186,7 +186,7 @@ export default function EmployeeManagementPage() {
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="font-medium text-charcoal truncate">
+                    <p className="font-medium text-charcoal truncate capitalize">
                       {employee.name || '-'}
                     </p>
                     <p className="text-sm text-warm-gray truncate">
