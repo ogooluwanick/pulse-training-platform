@@ -15,6 +15,13 @@ import { Button } from '@/components/ui/button';
 import FullPageLoader from '@/components/full-page-loader';
 import EditEmployeeModal from '@/components/edit-employee-modal';
 import AssignCourseModal from '@/components/assign-course-modal';
+import MassAssignCourseModal from '@/components/mass-assign-course-modal';
+
+interface AssignmentDetails {
+  courseId: string;
+  type: 'one-time' | 'interval';
+  interval?: 'daily' | 'monthly' | 'yearly';
+}
 
 interface Employee {
   id: string;
@@ -45,10 +52,10 @@ const updateEmployee = async (employee: Employee): Promise<Employee> => {
 
 const assignCourses = async ({
   employeeId,
-  courseIds,
+  assignments,
 }: {
   employeeId: string;
-  courseIds: string[];
+  assignments: AssignmentDetails[];
 }) => {
   const res = await fetch(
     `/api/company/employees/${employeeId}/assign-courses`,
@@ -57,9 +64,29 @@ const assignCourses = async ({
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ courseIds }),
+      body: JSON.stringify({ assignments }),
     }
   );
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+};
+
+const massAssignCourses = async ({
+  employeeIds,
+  assignments,
+}: {
+  employeeIds: string[];
+  assignments: AssignmentDetails[];
+}) => {
+  const res = await fetch(`/api/company/employees/mass-assign-courses`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ employeeIds, assignments }),
+  });
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
@@ -91,6 +118,7 @@ export default function EmployeeManagementPage() {
   const queryClient = useQueryClient();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isMassAssignModalOpen, setIsMassAssignModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
@@ -120,6 +148,14 @@ export default function EmployeeManagementPage() {
     },
   });
 
+  const massAssignMutation = useMutation({
+    mutationFn: massAssignCourses,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+      setIsMassAssignModalOpen(false);
+    },
+  });
+
   const handleEditClick = (employee: Employee) => {
     setSelectedEmployee(employee);
     setIsEditModalOpen(true);
@@ -134,10 +170,20 @@ export default function EmployeeManagementPage() {
     setIsAssignModalOpen(true);
   };
 
-  const handleAssign = (courseIds: string[]) => {
+  const handleAssign = (assignments: AssignmentDetails[]) => {
     if (selectedEmployee) {
-      assignMutation.mutate({ employeeId: selectedEmployee.id, courseIds });
+      assignMutation.mutate({
+        employeeId: selectedEmployee.id,
+        assignments,
+      });
     }
+  };
+
+  const handleMassAssign = (
+    employeeIds: string[],
+    assignments: AssignmentDetails[]
+  ) => {
+    massAssignMutation.mutate({ employeeIds, assignments });
   };
 
   if (isLoading) {
@@ -171,11 +217,19 @@ export default function EmployeeManagementPage() {
       style={{ backgroundColor: '#f5f4ed' }}
     >
       <Card className="bg-card border-warm-gray/20">
-        <CardHeader>
-          <CardTitle className="text-charcoal">Employee Management</CardTitle>
-          <CardDescription className="text-warm-gray">
-            Manage your organization's employees and their progress
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-charcoal">Employee Management</CardTitle>
+            <CardDescription className="text-warm-gray">
+              Manage your organization's employees and their progress
+            </CardDescription>
+          </div>
+          <Button
+            onClick={() => setIsMassAssignModalOpen(true)}
+            className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+          >
+            Mass Assign Courses
+          </Button>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -261,6 +315,14 @@ export default function EmployeeManagementPage() {
         isOpen={isAssignModalOpen}
         onClose={() => setIsAssignModalOpen(false)}
         onAssign={handleAssign}
+        isAssigning={assignMutation.isPending}
+      />
+      <MassAssignCourseModal
+        employees={employees || []}
+        isOpen={isMassAssignModalOpen}
+        onClose={() => setIsMassAssignModalOpen(false)}
+        onAssign={handleMassAssign}
+        isAssigning={massAssignMutation.isPending}
       />
     </div>
   );

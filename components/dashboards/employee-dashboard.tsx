@@ -11,16 +11,16 @@ import Link from "next/link"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface Course {
-  id: string
-  title: string
-  description: string
-  progress: number
-  totalLessons: number
-  completedLessons: number
-  dueDate?: string
-  status: "not-started" | "in-progress" | "completed" | "overdue"
-  category: "compliance" | "skills" | "culture"
-  duration: number
+  _id: string;
+  title: string;
+  description: string;
+  progress: number;
+  totalLessons: number;
+  completedLessons: number;
+  dueDate?: string;
+  status: 'not-started' | 'in-progress' | 'completed' | 'overdue';
+  category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
+  duration: number;
 }
 
 interface EmployeeDashboardProps {
@@ -64,18 +64,20 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     }
   }
 
-  const getCategoryIcon = (category: Course["category"]) => {
+  const getCategoryIcon = (category: Course['category']) => {
     switch (category) {
-      case "compliance":
-        return <Award className="h-8 w-8 text-warning-ochre" />
-      case "skills":
-        return <TrendingUp className="h-8 w-8 text-charcoal" />
-      case "culture":
-        return <Users className="h-8 w-8 text-success-green" />
+      case 'compliance':
+        return <Award className="h-8 w-8 text-warning-ochre" />;
+      case 'skills':
+        return <TrendingUp className="h-8 w-8 text-charcoal" />;
+      case 'culture':
+        return <Users className="h-8 w-8 text-success-green" />;
+      case 'technical':
+        return <BookOpen className="h-8 w-8 text-charcoal" />;
       default:
-        return <BookOpen className="h-8 w-8 text-charcoal" />
+        return <BookOpen className="h-8 w-8 text-charcoal" />;
     }
-  }
+  };
 
   const overdueCourses = courses.filter((course) => course.status === "overdue")
   const inProgressCourses = courses.filter((course) => course.status === "in-progress")
@@ -267,7 +269,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
           ) : filteredCourses.length > 0 ? (
             filteredCourses.map((course) => (
               <Card
-                key={course.id}
+                key={course._id}
                 className="bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft cursor-pointer group"
               >
                 <CardHeader className="space-y-4">
@@ -317,7 +319,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                   </div>
                   <div className="flex gap-2">
                     <Link
-                      href={`/dashboard/course/${course.id}`}
+                      href={`/dashboard/course/${course._id}`}
                       className="flex-1"
                     >
                       <Button

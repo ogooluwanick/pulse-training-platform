@@ -1,55 +1,39 @@
-import { NextResponse } from "next/server";
-import dbConnect from "@/lib/dbConnect";
-import Course from "@/lib/models/Course";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
-import CourseAssignment from "@/lib/models/CourseAssignment";
-import User from "@/lib/models/User";
+import { NextResponse } from 'next/server';
+import dbConnect from '@/lib/dbConnect';
+import CourseAssignment from '@/lib/models/CourseAssignment';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-export async function GET(req: Request) {
+export async function GET() {
+  await dbConnect();
   const session = await getServerSession(authOptions);
+
   if (!session || !session.user) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  await dbConnect();
-
   try {
-    const user = await User.findById(session.user.id);
-    if (!user) {
-      return NextResponse.json({ message: "User not found" }, { status: 404 });
-    }
-
     const courseAssignments = await CourseAssignment.find({
-      employeeId: user._id,
-    }).populate("courseId");
+      user: session.user.id,
+    }).populate('course');
 
     const courses = courseAssignments.map((assignment) => {
-      const course = assignment.courseId;
-      const totalLessons = course.lessons.length + (course.quiz ? 1 : 0);
-      const courseDuration = course.lessons.reduce(
-        (acc: any, lesson: any) => acc + lesson.duration,
-        0
-      );
+      const courseData = assignment.course.toObject();
       return {
-        id: course._id,
-        title: course.title,
-        description: course.description,
+        ...courseData,
         progress: assignment.progress,
-        totalLessons: totalLessons,
-        completedLessons: assignment.completedLessons.length,
-        dueDate: assignment.dueDate,
         status: assignment.status,
-        category: course.category,
-        duration: courseDuration,
+        dueDate: assignment.endDate,
+        completedLessons: 0, // This will need to be calculated based on user progress
+        totalLessons: courseData.lessons ? courseData.lessons.length : 0,
       };
     });
 
-    return NextResponse.json(courses);
+    return NextResponse.json(courses, { status: 200 });
   } catch (error) {
-    console.error("Error fetching employee courses:", error);
+    console.error('Error fetching employee courses:', error);
     return NextResponse.json(
-      { message: "Internal Server Error" },
+      { message: 'Internal server error' },
       { status: 500 }
     );
   }

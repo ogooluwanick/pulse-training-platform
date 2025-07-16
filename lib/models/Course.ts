@@ -28,8 +28,43 @@ const CourseSchema = new Schema({
   },
   category: {
     type: String,
-    enum: ["compliance", "skills", "culture"],
+    enum: ["compliance", "skills", "culture", "technical", "General"],
     required: true,
+  },
+  instructor: {
+    type: String,
+    required: false,
+  },
+  duration: {
+    type: String,
+    required: false,
+  },
+  difficulty: {
+    type: String,
+    enum: ["Beginner", "Intermediate", "Advanced"],
+    required: false,
+  },
+  rating: [
+    {
+      user: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5,
+      },
+    },
+  ],
+  enrolledCount: {
+    type: Number,
+    required: false,
+  },
+  tags: {
+    type: [String],
+    required: false,
+    default: [],
   },
   lessons: [LessonSchema],
   quiz: QuizSchema,

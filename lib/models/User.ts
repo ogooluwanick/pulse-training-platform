@@ -57,6 +57,12 @@ const UserSchema = new Schema({
   emailVerified: {
     type: Date,
   },
+  courseAssignments: [
+    {
+      type: Schema.Types.ObjectId,
+      ref: 'CourseAssignment',
+    },
+  ],
 })
 
 const User = models.User || model("User", UserSchema)
