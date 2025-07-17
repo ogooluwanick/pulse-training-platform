@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BookOpen, Clock, Award, Users, Star, Search, Play } from "lucide-react"
 import Link from "next/link"
+import { formatDuration } from "@/lib/duration"
 
 interface Course {
   id: string
   title: string
   description: string
   instructor: string
-  duration: string
+  duration: number
   difficulty: "Beginner" | "Intermediate" | "Advanced"
   category: "compliance" | "skills" | "culture" | "technical"
   rating: number
@@ -31,7 +32,7 @@ const mockCourses: Course[] = [
     title: "Advanced Data Analytics",
     description: "Master data analysis techniques and tools for business insights",
     instructor: "Dr. Sarah Chen",
-    duration: "6 hours",
+    duration: 6,
     difficulty: "Advanced",
     category: "technical",
     rating: 4.8,
@@ -45,7 +46,7 @@ const mockCourses: Course[] = [
     title: "Effective Communication Skills",
     description: "Develop professional communication and presentation skills",
     instructor: "Michael Rodriguez",
-    duration: "4 hours",
+    duration: 4,
     difficulty: "Intermediate",
     category: "skills",
     rating: 4.6,
@@ -59,7 +60,7 @@ const mockCourses: Course[] = [
     title: "Cybersecurity Fundamentals",
     description: "Essential cybersecurity practices for modern organizations",
     instructor: "Alex Thompson",
-    duration: "5 hours",
+    duration: 5,
     difficulty: "Beginner",
     category: "compliance",
     rating: 4.7,
@@ -73,7 +74,7 @@ const mockCourses: Course[] = [
     title: "Project Management Essentials",
     description: "Learn project management methodologies and best practices",
     instructor: "Jennifer Park",
-    duration: "8 hours",
+    duration: 8,
     difficulty: "Intermediate",
     category: "skills",
     rating: 4.5,
@@ -87,7 +88,7 @@ const mockCourses: Course[] = [
     title: "Company Culture Deep Dive",
     description: "Understanding our values, mission, and workplace culture",
     instructor: "HR Team",
-    duration: "3 hours",
+    duration: 3,
     difficulty: "Beginner",
     category: "culture",
     rating: 4.4,
@@ -101,7 +102,7 @@ const mockCourses: Course[] = [
     title: "Financial Compliance Training",
     description: "Comprehensive training on financial regulations and compliance",
     instructor: "Robert Kim",
-    duration: "7 hours",
+    duration: 7,
     difficulty: "Advanced",
     category: "compliance",
     rating: 4.9,
@@ -254,7 +255,7 @@ export default function CourseCatalogPage() {
                   <div className="flex items-center gap-4 text-sm text-warm-gray">
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      <span>{course.duration}</span>
+                      <span>{formatDuration(course.duration)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />
@@ -327,7 +328,7 @@ export default function CourseCatalogPage() {
                   <div className="flex items-center gap-4 text-sm text-warm-gray">
                     <div className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      <span>{course.duration}</span>
+                      <span>{formatDuration(course.duration)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />

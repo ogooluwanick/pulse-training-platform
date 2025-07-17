@@ -35,8 +35,8 @@ const CourseSchema = new Schema({
     type: String,
     required: false,
   },
-  duration: {
-    type: String,
+  duration: { // IN MINS
+    type: Number,
     required: false,
   },
   difficulty: {

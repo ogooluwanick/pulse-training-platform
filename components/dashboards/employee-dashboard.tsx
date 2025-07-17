@@ -1,70 +1,114 @@
-"use client"
+'use client';
 
-import { useEffect, useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { BookOpen, Clock, Award, Play, CheckCircle, AlertTriangle, TrendingUp, Users } from "lucide-react"
-import type { User } from "next-auth"
-import Link from "next/link"
-import { Skeleton } from "@/components/ui/skeleton"
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  BookOpen,
+  Clock,
+  Award,
+  Play,
+  CheckCircle,
+  AlertTriangle,
+  TrendingUp,
+  Users,
+} from 'lucide-react';
+import type { User } from 'next-auth'; // Import the original User type
+import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatDuration } from '@/lib/duration';
 
-interface Course {
+// Interface for course data received from the API
+interface CourseWithProgress {
   _id: string;
   title: string;
   description: string;
-  progress: number;
-  totalLessons: number;
-  completedLessons: number;
-  dueDate?: string;
-  status: 'not-started' | 'in-progress' | 'completed' | 'overdue';
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
   duration: number;
+  progress: number;
+  status: 'not-started' | 'in-progress' | 'completed';
+  totalLessons: number;
+  completedLessons: number;
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+  rating?: any[];
+  enrolledCount?: number;
+  tags?: string[];
+  assignedAt?: string; // Added for overdue filter
+}
+
+interface ApiResponse {
+  courses: CourseWithProgress[];
+  timeInvested: number;
+  completedCoursesCount: number;
+  uncompletedCoursesCount: number;
+}
+
+// Define a more specific User type
+// Note: courseAssignments on the user prop might not be used as the component fetches fresh data.
+interface ExtendedUser extends User {
+  courseAssignments?: any[]; // Using any[] to avoid conflict with the new structure.
 }
 
 interface EmployeeDashboardProps {
-  user: User
+  user: ExtendedUser;
 }
 
-export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
-  const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [activeFilter, setActiveFilter] = useState<"all" | "in-progress" | "completed">("all")
-
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await fetch("/api/employee/courses")
-        if (!response.ok) {
-          throw new Error("Failed to fetch courses")
-        }
-        const data = await response.json()
-        setCourses(data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "An unknown error occurred")
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchCourses()
-  }, [])
-  const getStatusColor = (status: Course["status"]) => {
-    switch (status) {
-      case "completed":
-        return "bg-success-green text-alabaster"
-      case "in-progress":
-        return "bg-charcoal text-alabaster"
-      case "overdue":
-        return "bg-warning-ochre text-alabaster"
-      default:
-        return "bg-warm-gray text-alabaster"
-    }
+const fetchCourseAssignments = async (): Promise<ApiResponse> => {
+  const response = await fetch(`/api/employee/courses`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch course assignments');
   }
+  return response.json();
+};
 
-  const getCategoryIcon = (category: Course['category']) => {
+export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
+  const [activeFilter, setActiveFilter] = useState<
+    'all' | 'not-started' | 'in-progress' | 'completed' | 'overdue'
+  >('all');
+
+  const { data, isLoading, error } = useQuery<ApiResponse, Error>({
+    queryKey: ['courseAssignments', user.id],
+    queryFn: fetchCourseAssignments,
+    enabled: !!user.id, // Only run the query if the user ID is available
+  });
+
+  const courseAssignments = data?.courses || [];
+  const timeInvested = data?.timeInvested || 0;
+  const completedCoursesCount = data?.completedCoursesCount || 0;
+  const uncompletedCoursesCount = data?.uncompletedCoursesCount || 0;
+
+  const getStatusColor = (status: CourseWithProgress['status']) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-success-green text-alabaster border-success-green';
+      case 'in-progress':
+        return 'bg-charcoal text-alabaster border-charcoal';
+      default:
+        return 'bg-warm-gray text-alabaster border-warm-gray';
+    }
+  };
+
+  const getStatusIcon = (status: CourseWithProgress['status']) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-3 w-3" />;
+      case 'in-progress':
+        return <Play className="h-3 w-3" />;
+      default:
+        return <BookOpen className="h-3 w-3" />;
+    }
+  };
+
+  const getCategoryIcon = (category: CourseWithProgress['category']) => {
     switch (category) {
       case 'compliance':
         return <Award className="h-8 w-8 text-warning-ochre" />;
@@ -79,20 +123,76 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     }
   };
 
-  const overdueCourses = courses.filter((course) => course.status === "overdue")
-  const inProgressCourses = courses.filter((course) => course.status === "in-progress")
-  const completedCourses = courses.filter((course) => course.status === "completed")
-  const timeInvested = courses.reduce((acc, course) => acc + course.duration, 0)
+  const getDifficultyColor = (
+    difficulty?: CourseWithProgress['difficulty']
+  ) => {
+    switch (difficulty) {
+      case 'Beginner':
+        return 'text-success-green';
+      case 'Intermediate':
+        return 'text-warning-ochre';
+      case 'Advanced':
+        return 'text-charcoal';
+      default:
+        return 'text-warm-gray';
+    }
+  };
 
-  const filteredCourses = courses.filter(course => {
-    if (activeFilter === "in-progress") {
-      return course.status === "in-progress"
+  // Calculate stats based on courseAssignments
+  const assignedCoursesCount = courseAssignments?.length || 0;
+
+  const totalProgress =
+    courseAssignments?.reduce(
+      (acc: number, ca: CourseWithProgress) => acc + (ca.progress || 0),
+      0
+    ) || 0;
+  const overallProgress =
+    assignedCoursesCount > 0
+      ? Math.round(totalProgress / assignedCoursesCount)
+      : 0;
+
+  const formattedTotalTimeInvested = formatDuration(timeInvested);
+
+  // Filter courses for the "My Courses" section
+  const now = new Date();
+  const filteredUserCourses = (courseAssignments || []).filter(
+    (ca: CourseWithProgress & { assignedAt?: string }) => {
+      if (activeFilter === 'not-started') {
+        return ca.status === 'not-started';
+      }
+      if (activeFilter === 'in-progress') {
+        return ca.status === 'in-progress';
+      }
+      if (activeFilter === 'completed') {
+        return ca.status === 'completed';
+      }
+      if (activeFilter === 'overdue') {
+        if (!ca.assignedAt || ca.status === 'completed') return false;
+        const assignedDate = new Date(ca.assignedAt);
+        const diffDays =
+          (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+        return (
+          diffDays > 14 &&
+          (ca.status === 'not-started' || ca.status === 'in-progress')
+        );
+      }
+      return true;
     }
-    if (activeFilter === "completed") {
-      return course.status === "completed"
+  );
+
+  // Overdue logic for badge
+  const hasOverdue = courseAssignments.some(
+    (ca: CourseWithProgress & { assignedAt?: string }) => {
+      if (!ca.assignedAt || ca.status === 'completed') return false;
+      const assignedDate = new Date(ca.assignedAt);
+      const diffDays =
+        (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+      return (
+        diffDays > 14 &&
+        (ca.status === 'not-started' || ca.status === 'in-progress')
+      );
     }
-    return true
-  })
+  );
 
   return (
     <div
@@ -117,10 +217,10 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {overdueCourses.length > 0 ? (
+          {hasOverdue ? (
             <Badge className="bg-warning-ochre text-alabaster">
               <AlertTriangle className="h-3 w-3 mr-1" />
-              {overdueCourses.length} Overdue
+              Overdue
             </Badge>
           ) : (
             <Badge className="bg-success-green text-alabaster">
@@ -142,10 +242,11 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {courses.length}
+              {assignedCoursesCount}
             </div>
             <p className="text-xs text-warm-gray">
-              {completedCourses.length} completed
+              {completedCoursesCount} completed, {uncompletedCoursesCount}{' '}
+              uncompleted
             </p>
           </CardContent>
         </Card>
@@ -158,11 +259,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
             <TrendingUp className="h-4 w-4 text-success-green" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-charcoal">
-              {courses.length > 0
-                ? `${Math.round(courses.reduce((acc, course) => acc + course.progress, 0) / courses.length)}%`
-                : '0%'}
-            </div>
+            <div className="text-2xl font-bold text-charcoal">{`${overallProgress}%`}</div>
             <p className="text-xs text-warm-gray">Average completion</p>
           </CardContent>
         </Card>
@@ -176,7 +273,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {completedCourses.length}
+              {completedCoursesCount}
             </div>
             <p className="text-xs text-warm-gray">Ready for download</p>
           </CardContent>
@@ -190,7 +287,9 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
             <Clock className="h-4 w-4 text-charcoal" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-charcoal">{`${timeInvested}h`}</div>
+            <div className="text-2xl font-bold text-charcoal">
+              {formattedTotalTimeInvested}
+            </div>
             <p className="text-xs text-warm-gray">This quarter</p>
           </CardContent>
         </Card>
@@ -204,7 +303,11 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
             <Button
               variant="outline"
               size="sm"
-              className={activeFilter === 'all' ? 'bg-charcoal text-white' : 'bg-transparent border-warm-gray/30'}
+              className={
+                activeFilter === 'all'
+                  ? 'bg-charcoal text-white'
+                  : 'bg-transparent border-warm-gray/30'
+              }
               onClick={() => setActiveFilter('all')}
             >
               All Courses
@@ -212,7 +315,23 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
             <Button
               variant="outline"
               size="sm"
-              className={activeFilter === 'in-progress' ? 'bg-charcoal text-white' : 'bg-transparent border-warm-gray/30'}
+              className={
+                activeFilter === 'not-started'
+                  ? 'bg-charcoal text-white'
+                  : 'bg-transparent border-warm-gray/30'
+              }
+              onClick={() => setActiveFilter('not-started')}
+            >
+              Not Started
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={
+                activeFilter === 'in-progress'
+                  ? 'bg-charcoal text-white'
+                  : 'bg-transparent border-warm-gray/30'
+              }
               onClick={() => setActiveFilter('in-progress')}
             >
               In Progress
@@ -220,17 +339,33 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
             <Button
               variant="outline"
               size="sm"
-              className={activeFilter === 'completed' ? 'bg-charcoal text-white' : 'bg-transparent border-warm-gray/30'}
+              className={
+                activeFilter === 'completed'
+                  ? 'bg-charcoal text-white'
+                  : 'bg-transparent border-warm-gray/30'
+              }
               onClick={() => setActiveFilter('completed')}
             >
               Completed
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className={
+                activeFilter === 'overdue'
+                  ? 'bg-warning-ochre text-white'
+                  : 'bg-transparent border-warm-gray/30'
+              }
+              onClick={() => setActiveFilter('overdue')}
+            >
+              Overdue
             </Button>
           </div>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {loading ? (
-            Array.from({ length: 3 }).map((_, index) => (
+          {isLoading ? (
+            Array.from({ length: 6 }).map((_, index) => (
               <Card
                 key={index}
                 className="bg-card border-warm-gray/20 shadow-soft"
@@ -257,6 +392,11 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                       <Skeleton className="h-3 w-1/4 bg-gray-300" />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-1/2 bg-gray-300" />
+                    <Skeleton className="h-3 w-1/3 bg-gray-300" />
+                    <Skeleton className="h-3 w-1/4 bg-gray-300" />
+                  </div>
                   <Skeleton className="h-10 w-full bg-gray-300" />
                 </CardContent>
               </Card>
@@ -264,103 +404,160 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
           ) : error ? (
             <div className="col-span-full text-center text-warning-ochre">
               <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
-              <p>Error loading courses: {error}</p>
-            </div>
-          ) : filteredCourses.length > 0 ? (
-            filteredCourses.map((course) => (
-              <Card
-                key={course._id}
-                className="bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft cursor-pointer group"
+              <p>Error loading courses: {error.message}</p>
+              <Button
+                onClick={() => window.location.reload()}
+                className="mt-4 bg-charcoal text-white hover:bg-charcoal/90"
               >
-                <CardHeader className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-alabaster border border-warm-gray/20">
-                      {getCategoryIcon(course.category)}
+                Try Again
+              </Button>
+            </div>
+          ) : filteredUserCourses.length > 0 ? (
+            filteredUserCourses.map((assignment) => {
+              const totalLessons = assignment.totalLessons || 0;
+              const completedLessons = assignment.completedLessons || 0;
+              return (
+                <Card
+                  key={assignment._id}
+                  className={`bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft cursor-pointer group`}
+                >
+                  <CardHeader className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-alabaster border border-warm-gray/20">
+                        {getCategoryIcon(assignment.category)}
+                      </div>
+                      <Badge
+                        className={`${getStatusColor(assignment.status)} flex items-center gap-1`}
+                        variant="secondary"
+                      >
+                        {getStatusIcon(assignment.status)}
+                        {assignment.status === 'not-started' && 'Not Started'}
+                        {assignment.status === 'in-progress' && 'In Progress'}
+                        {assignment.status === 'completed' && 'Completed'}
+                      </Badge>
                     </div>
-                    <Badge
-                      className={getStatusColor(course.status)}
-                      variant="secondary"
-                    >
-                      {course.status === 'not-started' && 'Not Started'}
-                      {course.status === 'in-progress' && 'In Progress'}
-                      {course.status === 'completed' && 'Completed'}
-                      {course.status === 'overdue' && 'Overdue'}
-                    </Badge>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg text-charcoal group-hover:text-charcoal/80 transition-soft">
-                      {course.title}
-                    </CardTitle>
-                    <CardDescription className="text-warm-gray mt-2">
-                      {course.description}
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-warm-gray">Progress</span>
-                      <span className="text-charcoal font-medium">
-                        {course.progress}%
-                      </span>
+                    <div>
+                      <CardTitle className="text-lg text-charcoal group-hover:text-charcoal/80 transition-soft">
+                        {assignment.title}
+                      </CardTitle>
+                      <CardDescription className="text-warm-gray mt-2">
+                        {assignment.description}
+                      </CardDescription>
                     </div>
-                    <Progress value={course.progress} className="h-2" />
-                    <div className="flex items-center justify-between text-xs text-warm-gray">
-                      <span>
-                        {course.completedLessons} of {course.totalLessons}{' '}
-                        lessons
-                      </span>
-                      {course.dueDate && (
-                        <span>
-                          Due {new Date(course.dueDate).toLocaleDateString()}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-warm-gray">Progress</span>
+                        <span className="text-charcoal font-medium">
+                          {assignment.progress}%
                         </span>
+                      </div>
+                      <Progress
+                        value={assignment.progress}
+                        className={`h-2 ${
+                          assignment.progress === 100
+                            ? '[&>div]:bg-success-green'
+                            : assignment.progress > 50
+                              ? '[&>div]:bg-charcoal'
+                              : '[&>div]:bg-warm-gray'
+                        }`}
+                      />
+                      <div className="flex items-center justify-between text-xs text-warm-gray">
+                        <span>
+                          {completedLessons} of {totalLessons} lessons
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Course details */}
+                    <div className="space-y-2 text-xs text-warm-gray">
+                      {assignment.difficulty && (
+                        <div className="flex items-center gap-1">
+                          <span>Level:</span>
+                          <span
+                            className={`font-medium ${getDifficultyColor(assignment.difficulty)}`}
+                          >
+                            {assignment.difficulty}
+                          </span>
+                        </div>
+                      )}
+                      {assignment.duration > 0 && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            {formatDuration(assignment.duration * 60)}
+                          </span>
+                        </div>
                       )}
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Link
-                      href={`/dashboard/course/${course._id}`}
-                      className="flex-1"
-                    >
-                      <Button
-                        className="btn-primary w-full"
-                        disabled={course.status === 'completed'}
+
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/dashboard/course/${assignment._id}`}
+                        className="flex-1"
                       >
-                        {course.status === 'completed' ? (
-                          <>
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Completed
-                          </>
-                        ) : course.status === 'not-started' ? (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Start Course
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Continue
-                          </>
-                        )}
-                      </Button>
-                    </Link>
-                    {course.status === 'completed' && (
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="bg-transparent border-warm-gray/30"
-                      >
-                        <Award className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))
+                        <Button
+                          className={`px-4 py-2 rounded-md transition-colors w-full ${
+                            assignment.status === 'completed'
+                              ? 'bg-success-green text-white hover:bg-success-green/90'
+                              : 'bg-charcoal text-white hover:bg-charcoal/90'
+                          }`}
+                          disabled={assignment.status === 'completed'}
+                        >
+                          {assignment.status === 'completed' ? (
+                            <>
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              Completed
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4 mr-2" />
+                              Continue
+                            </>
+                          )}
+                        </Button>
+                      </Link>
+                      {assignment.status === 'completed' && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="bg-transparent border-warm-gray/30"
+                          title="Download Certificate"
+                        >
+                          <Award className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })
           ) : (
             <div className="col-span-full text-center text-warm-gray min-h-[200px] flex flex-col items-center justify-center">
               <BookOpen className="h-8 w-8 mx-auto mb-2" />
-              <p>No courses to display in this category.</p>
+              <p className="text-lg font-medium mb-2">
+                {activeFilter === 'all'
+                  ? 'No courses assigned yet'
+                  : activeFilter === 'not-started'
+                    ? 'No courses not started'
+                    : activeFilter === 'in-progress'
+                      ? 'No courses in progress'
+                      : activeFilter === 'completed'
+                        ? 'No completed courses'
+                        : 'No overdue courses'}
+              </p>
+              <p className="text-sm text-warm-gray/70">
+                {activeFilter === 'all'
+                  ? 'Your assigned courses will appear here once they are assigned by your administrator.'
+                  : activeFilter === 'not-started'
+                    ? 'All your assigned courses have been started.'
+                    : activeFilter === 'in-progress'
+                      ? 'Start a course to see it in your progress list.'
+                      : activeFilter === 'completed'
+                        ? 'Complete courses to see them in your completed list.'
+                        : 'Courses that have not been completed after 2 weeks will appear here.'}
+              </p>
             </div>
           )}
         </div>

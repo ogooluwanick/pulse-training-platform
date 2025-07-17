@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion } from 'framer-motion';
@@ -28,13 +28,14 @@ import { Clock, Users, Star, Calendar } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
+import { formatDuration } from '@/lib/duration';
 
 interface Course {
   _id: string;
   title: string;
   description: string;
   instructor: string;
-  duration: string;
+  duration: number;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
   rating: number;
@@ -287,12 +288,12 @@ export default function AssignCourseModal({
                               <span>{course.rating}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4 text-sm text-warm-gray mt-2">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{course.duration}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-4 text-sm text-warm-gray mt-2">
+                                <div className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{formatDuration(course.duration)}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
                               <Users className="h-3 w-3" />
                               <span>
                                 {(course.enrolledCount || 0).toLocaleString()}

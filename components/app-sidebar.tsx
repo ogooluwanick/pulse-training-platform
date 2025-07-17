@@ -1,6 +1,10 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
+import { useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
+import { useQuery } from '@tanstack/react-query';
+import Link from 'next/link';
+
 import {
   BookOpen,
   BarChart3,
@@ -15,136 +19,163 @@ import {
   Menu,
   X,
   User,
-} from "lucide-react"
-import { useSession, signOut } from "next-auth/react"
-
+} from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
-  SidebarHeader,
+  SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
-} from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+  SidebarHeader,
+} from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+
+// Fetch learning data for badge count
+const fetchLearningData = async () => {
+  const response = await fetch('/api/employee/learning');
+  if (!response.ok) {
+    throw new Error('Failed to fetch learning data');
+  }
+  const data = await response.json();
+  return data.uncompletedCoursesCount || 0;
+};
 
 const navigationItems = [
   {
-    title: "Dashboard",
-    url: "/dashboard",
+    title: 'Dashboard',
+    url: '/dashboard',
     icon: Home,
   },
   {
-    title: "My Learning",
-    url: "/dashboard/learning",
+    title: 'My Learning',
+    url: '/dashboard/learning',
     icon: BookOpen,
-    badge: "3",
+    badge: 'dynamic', // Will be replaced with real count
   },
   {
-    title: "Course Catalog",
-    url: "/dashboard/catalog",
+    title: 'Course Catalog',
+    url: '/dashboard/catalog',
     icon: Award,
   },
   {
-    title: "Calendar",
-    url: "/dashboard/calendar",
+    title: 'Calendar',
+    url: '/dashboard/calendar',
     icon: Calendar,
   },
   {
-    title: "Discussions",
-    url: "/dashboard/discussions",
+    title: 'Discussions',
+    url: '/dashboard/discussions',
     icon: MessageSquare,
   },
-]
+];
 
 const managementItems = [
   {
-    title: "Analytics",
-    url: "/dashboard/analytics",
+    title: 'Analytics',
+    url: '/dashboard/analytics',
     icon: BarChart3,
   },
   {
-    title: "Team Management",
-    url: "/dashboard/team",
+    title: 'Team Management',
+    url: '/dashboard/team',
     icon: Users,
   },
   {
-    title: "Organization",
-    url: "/dashboard/organization",
+    title: 'Organization',
+    url: '/dashboard/organization',
     icon: Building2,
   },
-]
+];
 
 const companyItems = [
   {
-    title: "Employee Management",
-    url: "/dashboard/employee-management",
+    title: 'Employee Management',
+    url: '/dashboard/employee-management',
     icon: Users,
   },
   {
-    title: "Course Assignment",
-    url: "/dashboard/course-assignment",
+    title: 'Course Assignment',
+    url: '/dashboard/course-assignment',
     icon: BookOpen,
   },
   {
-    title: "Culture Builder",
-    url: "/dashboard/culture-builder",
+    title: 'Culture Builder',
+    url: '/dashboard/culture-builder',
     icon: Building2,
   },
   {
-    title: "Reports",
-    url: "/dashboard/reports",
+    title: 'Reports',
+    url: '/dashboard/reports',
     icon: BarChart3,
   },
-]
+];
 
 const accountItems = [
   {
-    title: "Profile",
-    url: "/profile",
+    title: 'Profile',
+    url: '/profile',
     icon: User,
   },
   {
-    title: "Settings",
-    url: "/settings",
+    title: 'Settings',
+    url: '/settings',
     icon: Settings,
   },
-]
+];
 
 const adminItems = [
   {
-    title: "Company Management",
-    url: "/admin/companies",
+    title: 'Company Management',
+    url: '/admin/companies',
     icon: Building2,
   },
   {
-    title: "Platform Settings",
-    url: "/admin/platform",
+    title: 'Platform Settings',
+    url: '/admin/platform',
     icon: Settings,
   },
-]
+];
 
 interface AppSidebarProps {
-  isOpen: boolean
-  onToggle: () => void
+  isOpen: boolean;
+  onToggle: () => void;
 }
 
 export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
-  const { data: session } = useSession()
-  const user = session?.user
+  const { data: session } = useSession();
+  const user = session?.user;
+
+  // Fetch uncompleted courses count for badge
+  const { data: uncompletedCount } = useQuery({
+    queryKey: ['learningBadge'],
+    queryFn: fetchLearningData,
+    enabled: !!user && user.role === 'EMPLOYEE',
+    refetchInterval: 30000, // Refetch every 30onds
+  });
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: "/" })
-  }
+    signOut({ callbackUrl: '/' });
+  };
 
-  if (!user) return null
+  if (!user) return null;
+
+  // Update navigation items with real badge count
+  const updatedNavigationItems = navigationItems.map((item) => {
+    if (item.title === 'My Learning' && item.badge === 'dynamic') {
+      return {
+        ...item,
+        badge: uncompletedCount?.toString() || '0',
+      };
+    }
+    return item;
+  });
 
   return (
     <>
@@ -168,10 +199,13 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
       {/* Sidebar */}
       <div
         className={`fixed left-0 top-0 h-full w-80 z-50 transform transition-transform duration-300 ease-out ${
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <Sidebar className="border-r border-warm-gray/20 h-full" style={{ backgroundColor: "#f5f4ed" }}>
+        <Sidebar
+          className="border-r border-warm-gray/20 h-full"
+          style={{ backgroundColor: '#f5f4ed' }}
+        >
           <SidebarHeader className="p-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-charcoal text-alabaster">
@@ -187,23 +221,27 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
           <SidebarContent>
             {/* Main Navigation */}
             <SidebarGroup>
-              <SidebarGroupLabel className="text-warm-gray font-medium">Menu</SidebarGroupLabel>
+              <SidebarGroupLabel className="text-warm-gray font-medium">
+                Menu
+              </SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
                   {/* Dashboard and Employee items */}
-                  {navigationItems.map(item => {
+                  {updatedNavigationItems.map((item) => {
                     const employeeOnlyItems = [
-                      "My Learning",
-                      "Course Catalog",
-                      "Calendar",
-                      "Discussions",
-                    ]
+                      'My Learning',
+                      'Course Catalog',
+                      'Calendar',
+                      'Discussions',
+                    ];
+                    // Show employee items only to employees
                     if (
                       employeeOnlyItems.includes(item.title) &&
-                      user?.role !== "EMPLOYEE"
+                      user?.role !== 'EMPLOYEE'
                     ) {
-                      return null
+                      return null;
                     }
+
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
@@ -211,163 +249,186 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                           className="hover:bg-alabaster"
                           onClick={onToggle}
                         >
-                          <a
+                          <Link
                             href={item.url}
-                            className="flex items-center gap-3"
+                            className="flex items-center justify-between"
                           >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                            {item.badge && (
-                              <Badge
-                                variant="secondary"
-                                className="ml-auto bg-success-green text-alabaster"
-                              >
+                            <div className="flex items-center gap-3">
+                              <item.icon className="h-4 w-4" />
+                              <span>{item.title}</span>
+                            </div>
+                            {item.badge && item.badge !== '0' && (
+                              <Badge className="bg-charcoal text-alabaster text-xs">
                                 {item.badge}
                               </Badge>
                             )}
-                          </a>
+                          </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
-                    )
+                    );
                   })}
-                  {/* Management items for Admin */}
-                  {user?.role === "ADMIN" &&
-                    managementItems.map(item => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                          asChild
-                          className="hover:bg-alabaster"
-                          onClick={onToggle}
-                        >
-                          <a
-                            href={item.url}
-                            className="flex items-center gap-3"
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </a>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  {/* Company items */}
-                  {user?.role === "COMPANY" &&
-                    companyItems.map(item => (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                          asChild
-                          className="hover:bg-alabaster"
-                          onClick={onToggle}
-                        >
-                          <a
-                            href={item.url}
-                            className="flex items-center gap-3"
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.title}</span>
-                          </a>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
+                  {/* Management items for COMPANY users */}
+                  {user?.role === 'COMPANY' && (
+                    <>
+                      <SidebarSeparator />
+                      <SidebarGroup>
+                        <SidebarGroupLabel className="text-warm-gray font-medium">
+                          Management
+                        </SidebarGroupLabel>
+                        <SidebarGroupContent>
+                          <SidebarMenu>
+                            {managementItems.map((item) => (
+                              <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton
+                                  asChild
+                                  className="hover:bg-alabaster"
+                                  onClick={onToggle}
+                                >
+                                  <Link
+                                    href={item.url}
+                                    className="flex items-center gap-3"
+                                  >
+                                    <item.icon className="h-4 w-4" />
+                                    <span>{item.title}</span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            ))}
+                          </SidebarMenu>
+                        </SidebarGroupContent>
+                      </SidebarGroup>
+
+                      <SidebarSeparator />
+                      <SidebarGroup>
+                        <SidebarGroupLabel className="text-warm-gray font-medium">
+                          Company
+                        </SidebarGroupLabel>
+                        <SidebarGroupContent>
+                          <SidebarMenu>
+                            {companyItems.map((item) => (
+                              <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton
+                                  asChild
+                                  className="hover:bg-alabaster"
+                                  onClick={onToggle}
+                                >
+                                  <Link
+                                    href={item.url}
+                                    className="flex items-center gap-3"
+                                  >
+                                    <item.icon className="h-4 w-4" />
+                                    <span>{item.title}</span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            ))}
+                          </SidebarMenu>
+                        </SidebarGroupContent>
+                      </SidebarGroup>
+                    </>
+                  )}
+
+                  {/* Admin items for ADMIN users */}
+                  {user?.role === 'ADMIN' && (
+                    <>
+                      <SidebarSeparator />
+                      <SidebarGroup>
+                        <SidebarGroupLabel className="text-warm-gray font-medium">
+                          Admin
+                        </SidebarGroupLabel>
+                        <SidebarGroupContent>
+                          <SidebarMenu>
+                            {adminItems.map((item) => (
+                              <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton
+                                  asChild
+                                  className="hover:bg-alabaster"
+                                  onClick={onToggle}
+                                >
+                                  <Link
+                                    href={item.url}
+                                    className="flex items-center gap-3"
+                                  >
+                                    <item.icon className="h-4 w-4" />
+                                    <span>{item.title}</span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                            ))}
+                          </SidebarMenu>
+                        </SidebarGroupContent>
+                      </SidebarGroup>
+                    </>
+                  )}
+
+                  {/* Account items for all users */}
+                  <SidebarSeparator />
+                  <SidebarGroup>
+                    <SidebarGroupLabel className="text-warm-gray font-medium">
+                      Account
+                    </SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {accountItems.map((item) => (
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                              asChild
+                              className="hover:bg-alabaster"
+                              onClick={onToggle}
+                            >
+                              <Link
+                                href={item.url}
+                                className="flex items-center gap-3"
+                              >
+                                <item.icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                        ))}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-
-            {/* Account Section - Company & Admin */}
-            {(user?.role === "COMPANY" || user?.role === "ADMIN") && (
-              <>
-                <SidebarSeparator className="bg-warm-gray/20" />
-                <SidebarGroup>
-                  <SidebarGroupLabel className="text-warm-gray font-medium">
-                    Account
-                  </SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {accountItems.map(item => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton
-                            asChild
-                            className="hover:bg-alabaster"
-                            onClick={onToggle}
-                          >
-                            <a
-                              href={item.url}
-                              className="flex items-center gap-3"
-                            >
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </a>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </>
-            )}
-
-            {/* Platform Admin Section - Admin only */}
-            {user?.role === "ADMIN" && (
-              <>
-                <SidebarSeparator className="bg-warm-gray/20" />
-                <SidebarGroup>
-                  <SidebarGroupLabel className="text-warm-gray font-medium">Platform Admin</SidebarGroupLabel>
-                  <SidebarGroupContent>
-                    <SidebarMenu>
-                      {adminItems.map((item) => (
-                        <SidebarMenuItem key={item.title}>
-                          <SidebarMenuButton asChild className="hover:bg-alabaster" onClick={onToggle}>
-                            <a href={item.url} className="flex items-center gap-3">
-                              <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
-                            </a>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      ))}
-                    </SidebarMenu>
-                  </SidebarGroupContent>
-                </SidebarGroup>
-              </>
-            )}
           </SidebarContent>
 
           <SidebarFooter className="p-4">
-            <div className="space-y-3">
-              <div className="group/profile flex items-center gap-3 rounded-lg bg-alabaster p-3 transition hover:bg-charcoal">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user?.profileImageUrl} />
-                  <AvatarFallback className="border border-alabaster bg-charcoal text-alabaster group-hover/profile:bg-alabaster group-hover/profile:text-charcoal">
-                    {user.firstName
-                      ? `${user.firstName} ${user.lastName}`
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase()
-                      : ""}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <p className="max-w-[180px] truncate text-sm font-medium capitalize text-charcoal group-hover/profile:text-alabaster">
-                    {user.firstName || "User"}
-                  </p>
-                  <span className="-mb-1.5 block max-w-[180px] truncate text-xs capitalize text-gray-700 group-hover/profile:text-gray-400">
-                    {user?.companyName}
-                  </span>
-                  <span className="text-[10px] text-gray-500 group-hover/profile:text-gray-400">{user?.role}</span>
-                </div>
+            <div className="flex items-center gap-3 mb-4">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.profileImageUrl} />
+                <AvatarFallback className="bg-charcoal text-alabaster">
+                  {user.firstName
+                    ? `${user.firstName} ${user.lastName}`
+                        .split(' ')
+                        .map((n) => n[0])
+                        .join('')
+                        .toUpperCase()
+                    : ''}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-charcoal truncate">
+                  {user.firstName || user.email}
+                </p>
+                <p className="text-xs text-warm-gray capitalize">
+                  {user?.role?.toLowerCase()}
+                </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start bg-transparent border-warm-gray/30 hover:bg-alabaster"
-                onClick={handleSignOut}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
             </div>
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
+              size="sm"
+              className="w-full bg-transparent border-warm-gray/30 text-charcoal hover:bg-alabaster"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
           </SidebarFooter>
         </Sidebar>
       </div>
     </>
-  )
+  );
 }

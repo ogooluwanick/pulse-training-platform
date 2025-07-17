@@ -32,6 +32,29 @@ const CourseAssignmentSchema = new Schema({
     enum: ["not-started", "in-progress", "completed"],
     default: "not-started",
   },
+  lessonProgress: [
+    {
+      lessonId: { type: Schema.Types.ObjectId },
+      status: {
+        type: String,
+        enum: ["not-started", "in-progress", "completed"],
+        default: "not-started",
+      },
+      completedAt: { type: Date },
+    },
+  ],
+  quizAnswers: [
+    {
+      questionId: { type: Schema.Types.ObjectId },
+      answer: Schema.Types.Mixed,
+    },
+  ],
+  quizScore: {
+    type: Number,
+  },
+  quizDuration: {
+    type: Number, // in seconds
+  },
   completedAt: {
     type: Date,
   },

@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/lib/dbConnect';
-import CourseAssignment from '@/lib/models/CourseAssignment';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import dbConnect from '@/lib/dbConnect';
+import { User, CourseAssignment, Course } from '@/lib/models';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   await dbConnect();
@@ -13,23 +15,82 @@ export async function GET() {
   }
 
   try {
-    const courseAssignments = await CourseAssignment.find({
-      user: session.user.id,
-    }).populate('course');
+    const user = await User.findById(session.user.id).populate({
+      path: 'courseAssignments',
+      populate: {
+        path: 'course',
+        model: 'Course',
+      },
+    });
 
-    const courses = courseAssignments.map((assignment) => {
+    if (!user) {
+      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    }
+
+    const completedCourses = user.courseAssignments.filter(
+      (assignment: any) => assignment.status === 'completed'
+    );
+
+    const uncompletedCourses = user.courseAssignments.filter(
+      (assignment: any) => assignment.status !== 'completed'
+    );
+
+    const timeInvested = completedCourses.reduce(
+      (total: number, assignment: any) => {
+        return total + (assignment.course.duration || 0);
+      },
+      0
+    );
+
+    const courses = user.courseAssignments.map((assignment: any) => {
       const courseData = assignment.course.toObject();
+      const totalLessons = courseData.lessons ? courseData.lessons.length : 0;
+
+      // Calculate completed lessons from lessonProgress
+      const completedLessons = assignment.lessonProgress
+        ? assignment.lessonProgress.filter(
+            (lesson: any) => lesson.status === 'completed'
+          ).length
+        : 0;
+
+      // Calculate progress percentage
+      const progress =
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
+
+      // Determine status based on progress and assignment status
+      let status = assignment.status;
+      if (assignment.status === 'not-started' && progress > 0) {
+        status = 'in-progress';
+      }
+
       return {
-        ...courseData,
-        progress: assignment.progress,
-        status: assignment.status,
-        dueDate: assignment.endDate,
-        completedLessons: 0, // This will need to be calculated based on user progress
-        totalLessons: courseData.lessons ? courseData.lessons.length : 0,
+        _id: courseData._id,
+        title: courseData.title,
+        description: courseData.description,
+        category: courseData.category,
+        duration: courseData.duration || 0,
+        progress: progress,
+        status: status,
+        totalLessons: totalLessons,
+        completedLessons: completedLessons,
+        difficulty: courseData.difficulty,
+        assignedAt: assignment.assignedAt
+          ? assignment.assignedAt.toISOString()
+          : null,
       };
     });
 
-    return NextResponse.json(courses, { status: 200 });
+    return NextResponse.json(
+      {
+        courses,
+        timeInvested,
+        completedCoursesCount: completedCourses.length,
+        uncompletedCoursesCount: uncompletedCourses.length,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Error fetching employee courses:', error);
     return NextResponse.json(
