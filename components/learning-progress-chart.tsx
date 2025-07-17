@@ -88,6 +88,31 @@ export function LearningProgressChart({
     }
   };
 
+  const getCategoryColorHex = (category: string) => {
+    switch (category) {
+      case 'compliance':
+        return '#D97706'; // warning-ochre
+      case 'skills':
+        return '#374151'; // charcoal
+      case 'culture':
+        return '#059669'; // success-green
+      case 'technical':
+        return '#374151'; // charcoal
+      default:
+        return '#6B7280'; // warm-gray
+    }
+  };
+
+  // Prepare data for pie chart
+  const pieChartData = Object.keys(skillProgress).map((category) => ({
+    category,
+    value: skillProgress[category].total,
+    color: getCategoryColorHex(category),
+    progress: skillProgress[category].averageProgress,
+  }));
+
+  const totalCourses = pieChartData.reduce((sum, item) => sum + item.value, 0);
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card className="bg-card border-warm-gray/20">
@@ -103,82 +128,117 @@ export function LearningProgressChart({
               No learning data yet.
             </div>
           )}
-          {Object.keys(skillProgress).map((category) => (
-            <div key={category} className="space-y-3">
-              <div className="flex items-center justify-between">
+          {Object.keys(skillProgress).length > 0 && (
+            <div className="flex items-center justify-center">
+              <div className="relative w-64 h-64">
+                {/* Pie Chart */}
+                <svg
+                  className="w-full h-full transform -rotate-90"
+                  viewBox="0 0 100 100"
+                >
+                  {pieChartData.map((item, index) => {
+                    const percentage = (item.value / totalCourses) * 100;
+                    const startAngle = pieChartData
+                      .slice(0, index)
+                      .reduce(
+                        (sum, d) => sum + (d.value / totalCourses) * 360,
+                        0
+                      );
+                    const endAngle = startAngle + (percentage * 360) / 100;
+
+                    const x1 = 50 + 40 * Math.cos((startAngle * Math.PI) / 180);
+                    const y1 = 50 + 40 * Math.sin((startAngle * Math.PI) / 180);
+                    const x2 = 50 + 40 * Math.cos((endAngle * Math.PI) / 180);
+                    const y2 = 50 + 40 * Math.sin((endAngle * Math.PI) / 180);
+
+                    const largeArcFlag = percentage > 50 ? 1 : 0;
+
+                    return (
+                      <path
+                        key={item.category}
+                        d={`M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
+                        fill={item.color}
+                        className="transition-all duration-500 ease-out"
+                      />
+                    );
+                  })}
+                </svg>
+                {/* Center text */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-charcoal">
+                      {totalCourses}
+                    </div>
+                    <div className="text-xs text-warm-gray">Total Courses</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Category Legend */}
+          <div className="space-y-3">
+            {pieChartData.map((item) => (
+              <div
+                key={item.category}
+                className="flex items-center justify-between"
+              >
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-sm font-medium text-charcoal capitalize">
+                    {item.category}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-warm-gray">
+                  <span>{item.value} courses</span>
+                  <span className="font-medium text-charcoal">
+                    {item.progress}% avg
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card border-warm-gray/20">
+        <CardHeader>
+          <CardTitle className="text-charcoal">Skill Development</CardTitle>
+          <CardDescription className="text-warm-gray">
+            Categories and areas of expertise you're building
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Areas of Expertise */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-charcoal">
+              Areas of Expertise
+            </h4>
+            {Object.keys(skillProgress).map((category) => (
+              <div
+                key={category}
+                className="flex items-center justify-between p-3 rounded-lg bg-alabaster border border-warm-gray/20"
+              >
                 <div className="flex items-center gap-2">
                   {getCategoryIcon(category)}
                   <span className="text-sm font-medium text-charcoal capitalize">
                     {category}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-warm-gray">
-                  <span>
-                    {skillProgress[category].completed} of{' '}
-                    {skillProgress[category].total} completed
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-warm-gray">
+                    {skillProgress[category].completed}/
+                    {skillProgress[category].total}
                   </span>
-                  <span className="font-medium text-charcoal">
-                    {animatedProgress[category] || 0}%
+                  <span className="text-xs font-medium text-charcoal">
+                    {skillProgress[category].averageProgress}%
                   </span>
                 </div>
               </div>
-              <div className="relative">
-                <Progress
-                  value={animatedProgress[category] || 0}
-                  className={`h-3 ${getCategoryColor(category)}`}
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse pointer-events-none" />
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card border-warm-gray/20">
-        <CardHeader>
-          <CardTitle className="text-charcoal">Learning Analytics</CardTitle>
-          <CardDescription className="text-warm-gray">
-            Key metrics from your learning journey
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center p-4 rounded-lg bg-alabaster border border-warm-gray/20">
-              <div className="flex items-center justify-center mb-2">
-                <Clock className="h-6 w-6 text-charcoal" />
-              </div>
-              <div className="text-2xl font-bold text-charcoal">
-                {Math.round(totalTimeInvested / 60)}h
-              </div>
-              <div className="text-xs text-warm-gray">Time Invested</div>
-            </div>
-            <div className="text-center p-4 rounded-lg bg-alabaster border border-warm-gray/20">
-              <div className="flex items-center justify-center mb-2">
-                <Award className="h-6 w-6 text-warning-ochre" />
-              </div>
-              <div className="text-2xl font-bold text-charcoal">
-                {certificatesEarned}
-              </div>
-              <div className="text-xs text-warm-gray">Certificates</div>
-            </div>
-            <div className="text-center p-4 rounded-lg bg-alabaster border border-warm-gray/20">
-              <div className="flex items-center justify-center mb-2">
-                <TrendingUp className="h-6 w-6 text-success-green" />
-              </div>
-              <div className="text-2xl font-bold text-charcoal">
-                {completedThisMonth}
-              </div>
-              <div className="text-xs text-warm-gray">This Month</div>
-            </div>
-            <div className="text-center p-4 rounded-lg bg-alabaster border border-warm-gray/20">
-              <div className="flex items-center justify-center mb-2">
-                <BookOpen className="h-6 w-6 text-charcoal" />
-              </div>
-              <div className="text-2xl font-bold text-charcoal">
-                {Object.keys(skillProgress).length}
-              </div>
-              <div className="text-xs text-warm-gray">Categories</div>
-            </div>
+            ))}
           </div>
         </CardContent>
       </Card>

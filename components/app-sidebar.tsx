@@ -55,23 +55,23 @@ const navigationItems = [
   },
   {
     title: 'My Learning',
-    url: '/dashboard/learning',
+    url: '/learning',
     icon: BookOpen,
-    badge: 'dynamic', // Will be replaced with real count
+    badge: 'dynamic',
   },
   {
     title: 'Course Catalog',
-    url: '/dashboard/catalog',
+    url: '/catalog',
     icon: Award,
   },
   {
     title: 'Calendar',
-    url: '/dashboard/calendar',
+    url: '/calendar',
     icon: Calendar,
   },
   {
     title: 'Discussions',
-    url: '/dashboard/discussions',
+    url: '/discussions',
     icon: MessageSquare,
   },
 ];
@@ -79,17 +79,17 @@ const navigationItems = [
 const managementItems = [
   {
     title: 'Analytics',
-    url: '/dashboard/analytics',
+    url: '/analytics',
     icon: BarChart3,
   },
   {
     title: 'Team Management',
-    url: '/dashboard/team',
+    url: '/team',
     icon: Users,
   },
   {
     title: 'Organization',
-    url: '/dashboard/organization',
+    url: '/organization',
     icon: Building2,
   },
 ];
@@ -97,22 +97,22 @@ const managementItems = [
 const companyItems = [
   {
     title: 'Employee Management',
-    url: '/dashboard/employee-management',
+    url: '/employee-management',
     icon: Users,
   },
   {
     title: 'Course Assignment',
-    url: '/dashboard/course-assignment',
+    url: '/course-assignment',
     icon: BookOpen,
   },
   {
     title: 'Culture Builder',
-    url: '/dashboard/culture-builder',
+    url: '/culture-builder',
     icon: Building2,
   },
   {
     title: 'Reports',
-    url: '/dashboard/reports',
+    url: '/reports',
     icon: BarChart3,
   },
 ];
@@ -230,10 +230,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                   {updatedNavigationItems.map((item) => {
                     const employeeOnlyItems = [
                       'My Learning',
-                      'Course Catalog',
                       'Calendar',
                       'Discussions',
-                    ];
+                    ]; // Removed 'Course Catalog' from here
                     // Show employee items only to employees
                     if (
                       employeeOnlyItems.includes(item.title) &&
@@ -241,7 +240,79 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                     ) {
                       return null;
                     }
-
+                    // Show Course Catalog for COMPANY and ADMIN in their sections
+                    if (
+                      item.title === 'Course Catalog' &&
+                      user?.role !== 'EMPLOYEE'
+                    ) {
+                      return null; // Will be rendered in company/admin section below
+                    }
+                    // For COMPANY users, add companyItems directly to Menu
+                    if (
+                      user?.role === 'COMPANY' &&
+                      item.title === 'Dashboard'
+                    ) {
+                      return (
+                        <>
+                          <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                              asChild
+                              className="hover:bg-alabaster"
+                              onClick={onToggle}
+                            >
+                              <Link
+                                href={item.url}
+                                className="flex items-center justify-between"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <item.icon className="h-4 w-4" />
+                                  <span>{item.title}</span>
+                                </div>
+                                {item.badge && item.badge !== '0' && (
+                                  <Badge className="bg-charcoal text-alabaster text-xs">
+                                    {item.badge}
+                                  </Badge>
+                                )}
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          {/* Add Course Catalog for company */}
+                          <SidebarMenuItem key="Course Catalog">
+                            <SidebarMenuButton
+                              asChild
+                              className="hover:bg-alabaster"
+                              onClick={onToggle}
+                            >
+                              <Link
+                                href="/catalog"
+                                className="flex items-center gap-3"
+                              >
+                                <Award className="h-4 w-4" />
+                                <span>Course Catalog</span>
+                              </Link>
+                            </SidebarMenuButton>
+                          </SidebarMenuItem>
+                          {/* Add companyItems directly under Menu for COMPANY users */}
+                          {companyItems.map((companyItem) => (
+                            <SidebarMenuItem key={companyItem.title}>
+                              <SidebarMenuButton
+                                asChild
+                                className="hover:bg-alabaster"
+                                onClick={onToggle}
+                              >
+                                <Link
+                                  href={companyItem.url}
+                                  className="flex items-center gap-3"
+                                >
+                                  <companyItem.icon className="h-4 w-4" />
+                                  <span>{companyItem.title}</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                        </>
+                      );
+                    }
                     return (
                       <SidebarMenuItem key={item.title}>
                         <SidebarMenuButton
@@ -268,65 +339,10 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                     );
                   })}
                   {/* Management items for COMPANY users */}
-                  {user?.role === 'COMPANY' && (
-                    <>
-                      <SidebarSeparator />
-                      <SidebarGroup>
-                        <SidebarGroupLabel className="text-warm-gray font-medium">
-                          Management
-                        </SidebarGroupLabel>
-                        <SidebarGroupContent>
-                          <SidebarMenu>
-                            {managementItems.map((item) => (
-                              <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton
-                                  asChild
-                                  className="hover:bg-alabaster"
-                                  onClick={onToggle}
-                                >
-                                  <Link
-                                    href={item.url}
-                                    className="flex items-center gap-3"
-                                  >
-                                    <item.icon className="h-4 w-4" />
-                                    <span>{item.title}</span>
-                                  </Link>
-                                </SidebarMenuButton>
-                              </SidebarMenuItem>
-                            ))}
-                          </SidebarMenu>
-                        </SidebarGroupContent>
-                      </SidebarGroup>
-
-                      <SidebarSeparator />
-                      <SidebarGroup>
-                        <SidebarGroupLabel className="text-warm-gray font-medium">
-                          Company
-                        </SidebarGroupLabel>
-                        <SidebarGroupContent>
-                          <SidebarMenu>
-                            {companyItems.map((item) => (
-                              <SidebarMenuItem key={item.title}>
-                                <SidebarMenuButton
-                                  asChild
-                                  className="hover:bg-alabaster"
-                                  onClick={onToggle}
-                                >
-                                  <Link
-                                    href={item.url}
-                                    className="flex items-center gap-3"
-                                  >
-                                    <item.icon className="h-4 w-4" />
-                                    <span>{item.title}</span>
-                                  </Link>
-                                </SidebarMenuButton>
-                              </SidebarMenuItem>
-                            ))}
-                          </SidebarMenu>
-                        </SidebarGroupContent>
-                      </SidebarGroup>
-                    </>
-                  )}
+                  {
+                    user?.role === 'COMPANY' &&
+                      false /* Remove Company section group */
+                  }
 
                   {/* Admin items for ADMIN users */}
                   {user?.role === 'ADMIN' && (
@@ -338,6 +354,22 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
                           <SidebarMenu>
+                            {/* Add Course Catalog for admin */}
+                            <SidebarMenuItem key="Course Catalog">
+                              <SidebarMenuButton
+                                asChild
+                                className="hover:bg-alabaster"
+                                onClick={onToggle}
+                              >
+                                <Link
+                                  href="/catalog"
+                                  className="flex items-center gap-3"
+                                >
+                                  <Award className="h-4 w-4" />
+                                  <span>Course Catalog</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
                             {adminItems.map((item) => (
                               <SidebarMenuItem key={item.title}>
                                 <SidebarMenuButton

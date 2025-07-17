@@ -127,6 +127,21 @@ export default function MyLearningPage() {
     }
   };
 
+  const getCategoryColor = (category: string) => {
+    switch (category) {
+      case 'compliance':
+        return 'bg-warning-ochre text-alabaster';
+      case 'skills':
+        return 'bg-charcoal text-alabaster';
+      case 'culture':
+        return 'bg-success-green text-alabaster';
+      case 'technical':
+        return 'bg-blue-600 text-alabaster';
+      default:
+        return 'bg-warm-gray text-alabaster';
+    }
+  };
+
   // Filter courses based on search and filters
   const filteredCourses =
     data?.courses?.filter((course) => {
@@ -321,6 +336,12 @@ export default function MyLearningPage() {
                           <h3 className="font-semibold text-charcoal">
                             {course.title}
                           </h3>
+                          <Badge
+                            className={getCategoryColor(course.category)}
+                            variant="secondary"
+                          >
+                            {course.category}
+                          </Badge>
                           {course.difficulty && (
                             <Badge
                               className={getDifficultyColor(course.difficulty)}
