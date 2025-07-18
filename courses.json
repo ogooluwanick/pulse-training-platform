@@ -1,0 +1,245 @@
+[
+  {
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8a"
+    },
+    "title": "Data Privacy & GDPR Compliance",
+    "description": "Essential training on data protection regulations and best practices for handling personal data.",
+    "category": "compliance",
+    "instructor": "John Doe",
+    "duration": 120,
+    "difficulty": "Beginner",
+    "rating": [],
+    "enrolledCount": 0,
+    "tags": ["GDPR", "Data Privacy"],
+    "lessons": [
+      {
+        "title": "Introduction to Data Privacy",
+        "type": "text",
+        "content": "<h1>Understanding Data Privacy</h1><p>This lesson covers the fundamental concepts of data privacy, its importance, and the key principles of data protection.</p>",
+        "duration": 30,
+        "quiz": {
+          "title": "Quiz: Introduction to Data Privacy",
+          "questions": [
+            {
+              "question": "What is the main purpose of data privacy?",
+              "options": [
+                "To hide information from the public",
+                "To protect personal data from unauthorized access",
+                "To sell data to advertisers"
+              ],
+              "answer": "To protect personal data from unauthorized access"
+            }
+          ]
+        }
+      },
+      {
+        "title": "GDPR Fundamentals",
+        "type": "video",
+        "content": "https://www.youtube.com/watch?v=s_b1_v2A-wA",
+        "duration": 45
+      },
+      {
+        "title": "Key Roles and Responsibilities",
+        "type": "text",
+        "content": "<h2>Data Controller vs. Data Processor</h2><p>Learn the distinction between data controllers and processors and their respective responsibilities under GDPR.</p>",
+        "duration": 25
+      },
+      {
+        "title": "Handling Data Subject Access Requests",
+        "type": "image",
+        "content": "https://example.com/images/dsar_flowchart.png",
+        "duration": 20
+      }
+    ],
+    "finalQuiz": {
+      "title": "Quiz: GDPR Basics",
+      "questions": [
+        {
+          "question": "What does GDPR stand for?",
+          "options": [
+            "General Data Protection Regulation",
+            "Global Data Privacy Rules",
+            "General Data Processing Regulation"
+          ],
+          "answer": "General Data Protection Regulation"
+        },
+        {
+          "question": "What is considered personal data under GDPR?",
+          "options": [
+            "Name and email address",
+            "IP address",
+            "All of the above"
+          ],
+          "answer": "All of the above"
+        }
+      ]
+    }
+  },
+  {
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8b"
+    },
+    "title": "Anti-Money Laundering (AML)",
+    "description": "A comprehensive overview of Anti-Money Laundering regulations and practices to prevent financial crimes.",
+    "category": "compliance",
+    "instructor": "Jane Smith",
+    "duration": 180,
+    "difficulty": "Intermediate",
+    "rating": [],
+    "enrolledCount": 0,
+    "tags": ["AML", "Finance"],
+    "lessons": [
+      {
+        "title": "What is Money Laundering?",
+        "type": "text",
+        "content": "<h1>The Basics of Money Laundering</h1><p>This lesson explains the three stages of money laundering: placement, layering, and integration.</p>",
+        "duration": 60,
+        "quiz": {
+          "title": "Quiz: Money Laundering Basics",
+          "questions": [
+            {
+              "question": "How many stages of money laundering are there?",
+              "options": [
+                "One",
+                "Two",
+                "Three"
+              ],
+              "answer": "Three"
+            }
+          ]
+        }
+      },
+      {
+        "title": "AML Regulations and Legislation",
+        "type": "video",
+        "content": "https://www.youtube.com/watch?v=some_aml_video",
+        "duration": 70
+      },
+      {
+        "title": "Customer Due Diligence (CDD)",
+        "type": "text",
+        "content": "<h2>Implementing Effective CDD</h2><p>Understand the importance of verifying customer identities and assessing their risk profiles.</p>",
+        "duration": 50
+      }
+    ],
+    "finalQuiz": {
+      "title": "Quiz: AML Concepts",
+      "questions": [
+        {
+          "question": "Which is the first stage of money laundering?",
+          "options": [
+            "Layering",
+            "Placement",
+            "Integration"
+          ],
+          "answer": "Placement"
+        }
+      ]
+    }
+  },
+  {
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8c"
+    },
+    "title": "Company Culture & Values",
+    "description": "An introduction to our company's culture, mission, and the core values that guide our work.",
+    "category": "culture",
+    "instructor": "HR Department",
+    "duration": 60,
+    "difficulty": "Beginner",
+    "rating": [],
+    "enrolledCount": 0,
+    "tags": ["Culture", "Values"],
+    "lessons": [
+      {
+        "title": "Our Mission and Vision",
+        "type": "text",
+        "content": "<h1>Our Guiding Principles</h1><p>Discover the mission that drives us and the vision we are working towards.</p>",
+        "duration": 20,
+        "quiz": {
+          "title": "Quiz: Mission and Vision",
+          "questions": [
+            {
+              "question": "What is the primary focus of our company's mission?",
+              "options": [
+                "Profitability",
+                "Customer Satisfaction",
+                "Innovation"
+              ],
+              "answer": "Customer Satisfaction"
+            }
+          ]
+        }
+      },
+      {
+        "title": "Core Values in Action",
+        "type": "image",
+        "content": "https://example.com/images/values_infographic.png",
+        "duration": 15
+      },
+      {
+        "title": "A Message from our CEO",
+        "type": "video",
+        "content": "https://www.youtube.com/watch?v=ceo_message_video",
+        "duration": 25
+      }
+    ]
+  },
+  {
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8d"
+    },
+    "title": "Cybersecurity Awareness",
+    "description": "Learn how to protect our company's digital assets and recognize common cybersecurity threats.",
+    "category": "compliance",
+    "instructor": "IT Department",
+    "duration": 90,
+    "difficulty": "Beginner",
+    "rating": [],
+    "enrolledCount": 0,
+    "tags": ["Cybersecurity", "Phishing"],
+    "lessons": [
+      {
+        "title": "Understanding Phishing Attacks",
+        "type": "text",
+        "content": "<h1>Don't Get Hooked!</h1><p>Learn to identify phishing emails and protect yourself from credential theft.</p>",
+        "duration": 45,
+        "quiz": {
+          "title": "Quiz: Phishing",
+          "questions": [
+            {
+              "question": "What is a common sign of a phishing email?",
+              "options": [
+                "A generic greeting",
+                "A sense of urgency",
+                "All of the above"
+              ],
+              "answer": "All of the above"
+            }
+          ]
+        }
+      },
+      {
+        "title": "Creating Strong Passwords",
+        "type": "video",
+        "content": "https://www.youtube.com/watch?v=password_best_practices",
+        "duration": 45
+      }
+    ],
+    "finalQuiz": {
+      "title": "Quiz: Cybersecurity Essentials",
+      "questions": [
+        {
+          "question": "What should you do if you receive a suspicious email?",
+          "options": [
+            "Click on the links to investigate",
+            "Delete it immediately",
+            "Report it to the IT department"
+          ],
+          "answer": "Report it to the IT department"
+        }
+      ]
+    }
+  }
+]

@@ -1,22 +1,22 @@
-import { Schema, model, models } from "mongoose"
+import { Schema, model, models } from 'mongoose';
 
 const CourseAssignmentSchema = new Schema({
   course: {
     type: Schema.Types.ObjectId,
-    ref: "Course",
+    ref: 'Course',
   },
   employee: {
     type: Schema.Types.ObjectId,
-    ref: "User",
+    ref: 'User',
   },
   assignmentType: {
     type: String,
-    enum: ["one-time", "interval"],
+    enum: ['one-time', 'interval'],
     required: true,
   },
   interval: {
     type: String,
-    enum: ["daily", "monthly", "yearly"],
+    enum: ['daily', 'monthly', 'yearly'],
     required: false,
   },
   endDate: {
@@ -25,22 +25,33 @@ const CourseAssignmentSchema = new Schema({
   },
   companyId: {
     type: Schema.Types.ObjectId,
-    ref: "User",
+    ref: 'User',
   },
   status: {
     type: String,
-    enum: ["not-started", "in-progress", "completed"],
-    default: "not-started",
+    enum: ['not-started', 'in-progress', 'completed'],
+    default: 'not-started',
   },
   lessonProgress: [
     {
       lessonId: { type: Schema.Types.ObjectId },
       status: {
         type: String,
-        enum: ["not-started", "in-progress", "completed"],
-        default: "not-started",
+        enum: ['not-started', 'in-progress', 'completed'],
+        default: 'not-started',
       },
       completedAt: { type: Date },
+      quizResult: {
+        score: { type: Number },
+        passed: { type: Boolean },
+        answers: [
+          {
+            question: { type: String },
+            answer: Schema.Types.Mixed,
+            correct: { type: Boolean },
+          },
+        ],
+      },
     },
   ],
   quizAnswers: [
@@ -58,9 +69,37 @@ const CourseAssignmentSchema = new Schema({
   completedAt: {
     type: Date,
   },
-})
+  finalQuizResult: {
+    score: { type: Number },
+    passed: { type: Boolean },
+    answers: [
+      {
+        question: { type: String },
+        answer: Schema.Types.Mixed,
+        correct: { type: Boolean },
+      },
+    ],
+  },
+});
 
 const CourseAssignment =
-  models.CourseAssignment || model("CourseAssignment", CourseAssignmentSchema)
+  models.CourseAssignment || model('CourseAssignment', CourseAssignmentSchema);
 
-export default CourseAssignment
+export default CourseAssignment;
+
+export interface LessonQuizResult {
+  score: number;
+  passed: boolean;
+  answers: { question: string; answer: any; correct: boolean }[];
+}
+
+export interface LessonProgress {
+  lessonId: string;
+  status: 'not-started' | 'in-progress' | 'completed';
+  completedAt?: Date;
+  quizResult?: LessonQuizResult;
+}
+
+export interface CourseAssignment {
+  finalQuizResult?: LessonQuizResult;
+}

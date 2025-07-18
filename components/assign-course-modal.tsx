@@ -24,9 +24,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Users, Star, Calendar } from 'lucide-react';
+import { Clock, Users, Star } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { formatDuration } from '@/lib/duration';
 
@@ -362,7 +361,6 @@ export default function AssignCourseModal({
                                       variant={'outline'}
                                       className="w-full justify-start text-left font-normal"
                                     >
-                                      <Calendar className="mr-2 h-4 w-4" />
                                       {assignment.endDate ? (
                                         format(assignment.endDate, 'PPP')
                                       ) : (
@@ -371,7 +369,7 @@ export default function AssignCourseModal({
                                     </Button>
                                   </PopoverTrigger>
                                   <PopoverContent className="w-auto p-0">
-                                    <CalendarComponent
+                                    <Calendar
                                       mode="single"
                                       captionLayout="dropdown-buttons"
                                       selected={assignment.endDate}

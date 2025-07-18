@@ -5,6 +5,7 @@ import User from '@/lib/models/User';
 import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import Course from '@/lib/models/Course';
 
 export async function POST(
   req: NextRequest,
@@ -29,22 +30,37 @@ export async function POST(
     }
 
     // First, remove all existing assignments for this employee
-    const existingAssignments = await CourseAssignment.find({ user: employeeId });
-    const existingAssignmentIds = existingAssignments.map(a => a._id);
+    const existingAssignments = await CourseAssignment.find({
+      user: employeeId,
+    });
+    const existingAssignmentIds = existingAssignments.map((a) => a._id);
 
     await CourseAssignment.deleteMany({ user: employeeId });
 
     // Then, create the new assignments
-    const newAssignmentDocs = assignments.map((assignment) => ({
-      user: new mongoose.Types.ObjectId(employeeId),
-      course: new mongoose.Types.ObjectId(assignment.courseId),
-      assignmentType: assignment.type,
-      interval: assignment.interval,
-      endDate: assignment.endDate,
-      assignedAt: new Date(),
-      status: 'not-started',
-      companyId: new mongoose.Types.ObjectId(session.user.companyId),
-    }));
+    const newAssignmentDocs = await Promise.all(
+      assignments.map(async (assignment) => {
+        const course = await Course.findById(assignment.courseId);
+        return {
+          user: new mongoose.Types.ObjectId(employeeId),
+          course: new mongoose.Types.ObjectId(assignment.courseId),
+          assignmentType: assignment.type,
+          interval: assignment.interval,
+          endDate: assignment.endDate,
+          assignedAt: new Date(),
+          status: 'not-started',
+          companyId: new mongoose.Types.ObjectId(session.user.companyId),
+          lessonProgress:
+            course && course.lessons
+              ? course.lessons.map((lesson) => ({
+                  lessonId: lesson._id,
+                  status: 'not-started',
+                }))
+              : [],
+          // finalQuizResult is not set at creation
+        };
+      })
+    );
 
     let createdAssignments: any[] = [];
     if (newAssignmentDocs.length > 0) {
@@ -52,7 +68,7 @@ export async function POST(
     }
 
     // Update user's courseAssignments
-    const newAssignmentIds = createdAssignments.map(a => a._id);
+    const newAssignmentIds = createdAssignments.map((a) => a._id);
 
     await User.findByIdAndUpdate(employeeId, {
       $pull: { courseAssignments: { $in: existingAssignmentIds } },

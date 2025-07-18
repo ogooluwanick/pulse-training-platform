@@ -22,11 +22,20 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Users, Star, Calendar } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarComponent } from '@/components/ui/calendar';
+import { Clock, Users, Star } from 'lucide-react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { Checkbox } from './ui/checkbox';
 import { formatDuration } from '@/lib/duration';
@@ -162,7 +171,9 @@ export default function MassAssignCourseModal({
   ) => {
     setSelectedAssignments(
       selectedAssignments.map((a) =>
-        a.courseId === courseId ? { ...a, type, interval: undefined, endDate: undefined } : a
+        a.courseId === courseId
+          ? { ...a, type, interval: undefined, endDate: undefined }
+          : a
       )
     );
   };
@@ -407,7 +418,6 @@ export default function MassAssignCourseModal({
                                           variant={'outline'}
                                           className="w-full justify-start text-left font-normal"
                                         >
-                                          <Calendar className="mr-2 h-4 w-4" />
                                           {assignment.endDate ? (
                                             format(assignment.endDate, 'PPP')
                                           ) : (
@@ -416,18 +426,22 @@ export default function MassAssignCourseModal({
                                         </Button>
                                       </PopoverTrigger>
                                       <PopoverContent className="w-auto p-0">
-                                        <CalendarComponent
-                                          mode="single"
-                                          captionLayout="dropdown-buttons"
-                                          selected={assignment.endDate}
-                                          onSelect={(date: Date | undefined) =>
-                                            handleEndDateChange(
-                                              course._id,
-                                              date
-                                            )
-                                          }
-                                          initialFocus
-                                        />
+                                        <div className="p-3">
+                                          <Calendar
+                                            mode="single"
+                                            captionLayout="dropdown-buttons"
+                                            selected={assignment.endDate}
+                                            onSelect={(
+                                              date: Date | undefined
+                                            ) =>
+                                              handleEndDateChange(
+                                                course._id,
+                                                date
+                                              )
+                                            }
+                                            initialFocus
+                                          />
+                                        </div>
                                       </PopoverContent>
                                     </Popover>
                                   </>

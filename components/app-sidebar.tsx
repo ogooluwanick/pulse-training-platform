@@ -12,7 +12,6 @@ import {
   Settings,
   Home,
   Award,
-  Calendar,
   MessageSquare,
   Building2,
   LogOut,
@@ -63,11 +62,6 @@ const navigationItems = [
     title: 'Course Catalog',
     url: '/catalog',
     icon: Award,
-  },
-  {
-    title: 'Calendar',
-    url: '/calendar',
-    icon: Calendar,
   },
   {
     title: 'Discussions',
@@ -228,11 +222,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                 <SidebarMenu>
                   {/* Dashboard and Employee items */}
                   {updatedNavigationItems.map((item) => {
-                    const employeeOnlyItems = [
-                      'My Learning',
-                      'Calendar',
-                      'Discussions',
-                    ]; // Removed 'Course Catalog' from here
+                    const employeeOnlyItems = ['My Learning', 'Discussions']; // Removed 'Calendar' from here
                     // Show employee items only to employees
                     if (
                       employeeOnlyItems.includes(item.title) &&
@@ -246,6 +236,13 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                       user?.role !== 'EMPLOYEE'
                     ) {
                       return null; // Will be rendered in company/admin section below
+                    }
+                    // Hide Course Catalog for EMPLOYEE users
+                    if (
+                      item.title === 'Course Catalog' &&
+                      user?.role === 'EMPLOYEE'
+                    ) {
+                      return null;
                     }
                     // For COMPANY users, add companyItems directly to Menu
                     if (
