@@ -63,7 +63,7 @@ const UserSchema = new Schema({
       ref: 'CourseAssignment',
     },
   ],
-})
+}, { timestamps: true })
 
 const User = models.User || model("User", UserSchema)
 

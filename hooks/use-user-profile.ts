@@ -1,5 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
 
 export interface UserProfileData {
   _id: string;
@@ -12,9 +12,8 @@ export interface UserProfileData {
   company?: string;
   bio?: string;
   website?: string;
-  joinDate?: string; 
+  createdAt?: string;
   profileImageUrl?: string;
-  submitterType?: "business" | "agency" | "";
   registrationNumber?: string;
   sector?: string;
   officeAddress?: string;
@@ -23,8 +22,8 @@ export interface UserProfileData {
   businessDescription?: string;
   department?: string;
   expertise?: string[];
-  letterOfAuthorityUrl?: string | null;
-  letterOfAuthorityPublicId?: string | null;
+  jobTitle?: string;
+  location?: string;
 }
 
 export interface PublicProfileViewData {
@@ -34,11 +33,10 @@ export interface PublicProfileViewData {
   lastName: string;
   role: string;
   bio?: string;
-  joinDate?: string;
+  createdAt?: string;
   image?: string;
   company?: string;
   website?: string;
-  submitterType?: "business" | "agency" | "";
   registrationNumber?: string;
   sector?: string;
   officeAddress?: string;
@@ -49,7 +47,7 @@ export interface PublicProfileViewData {
   reviewerLevel?: string;
   expertise?: string[];
   accuracy?: number;
-  profileVisibility?: "public" | "private" | "reviewers-only";
+  profileVisibility?: 'public' | 'private' | 'reviewers-only';
   totalAds?: number;
   approvedAds?: number;
   pendingAds?: number;
@@ -57,35 +55,40 @@ export interface PublicProfileViewData {
   email?: string;
 }
 
-
 const fetchUserProfile = async (): Promise<UserProfileData> => {
-  const { data } = await axios.get<UserProfileData>("/api/user/profile");
+  const { data } = await axios.get<UserProfileData>('/api/user/profile');
   return data;
 };
 
 export const useUserProfile = () => {
   return useQuery<UserProfileData, Error>({
-    queryKey: ["userProfile"],
+    queryKey: ['userProfile'],
     queryFn: fetchUserProfile,
   });
 };
 
-const fetchPublicUserProfileById = async (userId: string): Promise<PublicProfileViewData> => {
-  if (!userId) throw new Error("User ID is required to fetch public profile.");
-  const { data } = await axios.get<PublicProfileViewData>(`/api/user/profile/${userId}`);
+const fetchPublicUserProfileById = async (
+  userId: string
+): Promise<PublicProfileViewData> => {
+  if (!userId) throw new Error('User ID is required to fetch public profile.');
+  const { data } = await axios.get<PublicProfileViewData>(
+    `/api/user/profile/${userId}`
+  );
   return data;
 };
 
 export const usePublicUserProfile = (userId: string | null | undefined) => {
   return useQuery<PublicProfileViewData, Error>({
-    queryKey: ["publicUserProfile", userId],
+    queryKey: ['publicUserProfile', userId],
     queryFn: () => {
       if (!userId) {
-        return Promise.reject(new Error("User ID not provided for public profile fetch."));
+        return Promise.reject(
+          new Error('User ID not provided for public profile fetch.')
+        );
       }
       return fetchPublicUserProfileById(userId);
     },
-    enabled: !!userId, 
+    enabled: !!userId,
   });
 };
 
@@ -97,7 +100,6 @@ export interface UpdateUserProfilePayload {
   company?: string;
   bio?: string;
   website?: string;
-  submitterType?: "business" | "agency" | "";
   registrationNumber?: string;
   sector?: string;
   officeAddress?: string;
@@ -106,31 +108,6 @@ export interface UpdateUserProfilePayload {
   businessDescription?: string;
   department?: string;
   expertise?: string[];
-  newLetterOfAuthorityUrl?: string | null;
-  newLetterOfAuthorityPublicId?: string | null;
-  currentLetterOfAuthorityPublicId?: string | null;
+  jobTitle?: string;
+  location?: string;
 }
-
-interface UpdateUserProfileResponse {
-  message: string;
-  user: UserProfileData; 
-}
-
-const updateUserProfile = async (payload: UpdateUserProfilePayload): Promise<UpdateUserProfileResponse> => {
-  const { data } = await axios.put<UpdateUserProfileResponse>("/api/user/profile", payload);
-  return data;
-};
-
-export const useUpdateUserProfile = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation<UpdateUserProfileResponse, Error, UpdateUserProfilePayload>({
-    mutationFn: updateUserProfile,
-    onSuccess: (data: UpdateUserProfileResponse) => {
-      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
-    },
-    onError: (error: Error) => {
-      console.error("Error updating profile:", error);
-    },
-  });
-};

@@ -79,8 +79,9 @@ const CourseAssignmentSchema = new Schema({
         correct: { type: Boolean },
       },
     ],
-  },
-});
+  }
+}, { timestamps: true }
+);
 
 const CourseAssignment =
   models.CourseAssignment || model('CourseAssignment', CourseAssignmentSchema);

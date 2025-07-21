@@ -14,7 +14,23 @@ export async function GET(req: Request) {
   try {
     const client = await clientPromise();
     const db = client.db();
-    const user = await db.collection("users").findOne({ _id: new ObjectId(session.user.id) });
+    const user = await db.collection("users").aggregate([
+      { $match: { _id: new ObjectId(session.user.id) } },
+      {
+        $lookup: {
+          from: "users",
+          localField: "companyId",
+          foreignField: "_id",
+          as: "company"
+        }
+      },
+      {
+        $unwind: {
+          path: "$company",
+          preserveNullAndEmptyArrays: true
+        }
+      }
+    ]).next();
 
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });

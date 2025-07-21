@@ -4,10 +4,9 @@ import { Inter } from "next/font/google"
 import { NextAuthProvider } from "@/components/next-auth-provider"
 import "./globals.css"
 import { getServerSession } from "next-auth"
-import { Toaster } from "sonner" // Import Toaster from sonner
-import { NotificationProvider } from "@/app/contexts/NotificationContext";
-import { NotificationDisplay } from "@/components/notification-display";
+import { Toaster } from "react-hot-toast";
 import QueryProvider from "@/components/query-provider";
+import { NotificationProvider } from "@/app/contexts/NotificationContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -49,8 +48,25 @@ export default async function RootLayout({
             <NotificationProvider>
               <div className="min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
                 {children}
-              <Toaster richColors={true} />
-              <NotificationDisplay />
+                <Toaster
+                  position="bottom-right"
+                  toastOptions={{
+                    style: {
+                      borderRadius: '0',
+                      borderWidth: '1.5px',
+                    },
+                    success: {
+                      style: {
+                        borderColor: 'green',
+                      },
+                    },
+                    error: {
+                      style: {
+                        borderColor: 'red',
+                      },
+                    },
+                  }}
+                />
               </div>
             </NotificationProvider>
           </QueryProvider>

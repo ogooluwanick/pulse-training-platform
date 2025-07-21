@@ -38,65 +38,68 @@ const FinalQuizSchema = new Schema(
   { _id: false }
 );
 
-const CourseSchema = new Schema({
-  title: {
-    type: String,
-    required: [true, 'Title is required'],
-  },
-  description: {
-    type: String,
-  },
-  category: {
-    type: String,
-    enum: ['compliance', 'skills', 'culture', 'technical', 'General'],
-    required: true,
-  },
-  instructor: {
-    type: String,
-    required: false,
-  },
-  duration: {
-    // IN MINS
-    type: Number,
-    required: false,
-  },
-  difficulty: {
-    type: String,
-    enum: ['Beginner', 'Intermediate', 'Advanced'],
-    required: false,
-  },
-  rating: [
-    {
-      user: {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-      },
-      rating: {
-        type: Number,
-        min: 1,
-        max: 5,
-      },
+const CourseSchema = new Schema(
+  {
+    title: {
+      type: String,
+      required: [true, 'Title is required'],
     },
-  ],
-  enrolledCount: {
-    type: Number,
-    required: false,
+    description: {
+      type: String,
+    },
+    category: {
+      type: String,
+      enum: ['compliance', 'skills', 'culture', 'technical', 'General'],
+      required: true,
+    },
+    instructor: {
+      type: String,
+      required: false,
+    },
+    duration: {
+      // IN MINS
+      type: Number,
+      required: false,
+    },
+    difficulty: {
+      type: String,
+      enum: ['Beginner', 'Intermediate', 'Advanced'],
+      required: false,
+    },
+    rating: [
+      {
+        user: {
+          type: Schema.Types.ObjectId,
+          ref: 'User',
+        },
+        rating: {
+          type: Number,
+          min: 1,
+          max: 5,
+        },
+      },
+    ],
+    enrolledCount: {
+      type: Number,
+      required: false,
+    },
+    tags: {
+      type: [String],
+      required: false,
+      default: [],
+    },
+    lessons: [LessonSchema],
+    finalQuiz: {
+      type: FinalQuizSchema,
+      required: false,
+    },
+    companyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
   },
-  tags: {
-    type: [String],
-    required: false,
-    default: [],
-  },
-  lessons: [LessonSchema],
-  finalQuiz: {
-    type: FinalQuizSchema,
-    required: false,
-  },
-  companyId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
-  },
-});
+  { timestamps: true }
+);
 
 const Course = models.Course || model('Course', CourseSchema);
 

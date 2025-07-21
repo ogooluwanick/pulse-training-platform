@@ -13,12 +13,11 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
+import toast from 'react-hot-toast';
 
 export default function EmployeeSignupPage() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
-  const { toast } = useToast();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -87,14 +86,12 @@ export default function EmployeeSignupPage() {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      toast({
-        title: 'Success',
-        description: 'Your account has been created. You can now log in.',
-      });
+      toast.success('Your account has been created. You can now log in.');
 
       // Redirect to login page
       window.location.href = '/auth/signin';
     } catch (error: any) {
+      toast.error(error.message);
       setError(error.message);
     } finally {
       setLoading(false);

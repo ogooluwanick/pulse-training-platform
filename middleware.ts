@@ -18,13 +18,13 @@ export async function middleware(req: NextRequest) {
   }
 
   if (token) {
-    // If the user is authenticated, redirect them to the dashboard if they try to access the landing page
-    if (pathname === "/") {
+    // If the user is authenticated, redirect them to the dashboard if they try to access the sign-in or sign-up pages
+    if (pathname === "/auth/signin" || pathname === "/auth/signup") {
       return NextResponse.redirect(new URL("/dashboard", req.url))
     }
   } else {
-    // If the user is not authenticated, redirect them to the landing page if they try to access any other page
-    if (pathname !== "/") {
+    // If the user is not authenticated, allow access only to the landing page and auth pages
+    if (pathname !== "/" && !pathname.startsWith("/auth")) {
       return NextResponse.redirect(new URL("/", req.url))
     }
   }
