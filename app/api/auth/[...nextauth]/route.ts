@@ -10,7 +10,7 @@ import { sendVerificationEmail } from "@/lib/email" // For resending verificatio
 // clientPromise is now a function that returns Promise<MongoClient>
 // We need to call it to get the promise for the adapter.
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise()), 
+  adapter: MongoDBAdapter(clientPromise()),
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -72,12 +72,10 @@ export const authOptions: NextAuthOptions = {
           { $set: { lastOnline: new Date() } }
         );
 
-        let sessionTimeoutInHours = 4; // Default session timeout
-        if (dbUser.role === "reviewer" && dbUser.reviewerSettings?.security?.sessionTimeout) {
-          sessionTimeoutInHours = parseInt(dbUser.reviewerSettings.security.sessionTimeout, 10);
-        } else if (dbUser.role === "submitter" && dbUser.submitterSettings?.security?.sessionTimeout) {
-          sessionTimeoutInHours = parseInt(dbUser.submitterSettings.security.sessionTimeout, 10);
-        }
+        // Use session timeout from new settings structure
+        const sessionTimeoutInHours = dbUser.settings && dbUser.settings.session && dbUser.settings.session.sessionTimeout
+          ? dbUser.settings.session.sessionTimeout
+          : 4;
 
         let companyName = dbUser.companyName;
         if (!companyName && dbUser.companyId) {
@@ -108,10 +106,8 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: "jwt",
-    // maxAge can be set to the longest possible session timeout (e.g., 7 days in seconds)
-    // The JWT's own 'exp' claim will enforce the user-specific shorter timeout.
-    maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: "/login",
@@ -143,10 +139,10 @@ export const authOptions: NextAuthOptions = {
         token.companyId = (user as any).companyId
 
         // Set JWT expiration based on user's sessionTimeout setting
-        const sessionTimeoutInHours =
-          (user as any).sessionTimeoutInHours || 4 // Default to 4 hours if not set
-        const sessionTimeoutInSeconds = sessionTimeoutInHours * 60 * 60
-        token.exp = Math.floor(Date.now() / 1000) + sessionTimeoutInSeconds
+        const sessionTimeoutInSeconds = (user as any).settings && (user as any).settings.session && (user as any).settings.session.sessionTimeout
+          ? (user as any).settings.session.sessionTimeout * 3600
+          : 4 * 3600;
+        token.exp = Math.floor(Date.now() / 1000) + sessionTimeoutInSeconds;
       }
       return token
     },
