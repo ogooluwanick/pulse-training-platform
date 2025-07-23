@@ -20,7 +20,7 @@ export default function CultureBuilderLayout({
 
   return (
     <AuthGuard>
-      <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
+      <div className="min-h-screen" >
         <TopMenu />
         <SidebarProvider>
           <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
