@@ -4,7 +4,7 @@ import { MongoClient } from "mongodb";
 interface User {
   _id: string;
   email: string;
-  role: string;
+  role: 'ADMIN' | 'COMPANY' | 'EMPLOYEE';
   lastOnline?: Date;
   // Add other user properties as needed
 }
@@ -20,7 +20,7 @@ export async function getUsersByRole(roles: string[]): Promise<User[]> {
     return users.map(user => ({
       _id: user._id.toString(),
       email: user.email,
-      role: user.role,
+      role: user.role as 'ADMIN' | 'COMPANY' | 'EMPLOYEE',
       lastOnline: user.lastOnline,
     }));
   } catch (error) {

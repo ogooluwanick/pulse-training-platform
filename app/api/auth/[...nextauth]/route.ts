@@ -1,4 +1,4 @@
-import NextAuth, { NextAuthOptions } from "next-auth"
+import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials"
 import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
 import clientPromise from "@/lib/mongodb"
@@ -118,15 +118,15 @@ export const authOptions: NextAuthOptions = {
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       // Update lastOnline on every JWT refresh (user activity)
       if (token.id) {
-        const client: MongoClient = await clientPromise()
-        const usersCollection = client.db().collection("users")
+        const client: MongoClient = await clientPromise();
+        const usersCollection = client.db().collection('users');
         await usersCollection.updateOne(
           { _id: new ObjectId(token.id as string) },
           { $set: { lastOnline: new Date() } }
-        )
+        );
       }
 
       if (user) {
@@ -143,16 +143,24 @@ export const authOptions: NextAuthOptions = {
           (user as any).settings?.session?.sessionTimeout * 3600 || 4 * 3600;
         token.exp = Math.floor(Date.now() / 1000) + sessionTimeoutInSeconds;
       }
+
+      if (trigger === 'update' && session) {
+        if (session.user) {
+          token.firstName = session.user.firstName;
+          token.lastName = session.user.lastName;
+          token.profileImageUrl = session.user.profileImageUrl;
+        }
+      }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.firstName = token.firstName;
-        session.user.lastName = token.lastName;
-        session.user.profileImageUrl = token.profileImageUrl;
-        session.user.companyName = token.companyName;
+        session.user.id = token.id as string;
+        session.user.role = token.role as 'ADMIN' | 'COMPANY' | 'EMPLOYEE';
+        session.user.firstName = token.firstName as string;
+        session.user.lastName = token.lastName as string;
+        session.user.profileImageUrl = token.profileImageUrl as string;
+        session.user.companyName = token.companyName as string;
         session.user.companyId = token.companyId as string;
       }
       return session;

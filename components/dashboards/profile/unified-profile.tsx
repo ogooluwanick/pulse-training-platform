@@ -28,7 +28,10 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { useUserProfile, type UpdateUserProfilePayload } from '@/hooks/use-user-profile';
+import {
+  useUserProfile,
+  type UpdateUserProfilePayload,
+} from '@/hooks/use-user-profile';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -188,15 +191,23 @@ export default function UnifiedProfilePage() {
       return response.json();
     },
     onSuccess: (data, variables) => {
-      toast.success(data.message || 'Your profile has been successfully updated.');
+      toast.success(
+        data.message || 'Your profile has been successfully updated.'
+      );
       setIsEditing(false);
       setNewlyUploadedImageUrl(null);
       refetchProfile();
-      updateSession({
-        firstName: variables.firstName,
-        lastName: variables.lastName,
-        profileImageUrl: variables.profileImageUrl,
-      });
+      if (session && session.user) {
+        updateSession({
+          ...session,
+          user: {
+            ...session.user,
+            firstName: variables.firstName,
+            lastName: variables.lastName,
+            profileImageUrl: variables.profileImageUrl,
+          },
+        });
+      }
     },
     onError: (error: any) => {
       toast.error(error.message || 'Could not update profile.');
@@ -346,7 +357,15 @@ export default function UnifiedProfilePage() {
     onSuccess: (data) => {
       setNewlyUploadedImageUrl(data.imageUrl);
       setProfileData((prev) => ({ ...prev, image: data.imageUrl }));
-      updateSession({ profileImageUrl: data.imageUrl });
+      if (session && session.user) {
+        updateSession({
+          ...session,
+          user: {
+            ...session.user,
+            profileImageUrl: data.imageUrl,
+          },
+        });
+      }
       toast.success("Image Uploaded. Ready to save. Click 'Save Changes'.");
     },
     onError: (error: any) => {
@@ -445,24 +464,27 @@ export default function UnifiedProfilePage() {
                 </Avatar>
                 {isEditing && (
                   <>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      style={{ display: 'none' }}
-                      accept="image/png, image/jpeg, image/gif, image/webp"
-                    />
                     <Button
                       size="icon"
                       variant="outline"
-                      className="absolute -bottom-2 -right-2 transform  z-10 bg-alabaster hover:bg-alabaster/90 text-charcoal shadow-soft-lg rounded-full p-3 transition-soft border border-warm-gray/20"
+                      className="flex justify-center items-center absolute -bottom-2 -right-2 transform  z-10 bg-alabaster hover:bg-alabaster/90 text-charcoal shadow-soft-lg rounded-full  transition-soft border border-warm-gray/20"
                       onClick={handleImageUploadClick}
                       disabled={uploadImageMutation.isPending}
                     >
                       {uploadImageMutation.isPending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Camera className="h-4 w-4" />
+                        <div className="relative  w-full h-full flex justify-center items-center">
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                              onChange={handleFileChange}
+                              style={{display: 'none'}}
+                            className="w-full h-full opacity-0 absolute top-0 left-0 cursor-pointer "
+                            accept="image/png, image/jpeg, image/gif, image/webp"
+                          />
+                          <Camera className="h-4 w-4" />
+                        </div>
                       )}
                     </Button>
                   </>
