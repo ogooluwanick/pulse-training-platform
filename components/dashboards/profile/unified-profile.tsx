@@ -31,6 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { useUserProfile, type UpdateUserProfilePayload } from '@/hooks/use-user-profile';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
+import { useSession } from 'next-auth/react';
 import FullPageLoader from '@/components/full-page-loader';
 import ProfileTabs from './profile-tabs';
 import PersonalInformation from './personal-information';
@@ -87,6 +88,7 @@ const initialUnifiedProfileData: UnifiedProfileData = {
 // Removed calculateReviewerLevel function
 
 export default function UnifiedProfilePage() {
+  const { data: session, update: updateSession } = useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState<UnifiedProfileData>(
     initialUnifiedProfileData
@@ -185,11 +187,16 @@ export default function UnifiedProfilePage() {
 
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       toast.success(data.message || 'Your profile has been successfully updated.');
       setIsEditing(false);
       setNewlyUploadedImageUrl(null);
       refetchProfile();
+      updateSession({
+        firstName: variables.firstName,
+        lastName: variables.lastName,
+        profileImageUrl: variables.profileImageUrl,
+      });
     },
     onError: (error: any) => {
       toast.error(error.message || 'Could not update profile.');
@@ -321,30 +328,31 @@ export default function UnifiedProfilePage() {
 
     const formData = new FormData();
     formData.append('profileImage', file);
-    setIsUploadingImage(true);
-    setNewlyUploadedImageUrl(null);
+    uploadImageMutation.mutate(formData);
+  };
 
-    try {
-      // Assuming this endpoint handles image uploads and returns a URL
+  const uploadImageMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
       const response = await fetch('/api/user/upload-profile-image', {
         method: 'POST',
         body: formData,
       });
       const result = await response.json();
-
-      if (!response.ok)
+      if (!response.ok) {
         throw new Error(result.message || 'Image upload failed.');
-
-      setNewlyUploadedImageUrl(result.imageUrl);
-      setProfileData((prev) => ({ ...prev, image: result.imageUrl }));
+      }
+      return result;
+    },
+    onSuccess: (data) => {
+      setNewlyUploadedImageUrl(data.imageUrl);
+      setProfileData((prev) => ({ ...prev, image: data.imageUrl }));
+      updateSession({ profileImageUrl: data.imageUrl });
       toast.success("Image Uploaded. Ready to save. Click 'Save Changes'.");
-    } catch (uploadError: any) {
-      toast.error(uploadError.message || 'Could not upload image.');
-    } finally {
-      setIsUploadingImage(false);
-      if (event.target) event.target.value = '';
-    }
-  };
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Could not upload image.');
+    },
+  });
 
   const getInitials = (firstName?: string, lastName?: string) => {
     if (!firstName || !lastName) return '';
@@ -447,11 +455,15 @@ export default function UnifiedProfilePage() {
                     <Button
                       size="icon"
                       variant="outline"
-                      className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full"
+                      className="absolute -bottom-2 -right-2 transform  z-10 bg-alabaster hover:bg-alabaster/90 text-charcoal shadow-soft-lg rounded-full p-3 transition-soft border border-warm-gray/20"
                       onClick={handleImageUploadClick}
-                      disabled={isUploadingImage}
+                      disabled={uploadImageMutation.isPending}
                     >
-                      <Camera className="h-4 w-4" />
+                      {uploadImageMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Camera className="h-4 w-4" />
+                      )}
                     </Button>
                   </>
                 )}

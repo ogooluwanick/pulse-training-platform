@@ -130,33 +130,32 @@ export const authOptions: NextAuthOptions = {
       }
 
       if (user) {
-        token.id = user.id
-        token.role = (user as any).role
-        token.firstName = (user as any).firstName
-        token.lastName = (user as any).lastName
-        token.profileImageUrl = (user as any).profileImageUrl
-        token.companyName = (user as any).companyName
-        token.companyId = (user as any).companyId
+        token.id = user.id;
+        token.role = user.role;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.profileImageUrl = user.profileImageUrl;
+        token.companyName = user.companyName;
+        token.companyId = user.companyId;
 
         // Set JWT expiration based on user's sessionTimeout setting
-        const sessionTimeoutInSeconds = (user as any).settings && (user as any).settings.session && (user as any).settings.session.sessionTimeout
-          ? (user as any).settings.session.sessionTimeout * 3600
-          : 4 * 3600;
+        const sessionTimeoutInSeconds =
+          (user as any).settings?.session?.sessionTimeout * 3600 || 4 * 3600;
         token.exp = Math.floor(Date.now() / 1000) + sessionTimeoutInSeconds;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.role = token.role as string // Add role to session
-        session.user.firstName = token.firstName as string
-        session.user.lastName = token.lastName as string
-        session.user.profileImageUrl = token.profileImageUrl as string
-        session.user.companyName = token.companyName as string
-        session.user.companyId = token.companyId as string
+        session.user.id = token.id;
+        session.user.role = token.role;
+        session.user.firstName = token.firstName;
+        session.user.lastName = token.lastName;
+        session.user.profileImageUrl = token.profileImageUrl;
+        session.user.companyName = token.companyName;
+        session.user.companyId = token.companyId as string;
       }
-      return session
+      return session;
     },
   },
   // debug: process.env.NODE_ENV === 'development', // Optional: Enable debug messages

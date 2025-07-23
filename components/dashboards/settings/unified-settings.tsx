@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSession, signOut } from 'next-auth/react';
-import { useMutation } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import {
   Bell,
@@ -39,172 +39,92 @@ import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea'; // Added Textarea import
 import toast from 'react-hot-toast';
-
+import FullPageLoader from '@/components/full-page-loader';
 
 export default function UnifiedSettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  // Map roles to the new structure: 'submitter' and 'reviewer' become 'COMPANY EMPLOYEE'
-  // Now mapping to 'admin', 'company', 'employee'
-  console.log('session?.user?.role', session?.user?.role);
-  const rawRole = session?.user?.role?.toLowerCase() || null;
-  let userRole: 'admin' | 'company' | 'employee' | null = null;
+  const queryClient = useQueryClient();
 
-  if (rawRole === 'admin') {
-    userRole = 'admin';
-  } else if (rawRole === 'company') {
-    userRole = 'company';
-  } else if (rawRole === 'employee') {
-    userRole = 'employee';
-  }
+  const userRole = session?.user?.role;
 
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Unified Notifications State - Simplified for new roles
   const [notifications, setNotifications] = useState({
     emailNotifications: true,
     pushNotifications: true,
     systemUpdates: true, // Common for all roles
-
-    // Admin specific notifications
     newAdminRegistrations: true,
-    reviewerActivityReports: true, // These might be renamed or removed depending on new structure
-    submitterActivityReports: true, // These might be renamed or removed depending on new structure
-
-    // Company specific notifications (example)
+    reviewerActivityReports: true,
+    submitterActivityReports: true,
     newEmployeeOnboarding: true,
     companyWideAnnouncements: false,
-
-    // Employee specific notifications (example)
     courseReminders: true,
     performanceFeedback: true,
   });
 
-  // Admin Specific State
   const [adminPreferences, setAdminPreferences] = useState({
     dashboardLayout: 'default',
     defaultUserView: 'all',
     auditLogRetentionDays: 90,
   });
 
-  // Company Specific State (derived from previous submitter/reviewer fields)
-  const [companyPreferences, setCompanyPreferences] = useState({
-    companyName: '', // Added companyName
-    registrationNumber: '',
-    sector: '',
-    officeAddress: '',
-    state: '',
-    country: '',
-    businessDescription: '',
-    letterOfAuthorityUrl: null,
-    letterOfAuthorityPublicId: null,
-  });
-
-  // Employee Specific State (derived from previous reviewer fields)
   const [employeePreferences, setEmployeePreferences] = useState({
     department: 'Quality Assurance',
     expertise: [],
-    reviewerLevel: 'Junior', // This might need renaming or removal if not applicable to general employees
+    reviewerLevel: 'Junior',
   });
 
-  // Common Security State
   const [security, setSecurity] = useState({
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
-    twoFactorEnabled: false, // Default, can be fetched if API supports
-    sessionTimeout: '4', // Default session timeout, will be fetched
+    twoFactorEnabled: false,
+    sessionTimeout: '4',
+  });
+
+  const {
+    data: settingsData,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['userSettings', session?.user?.id],
+    queryFn: async () => {
+      const response = await fetch('/api/user/settings');
+      if (!response.ok) {
+        throw new Error('Failed to fetch settings');
+      }
+      return response.json();
+    },
+    enabled: !!session,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   useEffect(() => {
-    if (status === 'loading') return;
-    if (!session || !userRole) {
-      // router.push("/login"); // Redirect if not authenticated or role not found
-      return;
-    }
-
-    const fetchSettings = async () => {
-      setIsLoading(true);
-
-      let apiUrl = '';
-      if (userRole === 'employee') {
-        apiUrl = '/api/employee/settings'; // New endpoint for employees
-      } else if (userRole === 'company') {
-        apiUrl = '/api/company/settings'; // New endpoint for companies
-      } else if (userRole === 'admin') {
-        apiUrl = '/api/admin/settings';
-      } else {
-        console.warn(
-          `Unknown or null user role: ${userRole}. Redirecting to login.`
-        );
-        // router.push("/login");
-        setIsLoading(false);
-        return;
+    if (settingsData) {
+      setNotifications((prev) => ({
+        ...prev,
+        ...(settingsData.notifications || {}),
+      }));
+      if (userRole === 'admin' && settingsData.adminPreferences) {
+        setAdminPreferences(settingsData.adminPreferences);
       }
-
-      try {
-        const response = await fetch(apiUrl);
-        let data: any = {};
-
-        if (response.ok) {
-          data = await response.json();
-        } else {
-          if (response.status === 404) {
-            console.warn(
-              `No settings found for ${userRole}. Using default settings.`
-            );
-          } else {
-            throw new Error('Failed to fetch settings: ' + response.statusText);
-          }
-        }
-
-        // Apply fetched settings, falling back to initial state if keys are missing
-        setNotifications((prev) => ({
-          ...prev,
-          ...(data.notifications || {}),
-        }));
-
-        if (userRole === 'admin') {
-          setAdminPreferences((prev) => ({
-            ...prev,
-            ...(data.adminPreferences || {}),
-          }));
-        } else if (userRole === 'company') {
-          setCompanyPreferences((prev) => ({
-            ...prev,
-            ...(data.companyPreferences || {}),
-          }));
-        } else if (userRole === 'employee') {
-          setEmployeePreferences((prev) => ({
-            ...prev,
-            ...(data.employeePreferences || {}),
-          }));
-        }
-
-        // Fetch common security settings, including sessionTimeout
+      if (userRole === 'employee' && settingsData.employeePreferences) {
+        setEmployeePreferences(settingsData.employeePreferences);
+      }
+      if (settingsData.security) {
         setSecurity((prev) => ({
           ...prev,
-          sessionTimeout: data.security?.sessionTimeout || prev.sessionTimeout,
+          ...settingsData.security, // expects { twoFactorEnabled, sessionTimeout }
+          sessionTimeout:
+            settingsData.security.sessionTimeout?.toString() ||
+            prev.sessionTimeout,
         }));
-        // If API structure changes, ensure sessionTimeout is correctly mapped.
-        // For example, if it was previously nested differently:
-        // if (data.security && data.security.sessionTimeout) {
-        //     setSecurity(prev => ({...prev, sessionTimeout: data.security.sessionTimeout}));
-        // }
-      } catch (error) {
-        console.error('Error fetching settings:', error);
-        toast.error('Could not load your settings. Please try again later.');
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchSettings();
-  }, [session, status, userRole, router]);
+    }
+  }, [settingsData, userRole]);
 
   const handleNotificationChange = (key: string, value: boolean) => {
     setNotifications((prev) => ({ ...prev, [key]: value }));
@@ -212,10 +132,6 @@ export default function UnifiedSettingsPage() {
 
   const handleAdminPreferenceChange = (key: string, value: any) => {
     setAdminPreferences((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleCompanyPreferenceChange = (key: string, value: any) => {
-    setCompanyPreferences((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleEmployeePreferenceChange = (key: string, value: any) => {
@@ -226,53 +142,52 @@ export default function UnifiedSettingsPage() {
     setSecurity((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSaveSettings = async () => {
-    if (!userRole) return;
-    setIsSaving(true);
-    let apiUrl = '';
-    let payload: any = {
-      notifications,
-      security: { sessionTimeout: security.sessionTimeout }, // Include session timeout for all roles
-    };
-
-    if (userRole === 'employee') {
-      apiUrl = '/api/employee/settings'; // Endpoint for employees
-      payload.employeePreferences = employeePreferences;
-    } else if (userRole === 'company') {
-      apiUrl = '/api/company/settings'; // Endpoint for companies
-      payload.companyPreferences = companyPreferences;
-    } else if (userRole === 'admin') {
-      apiUrl = '/api/admin/settings';
-      payload.adminPreferences = adminPreferences;
-    } else {
-      console.error('Attempted to save settings for unknown role:', userRole);
-      setIsSaving(false);
-      return;
-    }
-
-    try {
-      const response = await fetch(apiUrl, {
+  const { mutate: saveSettings, isPending: isSaving } = useMutation({
+    mutationFn: async (updatedSettings: any) => {
+      const response = await fetch('/api/user/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(updatedSettings),
       });
-
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to save settings');
       }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('Settings updated successfully!');
+      queryClient.invalidateQueries({
+        queryKey: ['userSettings', session?.user?.id],
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Could not save settings.');
+    },
+  });
 
-      toast.success('Your settings have been successfully updated.');
-    } catch (error: any) {
-      console.error('Error saving settings:', error);
-      toast.error(error.message || 'Could not save your settings. Please try again.');
-    } finally {
-      setIsSaving(false);
+  const handleSaveSettings = () => {
+    if (!userRole) return;
+
+    const payload: any = {
+      notifications,
+      security: {
+        twoFactorEnabled: security.twoFactorEnabled,
+        sessionTimeout: Number(security.sessionTimeout),
+      },
+    };
+
+    if (userRole === 'admin') {
+      payload.adminPreferences = adminPreferences;
+    } else if (userRole === 'employee') {
+      payload.employeePreferences = employeePreferences;
     }
+
+    saveSettings(payload);
   };
 
-  const { mutate: changePassword, isPending: isChangingPassword } =
-    useMutation({
+  const { mutate: changePassword, isPending: isChangingPassword } = useMutation(
+    {
       mutationFn: async () => {
         const response = await fetch('/api/user/change-password', {
           method: 'POST',
@@ -302,7 +217,8 @@ export default function UnifiedSettingsPage() {
       onError: (error: any) => {
         toast.error(error.message || 'Could not change your password.');
       },
-    });
+    }
+  );
 
   const handleChangePassword = () => {
     if (security.newPassword !== security.confirmPassword) {
@@ -320,22 +236,22 @@ export default function UnifiedSettingsPage() {
     changePassword();
   };
 
-  // Export Data is common for all roles
-  const handleExportData = async () => {
-    setIsSaving(true);
-    try {
-      // Assuming a common export endpoint or one that handles role-specific data
+  const { mutate: exportData, isPending: isExporting } = useMutation({
+    mutationFn: async () => {
       const response = await fetch('/api/user/export-data');
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to export data');
       }
+      return response;
+    },
+    onSuccess: async (response) => {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       const contentDisposition = response.headers.get('content-disposition');
-      let fileName = `user_data_${userRole}.json`; // Use mapped role
+      let fileName = `user_data_${userRole}.json`;
       if (contentDisposition) {
         const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/i);
         if (fileNameMatch && fileNameMatch.length === 2)
@@ -347,28 +263,16 @@ export default function UnifiedSettingsPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
       toast.success('Your data has been downloaded.');
-    } catch (error: any) {
+    },
+    onError: (error: any) => {
       console.error('Error exporting data:', error);
       toast.error(error.message || 'Could not export your data.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Delete Account is removed as it was submitter-specific and not applicable to COMPANY_EMPLOYEE or ADMIN
+    },
+  });
 
   if (isLoading || status === 'loading') {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <p>Loading settings...</p>
-      </div>
-    );
+    return <FullPageLoader placeholder="settings" />;
   }
-
-  // if (status === "unauthenticated" || !userRole) { // Also redirect if role is null/undefined
-  //   router.push("/login");
-  //   return <div className="flex justify-center items-center h-64"><p>Redirecting to login...</p></div>;
-  // }
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -465,7 +369,7 @@ export default function UnifiedSettingsPage() {
                       handleNotificationChange('newAdminRegistrations', c)
                     }
                     className="!bg-charcoal"
-                  />
+                    />
                 </div>
                 {/* Renaming reviewer/submitter activity reports to be more generic or specific to admin context */}
                 <div className="flex items-center justify-between">
@@ -675,204 +579,6 @@ export default function UnifiedSettingsPage() {
         </Card>
       )}
 
-      {/* Company Specific Settings */}
-      {userRole === 'company' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Shield className="h-5 w-5 mr-2" />
-              Company Settings
-            </CardTitle>
-            <CardDescription>
-              Manage your company's profile and preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="companyName">Company Name</Label>
-                <Input
-                  id="companyName"
-                  value={companyPreferences.companyName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleCompanyPreferenceChange('companyName', e.target.value)
-                  }
-                  placeholder="Enter Company Name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="registrationNumber">Registration Number</Label>
-                <Input
-                  id="registrationNumber"
-                  value={companyPreferences.registrationNumber}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleCompanyPreferenceChange(
-                      'registrationNumber',
-                      e.target.value
-                    )
-                  }
-                  placeholder="Enter Registration Number"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sector">Sector</Label>
-                <Select
-                  name="sector"
-                  onValueChange={(value) =>
-                    handleCompanyPreferenceChange('sector', value)
-                  }
-                  value={companyPreferences.sector || ''}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a sector" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {/* Assuming businessSectors is defined elsewhere or needs to be added */}
-                    {[
-                      'Technology',
-                      'Finance',
-                      'Healthcare',
-                      'Retail',
-                      'Manufacturing',
-                      'Education',
-                      'Real Estate',
-                      'Hospitality',
-                      'Agriculture',
-                      'Other',
-                    ].map((sector) => (
-                      <SelectItem key={sector} value={sector}>
-                        {sector}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="officeAddress">Office Address</Label>
-                <Input
-                  id="officeAddress"
-                  value={companyPreferences.officeAddress}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleCompanyPreferenceChange(
-                      'officeAddress',
-                      e.target.value
-                    )
-                  }
-                  placeholder="Enter Office Address"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    value={companyPreferences.state}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      handleCompanyPreferenceChange('state', e.target.value)
-                    }
-                    placeholder="Enter State"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
-                  <Input
-                    id="country"
-                    value={companyPreferences.country}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                      handleCompanyPreferenceChange('country', e.target.value)
-                    }
-                    placeholder="Enter Country"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="businessDescription">
-                  Business Description
-                </Label>
-                <Textarea
-                  id="businessDescription"
-                  rows={3}
-                  value={companyPreferences.businessDescription}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                    handleCompanyPreferenceChange(
-                      'businessDescription',
-                      e.target.value
-                    )
-                  }
-                  placeholder="Describe your business..."
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Employee Specific Settings */}
-      {userRole === 'employee' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Users className="h-5 w-5 mr-2" />
-              Employee Settings
-            </CardTitle>
-            <CardDescription>
-              Customize your employee preferences
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  value={employeePreferences.department}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                    handleEmployeePreferenceChange('department', e.target.value)
-                  }
-                  placeholder="Enter your department"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="expertise">
-                  Areas of Expertise (comma-separated)
-                </Label>
-                <Input
-                  id="expertise"
-                  value={employeePreferences.expertise?.join(', ') || ''}
-                  onChange={(e) =>
-                    handleEmployeePreferenceChange(
-                      'expertise',
-                      e.target.value.split(',').map((s: string) => s.trim())
-                    )
-                  }
-                  placeholder="e.g. React, Node.js, UI/UX"
-                />
-              </div>
-              {/* This might be specific to certain employee types or removed */}
-              <div className="space-y-2">
-                <Label htmlFor="reviewerLevel">Your Level</Label>
-                <Select
-                  value={employeePreferences.reviewerLevel}
-                  onValueChange={(v) =>
-                    handleEmployeePreferenceChange('reviewerLevel', v)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Junior">Junior</SelectItem>
-                    <SelectItem value="Mid-Level">Mid-Level</SelectItem>
-                    <SelectItem value="Senior">Senior</SelectItem>
-                    <SelectItem value="Lead">Lead</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Security Settings */}
       <Card>
         <CardHeader>
@@ -1014,8 +720,7 @@ export default function UnifiedSettingsPage() {
             <Download className="h-5 w-5 mr-2" />
             Data Management
           </CardTitle>
-          <CardDescription>Export your data</CardDescription>{' '}
-          {/* Removed submitter-specific part */}
+          <CardDescription>Export your data</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="space-y-4">
@@ -1023,19 +728,18 @@ export default function UnifiedSettingsPage() {
               <div>
                 <Label>Export Data</Label>
                 <p className="text-sm text-gray-500">
-                  Download a copy of all your data
+                  Download a copy of all your data.
                 </p>
               </div>
               <Button
                 variant="outline"
-                onClick={handleExportData}
-                disabled={isSaving}
+                onClick={() => exportData()}
+                disabled={isExporting}
               >
                 <Download className="h-4 w-4 mr-2" />
-                Export
+                {isExporting ? 'Exporting...' : 'Export'}
               </Button>
             </div>
-            {/* Removed Delete Account button */}
           </div>
         </CardContent>
       </Card>
