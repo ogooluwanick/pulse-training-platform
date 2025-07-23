@@ -1,7 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import FullPageLoader from "@/components/full-page-loader"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +15,7 @@ import Link from "next/link"
 import { formatDuration } from "@/lib/duration"
 
 interface Course {
-  id: string
+  _id: string
   title: string
   description: string
   instructor: string
@@ -23,100 +26,38 @@ interface Course {
   enrolledCount: number
   tags: string[]
   isEnrolled: boolean
-  isFeatured: boolean
 }
 
-const mockCourses: Course[] = [
-  {
-    id: "1",
-    title: "Advanced Data Analytics",
-    description: "Master data analysis techniques and tools for business insights",
-    instructor: "Dr. Sarah Chen",
-    duration: 6,
-    difficulty: "Advanced",
-    category: "technical",
-    rating: 4.8,
-    enrolledCount: 1250,
-    tags: ["Analytics", "Data Science", "Business Intelligence"],
-    isEnrolled: false,
-    isFeatured: true,
-  },
-  {
-    id: "2",
-    title: "Effective Communication Skills",
-    description: "Develop professional communication and presentation skills",
-    instructor: "Michael Rodriguez",
-    duration: 4,
-    difficulty: "Intermediate",
-    category: "skills",
-    rating: 4.6,
-    enrolledCount: 2100,
-    tags: ["Communication", "Presentation", "Leadership"],
-    isEnrolled: false,
-    isFeatured: true,
-  },
-  {
-    id: "3",
-    title: "Cybersecurity Fundamentals",
-    description: "Essential cybersecurity practices for modern organizations",
-    instructor: "Alex Thompson",
-    duration: 5,
-    difficulty: "Beginner",
-    category: "compliance",
-    rating: 4.7,
-    enrolledCount: 3200,
-    tags: ["Security", "Risk Management", "Compliance"],
-    isEnrolled: true,
-    isFeatured: false,
-  },
-  {
-    id: "4",
-    title: "Project Management Essentials",
-    description: "Learn project management methodologies and best practices",
-    instructor: "Jennifer Park",
-    duration: 8,
-    difficulty: "Intermediate",
-    category: "skills",
-    rating: 4.5,
-    enrolledCount: 1800,
-    tags: ["Project Management", "Agile", "Leadership"],
-    isEnrolled: false,
-    isFeatured: false,
-  },
-  {
-    id: "5",
-    title: "Company Culture Deep Dive",
-    description: "Understanding our values, mission, and workplace culture",
-    instructor: "HR Team",
-    duration: 3,
-    difficulty: "Beginner",
-    category: "culture",
-    rating: 4.4,
-    enrolledCount: 950,
-    tags: ["Culture", "Values", "Onboarding"],
-    isEnrolled: false,
-    isFeatured: false,
-  },
-  {
-    id: "6",
-    title: "Financial Compliance Training",
-    description: "Comprehensive training on financial regulations and compliance",
-    instructor: "Robert Kim",
-    duration: 7,
-    difficulty: "Advanced",
-    category: "compliance",
-    rating: 4.9,
-    enrolledCount: 1100,
-    tags: ["Finance", "Compliance", "Regulations"],
-    isEnrolled: false,
-    isFeatured: true,
-  },
-]
+interface AssignedCourse extends Course {
+  assignedCount: number
+}
 
 export default function CourseCatalogPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedDifficulty, setSelectedDifficulty] = useState("all")
+
+  const { data: courses = [], isLoading, isError } = useQuery<Course[]>({
+    queryKey: ["courses"],
+    queryFn: async () => {
+      const response = await fetch("/api/course")
+      if (!response.ok) {
+        throw new Error("Failed to fetch courses")
+      }
+      return response.json()
+    },
+  })
+
+  const { data: assignedCourses = [] } = useQuery<AssignedCourse[]>({
+    queryKey: ["assignedCourses"],
+    queryFn: async () => {
+      const response = await fetch("/api/course-assignment")
+      if (!response.ok) {
+        throw new Error("Failed to fetch assigned courses")
+      }
+      return response.json()
+    },
+  })
 
   const getDifficultyColor = (difficulty: Course["difficulty"]) => {
     switch (difficulty) {
@@ -146,7 +87,7 @@ export default function CourseCatalogPage() {
     }
   }
 
-  const filteredCourses = mockCourses.filter((course) => {
+  const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -157,7 +98,19 @@ export default function CourseCatalogPage() {
     return matchesSearch && matchesCategory && matchesDifficulty
   })
 
-  const featuredCourses = mockCourses.filter((course) => course.isFeatured)
+  if (isLoading) {
+    return <FullPageLoader />
+  }
+
+  if (isError) {
+    return (
+      <div className="flex-1 space-y-6 p-6" style={{ backgroundColor: "#f5f4ed" }}>
+        <div className="flex items-center justify-center h-full">
+          <p className="text-red-500">Failed to load courses. Please try again later.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 space-y-6 p-6" style={{ backgroundColor: "#f5f4ed" }}>
@@ -165,7 +118,7 @@ export default function CourseCatalogPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-charcoal">Course Catalog</h1>
-          <p className="text-warm-gray">Discover and enroll in courses to advance your skills</p>
+          <p className="text-warm-gray">Discover and assign courses to your staff</p>
         </div>
       </div>
 
@@ -215,169 +168,24 @@ export default function CourseCatalogPage() {
           <TabsTrigger value="all" className="data-[state=active]:bg-alabaster">
             All Courses
           </TabsTrigger>
-          <TabsTrigger value="featured" className="data-[state=active]:bg-alabaster">
-            Featured
-          </TabsTrigger>
           <TabsTrigger value="enrolled" className="data-[state=active]:bg-alabaster">
-            My Courses
+            Assigned Courses
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredCourses.map((course) => (
-              <Card
-                key={course.id}
-                className="bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft"
-              >
-                <CardHeader className="space-y-4">
-                  <div className="flex items-start justify-between">
-                    <Badge className={getCategoryColor(course.category)} variant="outline">
-                      {course.category.charAt(0).toUpperCase() + course.category.slice(1)}
-                    </Badge>
-                    <Badge className={getDifficultyColor(course.difficulty)} variant="secondary">
-                      {course.difficulty}
-                    </Badge>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg text-charcoal">{course.title}</CardTitle>
-                    <CardDescription className="text-warm-gray mt-2">{course.description}</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm text-warm-gray">
-                    <span>By {course.instructor}</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
-                      <span>{course.rating}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-warm-gray">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{formatDuration(course.duration)}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      <span>{course.enrolledCount.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {course.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs bg-alabaster border-warm-gray/30">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    {course.isEnrolled ? (
-                      <Link href={`/dashboard/course/${course.id}`} className="flex-1">
-                        <Button className="w-full bg-success-green hover:bg-success-green/90 text-alabaster">
-                          <Play className="h-4 w-4 mr-2" />
-                          Continue
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button className="flex-1 bg-charcoal hover:bg-charcoal/90 text-alabaster">
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        Enroll
-                      </Button>
-                    )}
-                    <Button variant="outline" size="icon" className="bg-transparent border-warm-gray/30">
-                      <Award className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="featured" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {featuredCourses.map((course) => (
-              <Card
-                key={course.id}
-                className="bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft relative"
-              >
-                <div className="absolute top-4 left-4 z-10">
-                  <Badge className="bg-warning-ochre text-alabaster">Featured</Badge>
-                </div>
-                <CardHeader className="space-y-4 pt-12">
-                  <div className="flex items-start justify-between">
-                    <Badge className={getCategoryColor(course.category)} variant="outline">
-                      {course.category.charAt(0).toUpperCase() + course.category.slice(1)}
-                    </Badge>
-                    <Badge className={getDifficultyColor(course.difficulty)} variant="secondary">
-                      {course.difficulty}
-                    </Badge>
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg text-charcoal">{course.title}</CardTitle>
-                    <CardDescription className="text-warm-gray mt-2">{course.description}</CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between text-sm text-warm-gray">
-                    <span>By {course.instructor}</span>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
-                      <span>{course.rating}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-warm-gray">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{formatDuration(course.duration)}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      <span>{course.enrolledCount.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {course.tags.map((tag) => (
-                      <Badge key={tag} variant="outline" className="text-xs bg-alabaster border-warm-gray/30">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    {course.isEnrolled ? (
-                      <Link href={`/dashboard/course/${course.id}`} className="flex-1">
-                        <Button className="w-full bg-success-green hover:bg-success-green/90 text-alabaster">
-                          <Play className="h-4 w-4 mr-2" />
-                          Continue
-                        </Button>
-                      </Link>
-                    ) : (
-                      <Button className="flex-1 bg-charcoal hover:bg-charcoal/90 text-alabaster">
-                        <BookOpen className="h-4 w-4 mr-2" />
-                        Enroll
-                      </Button>
-                    )}
-                    <Button variant="outline" size="icon" className="bg-transparent border-warm-gray/30">
-                      <Award className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="enrolled" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mockCourses
-              .filter((course) => course.isEnrolled)
-              .map((course) => (
+          {filteredCourses.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {filteredCourses.map((course) => (
                 <Card
-                  key={course.id}
+                  key={course._id}
                   className="bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft"
                 >
                   <CardHeader className="space-y-4">
                     <div className="flex items-start justify-between">
-                      <Badge className="bg-success-green text-alabaster">Enrolled</Badge>
+                      <Badge className={getCategoryColor(course.category)} variant="outline">
+                        {course.category.charAt(0).toUpperCase() + course.category.slice(1)}
+                      </Badge>
                       <Badge className={getDifficultyColor(course.difficulty)} variant="secondary">
                         {course.difficulty}
                       </Badge>
@@ -395,16 +203,99 @@ export default function CourseCatalogPage() {
                         <span>{course.rating}</span>
                       </div>
                     </div>
-                    <Link href={`/dashboard/course/${course.id}`}>
-                      <Button className="w-full bg-success-green hover:bg-success-green/90 text-alabaster">
+                    <div className="flex items-center gap-4 text-sm text-warm-gray">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{formatDuration(course.duration)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>{course.enrolledCount.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {course.tags.map((tag: any) => (
+                        <Badge key={tag} variant="outline" className="text-xs bg-alabaster border-warm-gray/30">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      {course.isEnrolled ? (
+                        <Link href={`/dashboard/course/${course._id}`} className="flex-1">
+                          <Button className="w-full bg-success-green hover:bg-success-green/90 text-alabaster">
+                            <Play className="h-4 w-4 mr-2" />
+                            Continue
+                          </Button>
+                        </Link>
+                      ) : (
+                        <Link href={`/dashboard/course/${course._id}`} className="flex-1">
+                          <Button className="w-full bg-charcoal hover:bg-charcoal/90 text-alabaster">
+                            <Play className="h-4 w-4 mr-2" />
+                            Try It
+                          </Button>
+                        </Link>
+                      )}
+                      <Button variant="outline" size="icon" className="bg-transparent border-warm-gray/30">
+                        <Award className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-warm-gray">No courses found.</p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="enrolled" className="space-y-6">
+          {assignedCourses.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {assignedCourses.map((course) => (
+                <Card
+                  key={course._id}
+                  className="bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft"
+                >
+                  <CardHeader className="space-y-4">
+                    <div className="flex items-start justify-between">
+                      <Badge className={getCategoryColor(course.category)} variant="outline">
+                        {course.category.charAt(0).toUpperCase() + course.category.slice(1)}
+                      </Badge>
+                      <Badge className={getDifficultyColor(course.difficulty)} variant="secondary">
+                        {course.difficulty}
+                      </Badge>
+                    </div>
+                    <div>
+                      <CardTitle className="text-lg text-charcoal">{course.title}</CardTitle>
+                      <CardDescription className="text-warm-gray mt-2">{course.description}</CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between text-sm text-warm-gray">
+                      <span>By {course.instructor}</span>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>{course.assignedCount} Assigned</span>
+                      </div>
+                    </div>
+                    <Link href={`/dashboard/course/${course._id}`} className="mt-3 w-full">
+                      <Button className="w-full bg-charcoal hover:bg-charcoal/90 text-alabaster">
                         <Play className="h-4 w-4 mr-2" />
-                        Continue Learning
+                        View Course
                       </Button>
                     </Link>
                   </CardContent>
                 </Card>
               ))}
-          </div>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-warm-gray">You have not assigned any courses yet.</p>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>
