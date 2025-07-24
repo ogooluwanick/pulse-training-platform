@@ -54,7 +54,7 @@ export function TopMenu() {
                     </div> 
                 }
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-charcoal capitalize truncate max-w-[180px]">{user?.firstName || "User"}</span>
+                  <span className="text-sm font-semibold text-charcoal capitalize truncate max-w-[180px]">{user?.firstName || "Loading..."}</span>
                   <span className="text-xs text-gray-700 capitalize truncate max-w-[180px]">{user?.companyName}</span>
                   <span className="text-[10px] text-gray-500">{ user?.role}</span>
                 </div>

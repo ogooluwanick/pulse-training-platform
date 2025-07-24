@@ -28,6 +28,7 @@ import { Clock, Users, Star } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { formatDuration } from '@/lib/duration';
+import { Calendar } from '@/components/ui/calendar';
 
 interface Course {
   _id: string;

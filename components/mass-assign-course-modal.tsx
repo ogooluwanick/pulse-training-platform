@@ -39,6 +39,7 @@ import {
 import { format } from 'date-fns';
 import { Checkbox } from './ui/checkbox';
 import { formatDuration } from '@/lib/duration';
+import { Calendar } from '@/components/ui/calendar';
 
 interface Course {
   _id: string;
