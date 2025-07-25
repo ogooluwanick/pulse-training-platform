@@ -57,7 +57,7 @@ export async function POST(request: Request) {
           companyId: new mongoose.Types.ObjectId(session.user.companyId),
           lessonProgress:
             course && course.lessons
-              ? course.lessons.map((lesson) => ({
+              ? course.lessons.map((lesson: any) => ({
                   lessonId: lesson._id,
                   status: 'not-started',
                 }))

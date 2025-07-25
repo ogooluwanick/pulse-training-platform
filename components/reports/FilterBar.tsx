@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -21,6 +22,21 @@ interface FilterBarProps {
   loading?: boolean;
 }
 
+interface FilterOptions {
+  departments: string[];
+  courses: { id: string; title: string }[];
+}
+
+const fetchFilterOptions = async (): Promise<FilterOptions> => {
+  const response = await fetch('/api/company/reports', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'getFilterOptions' }),
+  });
+  if (!response.ok) throw new Error('Failed to fetch filter options');
+  return response.json();
+};
+
 export default function FilterBar({
   onApplyFilters,
   onExport,
@@ -29,6 +45,13 @@ export default function FilterBar({
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
+
+  // Fetch filter options
+  const { data: filterOptions, isLoading: filterOptionsLoading } =
+    useQuery<FilterOptions>({
+      queryKey: ['filterOptions'],
+      queryFn: fetchFilterOptions,
+    });
 
   const handleApplyFilters = () => {
     const filters: ReportFilters = {
@@ -174,16 +197,18 @@ export default function FilterBar({
                   <Select
                     onValueChange={setSelectedDepartment}
                     value={selectedDepartment}
+                    disabled={filterOptionsLoading}
                   >
                     <SelectTrigger className="shadow-neumorphic">
                       <SelectValue placeholder="All Departments" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Departments</SelectItem>
-                      <SelectItem value="engineering">Engineering</SelectItem>
-                      <SelectItem value="hr">HR</SelectItem>
-                      <SelectItem value="sales">Sales</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
+                      {filterOptions?.departments.map((department) => (
+                        <SelectItem key={department} value={department}>
+                          {department}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -195,19 +220,18 @@ export default function FilterBar({
                   <Select
                     onValueChange={setSelectedCourse}
                     value={selectedCourse}
+                    disabled={filterOptionsLoading}
                   >
                     <SelectTrigger className="shadow-neumorphic">
                       <SelectValue placeholder="All Courses" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Courses</SelectItem>
-                      <SelectItem value="safety-training">
-                        Safety Training
-                      </SelectItem>
-                      <SelectItem value="compliance">Compliance 101</SelectItem>
-                      <SelectItem value="leadership">
-                        Leadership Development
-                      </SelectItem>
+                      {filterOptions?.courses.map((course) => (
+                        <SelectItem key={course.id} value={course.id}>
+                          {course.title}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

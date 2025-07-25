@@ -14,47 +14,30 @@ import Papa from 'papaparse';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
-const fetchReportData = async (filters: ReportFilters) => {
-  // In a real implementation, you would make an API call here
-  // For now, we'll simulate it with a delay and mock data
-  await new Promise((resolve) => setTimeout(resolve, 2000)); // Increased delay to see loader
-  const mockData: ReportData = {
-    overallCompletion: 72.5,
-    coursesInProgress: 15,
-    overdueEmployeesCount: 3,
-    courseCompletionStats: [
-      { courseName: 'Safety Training', completion: 85 },
-      { courseName: 'Compliance 101', completion: 65 },
-      { courseName: 'Leadership Development', completion: 45 },
-    ],
-    employeeProgressList: [
-      {
-        id: 'EMP-001',
-        name: 'John Doe',
-        email: 'john@example.com',
-        department: 'Engineering',
-        completionPercentage: 80,
-        status: 'Completed',
-      },
-      {
-        id: 'EMP-002',
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        department: 'HR',
-        completionPercentage: 65,
-        status: 'In Progress',
-      },
-      {
-        id: 'EMP-003',
-        name: 'Bob Johnson',
-        email: 'bob@example.com',
-        department: 'Sales',
-        completionPercentage: 30,
-        status: 'Overdue',
-      },
-    ],
-  };
-  return mockData;
+const fetchReportData = async (filters: ReportFilters): Promise<ReportData> => {
+  const params = new URLSearchParams();
+
+  if (filters.startDate) {
+    params.append('startDate', filters.startDate.toISOString());
+  }
+  if (filters.endDate) {
+    params.append('endDate', filters.endDate.toISOString());
+  }
+  if (filters.department && filters.department !== 'all') {
+    params.append('department', filters.department);
+  }
+  if (filters.courseId && filters.courseId !== 'all') {
+    params.append('courseId', filters.courseId);
+  }
+
+  const url = `/api/company/reports?${params.toString()}`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch report data');
+  }
+
+  return response.json();
 };
 
 export default function ReportsPage() {
@@ -74,54 +57,103 @@ export default function ReportsPage() {
     enabled: !!user,
   });
 
-  const handleExport = (format: 'csv' | 'pdf') => {
+  const handleExport = async (format: 'csv' | 'pdf') => {
     if (!reportData?.employeeProgressList) return;
 
-    const dataToExport = reportData.employeeProgressList.map((emp) => ({
-      Name: emp.name,
-      Email: emp.email,
-      Department: emp.department,
-      Progress: `${emp.completionPercentage}%`,
-      Status: emp.status,
-    }));
+    try {
+      const exportFilters = {
+        startDate: filters.startDate?.toISOString(),
+        endDate: filters.endDate?.toISOString(),
+        department: filters.department,
+        courseId: filters.courseId,
+        format,
+      };
 
-    if (format === 'csv') {
-      const csv = Papa.unparse(dataToExport);
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.setAttribute('href', url);
-      link.setAttribute('download', 'employee-progress.csv');
-      link.click();
-      URL.revokeObjectURL(url);
-    } else if (format === 'pdf') {
-      const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text('Employee Progress Report', 14, 20);
-
-      doc.autoTable({
-        head: [['Name', 'Email', 'Department', 'Progress', 'Status']],
-        body: dataToExport.map((emp) => [
-          emp.Name,
-          emp.Email,
-          emp.Department,
-          emp.Progress,
-          emp.Status,
-        ]),
-        startY: 30,
-        styles: {
-          font: 'helvetica',
-          fontSize: 10,
-          cellPadding: 2,
-          lineColor: [200, 200, 200],
-          lineWidth: 0.2,
+      const response = await fetch('/api/company/reports/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        headStyles: {
-          fillColor: [55, 65, 81],
-        },
+        body: JSON.stringify(exportFilters),
       });
 
-      doc.save('employee-progress.pdf');
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      if (format === 'csv') {
+        // Handle CSV download
+        const csvData = await response.text();
+        const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute(
+          'download',
+          `employee-progress-report-${new Date().toISOString().split('T')[0]}.csv`
+        );
+        link.click();
+        URL.revokeObjectURL(url);
+      } else if (format === 'pdf') {
+        // Handle PDF generation client-side with server data
+        const { data: exportData } = await response.json();
+
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text('Employee Progress Report', 14, 20);
+
+        // Add export date and filters info
+        doc.setFontSize(10);
+        let yPosition = 35;
+        doc.text(
+          `Export Date: ${new Date().toLocaleDateString()}`,
+          14,
+          yPosition
+        );
+        yPosition += 5;
+
+        if (filters.department && filters.department !== 'all') {
+          doc.text(`Department: ${filters.department}`, 14, yPosition);
+          yPosition += 5;
+        }
+        if (filters.startDate || filters.endDate) {
+          const dateRange = `Date Range: ${filters.startDate?.toLocaleDateString() || 'Start'} - ${filters.endDate?.toLocaleDateString() || 'End'}`;
+          doc.text(dateRange, 14, yPosition);
+          yPosition += 5;
+        }
+
+        doc.autoTable({
+          head: [
+            ['Name', 'Email', 'Department', 'Courses', 'Progress', 'Status'],
+          ],
+          body: exportData.map((emp: any) => [
+            emp.Name,
+            emp.Email,
+            emp.Department,
+            emp['Courses Assigned'],
+            `${emp['Progress (%)']}%`,
+            emp.Status,
+          ]),
+          startY: yPosition + 5,
+          styles: {
+            font: 'helvetica',
+            fontSize: 8,
+            cellPadding: 2,
+            lineColor: [200, 200, 200],
+            lineWidth: 0.2,
+          },
+          headStyles: {
+            fillColor: [55, 65, 81],
+          },
+        });
+
+        doc.save(
+          `employee-progress-report-${new Date().toISOString().split('T')[0]}.pdf`
+        );
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      // You might want to show a toast notification here
     }
   };
 
