@@ -7,6 +7,13 @@ import { ObjectId } from 'mongodb';
 import clientPromise from "../../../../lib/mongodb";
 import { sendVerificationEmail } from "../../../../lib/email";
 
+interface Company {
+  name: string;
+  employees: ObjectId[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { firstName, lastName, email, password, role, organizationName } = await req.json();
@@ -16,7 +23,7 @@ export async function POST(req: NextRequest) {
     const client = await clientPromise();
     const db = client.db();
     const usersCollection = db.collection("users");
-    const companiesCollection = db.collection("companies");
+    const companiesCollection = db.collection<Company>("companies");
 
     const existingUser = await usersCollection.findOne({ email });
     if (existingUser) {
@@ -31,6 +38,7 @@ export async function POST(req: NextRequest) {
     if (role === 'COMPANY' && organizationName) {
       const newCompany = {
         name: organizationName,
+        employees: [],
         createdAt: new Date(),
         updatedAt: new Date(),
       };
