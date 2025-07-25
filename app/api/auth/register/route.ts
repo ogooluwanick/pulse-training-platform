@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
     }
 
     const newUser: any = {
-      firstName,
-      lastName,
+      firstName: firstName.charAt(0).toUpperCase() + firstName.slice(1),
+      lastName: lastName.charAt(0).toUpperCase() + lastName.slice(1),
       email,
       password: hashedPassword,
       role: role || 'submitter',

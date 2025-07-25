@@ -31,8 +31,8 @@ export async function GET() {
     const completionRates = await Promise.all(
       courses.map(async (course) => {
         const assignments = await CourseAssignment.find({
-          courseId: course._id,
-          employeeId: { $in: company.employees },
+          course: course._id,
+          employee: { $in: company.employees },
         })
         const completedAssignments = assignments.filter(
           (a) => a.status === "completed"

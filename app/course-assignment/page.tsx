@@ -38,95 +38,74 @@ interface Assignment {
     _id: string;
     title: string;
     category: 'compliance' | 'skills' | 'culture' | 'technical';
+    lessons: Array<{
+      _id: string;
+      title: string;
+      type: 'text' | 'video' | 'image';
+      content: string;
+      duration: number;
+      quiz?: {
+        title: string;
+        questions: Array<{
+          question: string;
+          options: string[];
+          answer: string;
+        }>;
+      };
+    }>;
+    finalQuiz?: {
+      title: string;
+      questions: Array<{
+        question: string;
+        options: string[];
+        answer: string;
+      }>;
+    };
   };
   assignee: {
     _id: string;
     name: string;
     avatar: string;
+    department?: string;
   };
-  status: 'completed' | 'in-progress' | 'pending';
-  dueDate: string;
+  status: 'completed' | 'in-progress' | 'not-started';
+  endDate?: string;
   progress: number;
+  lessonProgress?: Array<{
+    lessonId: string;
+    status: 'not-started' | 'in-progress' | 'completed';
+    completedAt?: string;
+    quizResult?: {
+      score: number;
+      passed: boolean;
+      answers: Array<{
+        question: string;
+        answer: any;
+        correct: boolean;
+      }>;
+    };
+  }>;
+  finalQuizResult?: {
+    score: number;
+    passed: boolean;
+    answers: Array<{
+      question: string;
+      answer: any;
+      correct: boolean;
+    }>;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
-const mockAssignments: Assignment[] = [
-  {
-    _id: '1',
-    course: {
-      _id: 'c1',
-      title: 'Introduction to Programming',
-      category: 'technical',
-    },
-    assignee: {
-      _id: 'u1',
-      name: 'Kenji Tanaka',
-      avatar: '/placeholder-user.jpg',
-    },
-    status: 'completed',
-    dueDate: '2023-10-15',
-    progress: 100,
-  },
-  {
-    _id: '2',
-    course: { _id: 'c2', title: 'Advanced CSS', category: 'skills' },
-    assignee: {
-      _id: 'u2',
-      name: 'Aisha Patel',
-      avatar: '/placeholder-user.jpg',
-    },
-    status: 'in-progress',
-    dueDate: '2023-11-01',
-    progress: 75,
-  },
-  {
-    _id: '3',
-    course: {
-      _id: 'c3',
-      title: 'JavaScript Fundamentals',
-      category: 'technical',
-    },
-    assignee: {
-      _id: 'u3',
-      name: "Liam O'Connell",
-      avatar: '/placeholder-user.jpg',
-    },
-    status: 'pending',
-    dueDate: '2023-11-20',
-    progress: 0,
-  },
-  {
-    _id: '4',
-    course: {
-      _id: 'c4',
-      title: 'Data Structures in Python',
-      category: 'technical',
-    },
-    assignee: {
-      _id: 'u4',
-      name: 'Sofia Rodriguez',
-      avatar: '/placeholder-user.jpg',
-    },
-    status: 'completed',
-    dueDate: '2023-09-28',
-    progress: 100,
-  },
-  {
-    _id: '5',
-    course: {
-      _id: 'c5',
-      title: 'Machine Learning Basics',
-      category: 'technical',
-    },
-    assignee: {
-      _id: 'u5',
-      name: 'Chen Wei',
-      avatar: '/placeholder-user.jpg',
-    },
-    status: 'in-progress',
-    dueDate: '2023-12-05',
-    progress: 40,
-  },
-];
+// Fetch assignments from API
+const fetchAssignments = async (): Promise<Assignment[]> => {
+  const response = await fetch('/api/course-assignment');
+  if (!response.ok) {
+    throw new Error('Failed to fetch assignments');
+  }
+  return response.json();
+};
 
 export default function CourseAssignmentPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -135,18 +114,14 @@ export default function CourseAssignmentPage() {
   const [selectedAssignment, setSelectedAssignment] =
     useState<Assignment | null>(null);
 
-  // In a real app, you'd fetch this data.
   const {
-    data: assignments = mockAssignments,
+    data: assignments = [],
     isLoading,
     isError,
+    error,
   } = useQuery<Assignment[]>({
     queryKey: ['assignments'],
-    queryFn: async () => {
-      // Mock API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      return mockAssignments;
-    },
+    queryFn: fetchAssignments,
   });
 
   const uniqueAssignees = useMemo(() => {
@@ -165,10 +140,23 @@ export default function CourseAssignmentPage() {
         return 'bg-success-green text-alabaster';
       case 'in-progress':
         return 'bg-warning-ochre text-alabaster';
-      case 'pending':
+      case 'not-started':
         return 'bg-charcoal text-alabaster';
       default:
         return 'bg-warm-gray text-alabaster';
+    }
+  };
+
+  const getStatusDisplay = (status: Assignment['status']) => {
+    switch (status) {
+      case 'not-started':
+        return 'Not Started';
+      case 'in-progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status;
     }
   };
 
@@ -198,9 +186,16 @@ export default function CourseAssignmentPage() {
         style={{ backgroundColor: '#f5f4ed' }}
       >
         <div className="flex items-center justify-center h-full">
-          <p className="text-red-500">
-            Failed to load assignments. Please try again later.
-          </p>
+          <div className="text-center">
+            <p className="text-red-500 mb-2">
+              Failed to load assignments. Please try again later.
+            </p>
+            <p className="text-sm text-warm-gray">
+              {error instanceof Error
+                ? error.message
+                : 'Unknown error occurred'}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -242,7 +237,7 @@ export default function CourseAssignmentPage() {
                 <SelectItem value="all">All Statuses</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
                 <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="not-started">Not Started</SelectItem>
               </SelectContent>
             </Select>
             <Select
@@ -254,7 +249,7 @@ export default function CourseAssignmentPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Assignees</SelectItem>
-                {uniqueAssignees.map((assignee) => (
+                {uniqueAssignees.map((assignee: any) => (
                   <SelectItem key={assignee._id} value={assignee._id}>
                     {assignee.name}
                   </SelectItem>
@@ -278,7 +273,7 @@ export default function CourseAssignmentPage() {
                     className={getStatusColor(assignment.status)}
                     variant="secondary"
                   >
-                    {assignment.status.replace('-', ' ')}
+                    {getStatusDisplay(assignment.status)}
                   </Badge>
                   <div className="flex items-center gap-2">
                     <img
@@ -286,9 +281,16 @@ export default function CourseAssignmentPage() {
                       alt={assignment.assignee.name}
                       className="h-8 w-8 rounded-full"
                     />
-                    <span className="text-sm font-medium text-charcoal">
-                      {assignment.assignee.name}
-                    </span>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-charcoal">
+                        {assignment.assignee.name}
+                      </div>
+                      {assignment.assignee.department && (
+                        <div className="text-xs text-warm-gray">
+                          {assignment.assignee.department}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <CardTitle className="text-lg text-charcoal">
@@ -297,12 +299,14 @@ export default function CourseAssignmentPage() {
               </CardHeader>
               <CardContent className="space-y-4 flex-grow">
                 <div className="flex items-center justify-between text-sm text-warm-gray">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    <span>
-                      Due: {format(new Date(assignment.dueDate), 'PPP')}
-                    </span>
-                  </div>
+                  {assignment.endDate && (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      <span>
+                        Due: {format(new Date(assignment.endDate), 'PPP')}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-1">
                     <TrendingUp className="h-3 w-3" />
                     <span>{assignment.progress}%</span>
@@ -315,6 +319,9 @@ export default function CourseAssignmentPage() {
                       style={{ width: `${assignment.progress}%` }}
                     ></div>
                   </div>
+                </div>
+                <div className="text-xs text-warm-gray">
+                  Category: {assignment.course.category}
                 </div>
               </CardContent>
               <div className="p-6 pt-0">
@@ -330,7 +337,11 @@ export default function CourseAssignmentPage() {
         </div>
       ) : (
         <div className="text-center py-12">
-          <p className="text-warm-gray">No assignments found.</p>
+          <p className="text-warm-gray">
+            {assignments.length === 0
+              ? 'No course assignments found for your company.'
+              : 'No assignments match your current filters.'}
+          </p>
         </div>
       )}
       <AssignmentDetailsModal

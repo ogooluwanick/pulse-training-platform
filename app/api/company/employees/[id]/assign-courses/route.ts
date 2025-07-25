@@ -31,18 +31,18 @@ export async function POST(
 
     // First, remove all existing assignments for this employee
     const existingAssignments = await CourseAssignment.find({
-      user: employeeId,
+      employee: employeeId,
     });
     const existingAssignmentIds = existingAssignments.map((a) => a._id);
 
-    await CourseAssignment.deleteMany({ user: employeeId });
+    await CourseAssignment.deleteMany({ employee: employeeId });
 
     // Then, create the new assignments
     const newAssignmentDocs = await Promise.all(
       assignments.map(async (assignment) => {
         const course = await Course.findById(assignment.courseId);
         return {
-          user: new mongoose.Types.ObjectId(employeeId),
+          employee: new mongoose.Types.ObjectId(employeeId),
           course: new mongoose.Types.ObjectId(assignment.courseId),
           assignmentType: assignment.type,
           interval: assignment.interval,

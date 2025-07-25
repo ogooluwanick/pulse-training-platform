@@ -25,8 +25,8 @@ export async function POST(request: Request) {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     user.password = hashedPassword
-    user.firstName = firstName
-    user.lastName = lastName
+    user.firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1)
+    user.lastName = lastName.charAt(0).toUpperCase() + lastName.slice(1)
     user.department = department
     user.status = "active"
     user.invitationToken = undefined
