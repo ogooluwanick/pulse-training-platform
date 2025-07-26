@@ -4,35 +4,60 @@ import { useState } from 'react';
 import { Module } from '@/types/culture';
 import ModuleList from '@/components/culture/ModuleList';
 import ModuleEditor from '@/components/culture/ModuleEditor';
+import { useCultureModules } from '@/hooks/use-culture-modules';
+import { toast } from 'sonner';
+import FullPageLoader from '@/components/full-page-loader';
 
 export default function CultureBuilderPage() {
-  const [modules, setModules] = useState<Module[]>([]);
+  const {
+    modules,
+    loading,
+    error,
+    isCreating,
+    isUpdating,
+    isDeleting,
+    createModule,
+    updateModule,
+    deleteModule,
+  } = useCultureModules();
   const [selectedModule, setSelectedModule] = useState<Module | null>(null);
 
-  const handleAddModule = () => {
-    const newModule: Module = {
-      id: new Date().toISOString(),
-      title: 'Untitled Module',
-      content: '',
-      quiz: [],
-    };
-    setModules([...modules, newModule]);
-    setSelectedModule(newModule);
-  };
-
-  const handleDeleteModule = (moduleId: string) => {
-    setModules(modules.filter((m) => m.id !== moduleId));
-    if (selectedModule?.id === moduleId) {
-      setSelectedModule(null);
+  const handleAddModule = async () => {
+    const newModule = await createModule();
+    if (newModule) {
+      setSelectedModule(newModule);
+      toast.success('New culture module created');
+    } else {
+      toast.error('Failed to create culture module');
     }
   };
 
-  const handleUpdateModule = (updatedModule: Module) => {
-    setModules(
-      modules.map((m) => (m.id === updatedModule.id ? updatedModule : m))
-    );
-    setSelectedModule(updatedModule);
+  const handleDeleteModule = async (moduleId: string) => {
+    const success = await deleteModule(moduleId);
+    if (success) {
+      if (selectedModule?.id === moduleId) {
+        setSelectedModule(null);
+      }
+      toast.success('Culture module deleted');
+    } else {
+      toast.error('Failed to delete culture module');
+    }
   };
+
+  const handleUpdateModule = async (updatedModule: Module) => {
+    const result = await updateModule(updatedModule.id, updatedModule);
+    if (result) {
+      setSelectedModule(result);
+      toast.success('Culture module updated');
+    } else {
+      toast.error('Failed to update culture module');
+    }
+  };
+
+  // Show initial loading state only
+  if (loading) {
+    return <FullPageLoader placeholder="culture modules" />;
+  }
 
   return (
     <div className="flex h-screen bg-parchment">
@@ -45,6 +70,8 @@ export default function CultureBuilderPage() {
             onSelectModule={setSelectedModule}
             onAddModule={handleAddModule}
             onDeleteModule={handleDeleteModule}
+            isCreating={isCreating}
+            isDeleting={isDeleting}
           />
         </div>
         <div className="w-[70%] p-8">
@@ -52,6 +79,8 @@ export default function CultureBuilderPage() {
             module={selectedModule}
             onUpdate={handleUpdateModule}
             onDelete={handleDeleteModule}
+            isUpdating={isUpdating}
+            isDeleting={isDeleting}
           />
         </div>
       </div>
@@ -77,8 +106,8 @@ export default function CultureBuilderPage() {
             <ModuleEditor
               module={selectedModule}
               onUpdate={handleUpdateModule}
-              onDelete={(moduleId) => {
-                handleDeleteModule(moduleId);
+              onDelete={async (moduleId) => {
+                await handleDeleteModule(moduleId);
                 setSelectedModule(null);
               }}
             />

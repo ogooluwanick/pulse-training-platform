@@ -51,12 +51,16 @@ interface ModuleEditorProps {
   module: Module | null;
   onUpdate: (module: Module) => void;
   onDelete: (moduleId: string) => void;
+  isUpdating?: boolean;
+  isDeleting?: boolean;
 }
 
 export default function ModuleEditor({
   module,
   onUpdate,
   onDelete,
+  isUpdating = false,
+  isDeleting = false,
 }: ModuleEditorProps) {
   // Basic module info
   const [title, setTitle] = useState('');
@@ -272,6 +276,7 @@ export default function ModuleEditor({
                 variant="outline"
                 size="sm"
                 className="text-red-500 hover:text-red-600"
+                disabled={isUpdating || isDeleting}
               >
                 <Trash2 size={16} className="mr-2" />
                 Delete Module
@@ -279,9 +284,19 @@ export default function ModuleEditor({
               <Button
                 onClick={handleSaveChanges}
                 className="bg-charcoal text-white hover:bg-charcoal/90"
+                disabled={isUpdating || isDeleting}
               >
-                <Save size={16} className="mr-2" />
-                Save Changes
+                {isUpdating ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} className="mr-2" />
+                    Save Changes
+                  </>
+                )}
               </Button>
             </div>
           </div>

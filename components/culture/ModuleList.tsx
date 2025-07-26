@@ -11,6 +11,8 @@ interface ModuleListProps {
   onSelectModule: (module: Module) => void;
   onAddModule: () => void;
   onDeleteModule: (moduleId: string) => void;
+  isCreating?: boolean;
+  isDeleting?: boolean;
 }
 
 export default function ModuleList({
@@ -19,6 +21,8 @@ export default function ModuleList({
   onSelectModule,
   onAddModule,
   onDeleteModule,
+  isCreating = false,
+  isDeleting = false,
 }: ModuleListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [moduleToDelete, setModuleToDelete] = useState<string | null>(null);
@@ -39,16 +43,27 @@ export default function ModuleList({
     }
     closeModal();
   };
+
   return (
     <div className="p-4 h-full text-charcoal">
       <div className="flex flex-wrap justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-charcoal">Culture Modules</h2>
         <button
           onClick={onAddModule}
-          className="bg-charcoal text-white py-2 px-4 rounded-md flex items-center shadow-soft hover:bg-charcoal/90 transition-all"
+          disabled={isCreating || isDeleting}
+          className="bg-charcoal text-white py-2 px-4 rounded-md flex items-center shadow-soft hover:bg-charcoal/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Plus size={18} className="mr-2" />
-          <span>Add Module</span>
+          {isCreating ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              <span>Creating...</span>
+            </>
+          ) : (
+            <>
+              <Plus size={18} className="mr-2" />
+              <span>Add Module</span>
+            </>
+          )}
         </button>
       </div>
       <div className="space-y-3">
@@ -59,8 +74,8 @@ export default function ModuleList({
               selectedModule?.id === module.id
                 ? "border-2 border-charcoal bg-warm-gray/10"
                 : "border border-transparent hover:bg-warm-gray/10"
-            }`}
-            onClick={() => onSelectModule(module)}
+            } ${isDeleting ? 'opacity-50' : ''}`}
+            onClick={() => !isDeleting && onSelectModule(module)}
           >
             <h3 className="font-semibold text-charcoal truncate pr-4">
               {module.title || "Untitled Module"}
@@ -70,7 +85,8 @@ export default function ModuleList({
                 e.stopPropagation();
                 openModal(module.id);
               }}
-              className="text-warm-gray hover:text-red-500"
+              disabled={isDeleting}
+              className="text-warm-gray hover:text-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 size={16} />
             </button>

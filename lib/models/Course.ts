@@ -1,5 +1,21 @@
 import { Schema, model, models } from 'mongoose';
 
+// Enhanced quiz question schema to support multiple question types
+const QuizQuestionSchema = new Schema(
+  {
+    question: { type: String, required: true },
+    type: {
+      type: String,
+      enum: ['multiple-choice', 'true-false'],
+      default: 'multiple-choice',
+    },
+    options: [{ type: String, required: true }],
+    answer: { type: String, required: true }, // For backward compatibility and true/false
+    correctAnswerId: { type: String }, // For culture builder compatibility
+  },
+  { _id: false }
+);
+
 const LessonSchema = new Schema({
   title: { type: String, required: true },
   type: { type: String, enum: ['text', 'video', 'image'], required: true },
@@ -9,13 +25,7 @@ const LessonSchema = new Schema({
     type: new Schema(
       {
         title: { type: String, required: true },
-        questions: [
-          {
-            question: { type: String, required: true },
-            options: [{ type: String, required: true }],
-            answer: { type: String, required: true },
-          },
-        ],
+        questions: [QuizQuestionSchema],
       },
       { _id: false }
     ),
@@ -23,17 +33,11 @@ const LessonSchema = new Schema({
   },
 });
 
-// Add finalQuiz schema (same as lesson quiz)
+// Enhanced finalQuiz schema with new question types
 const FinalQuizSchema = new Schema(
   {
     title: { type: String, required: true },
-    questions: [
-      {
-        question: { type: String, required: true },
-        options: [{ type: String, required: true }],
-        answer: { type: String, required: true },
-      },
-    ],
+    questions: [QuizQuestionSchema],
   },
   { _id: false }
 );
@@ -97,19 +101,48 @@ const CourseSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
+    // New fields for culture courses
+    status: {
+      type: String,
+      enum: ['draft', 'published', 'archived'],
+      default: 'draft',
+    },
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    lastModifiedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    isCompanySpecific: {
+      type: Boolean,
+      default: false, // true for culture courses created by companies
+    },
   },
   { timestamps: true }
 );
+
+// Add indexes for culture courses
+CourseSchema.index({ companyId: 1, category: 1, status: 1 });
+CourseSchema.index({ isCompanySpecific: 1, companyId: 1 });
 
 const Course = models.Course || model('Course', CourseSchema);
 
 export default Course;
 
-// Add or update TypeScript interfaces for Course and Lesson
+// Enhanced TypeScript interfaces for Course and Lesson
 export interface QuizQuestion {
   question: string;
+  type?: 'multiple-choice' | 'true-false';
   options: string[];
-  answer: string;
+  answer: string; // For backward compatibility and true/false answers
+  correctAnswerId?: string; // For culture builder compatibility
+}
+
+export interface Quiz {
+  title: string;
+  questions: QuizQuestion[];
 }
 
 export interface Lesson {
@@ -118,23 +151,49 @@ export interface Lesson {
   type: 'text' | 'video' | 'image';
   content: string;
   duration: number;
-  quiz?: {
-    title: string;
-    questions: QuizQuestion[];
-  };
+  quiz?: Quiz;
 }
 
 export interface Course {
   _id: string;
   title: string;
-  description: string;
-  category: string;
+  description?: string;
+  category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
+  instructor?: string;
+  duration?: number;
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+  rating?: Array<{
+    user: string;
+    rating: number;
+  }>;
+  enrolledCount?: number;
+  tags: string[];
   lessons: Lesson[];
-  finalQuiz?: {
-    title: string;
-    questions: QuizQuestion[];
-  };
+  finalQuiz?: Quiz;
   companyId?: string;
+  status?: 'draft' | 'published' | 'archived';
+  createdBy?: string;
+  lastModifiedBy?: string;
+  isCompanySpecific?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+// Culture Module interface for compatibility with existing culture builder
+export interface CultureModule {
+  _id: string;
+  title: string;
+  content: string;
+  quiz: Array<{
+    id: string;
+    text: string;
+    type: 'Multiple Choice' | 'True/False';
+    options: Array<{
+      id: string;
+      text: string;
+    }>;
+    correctAnswerId: string;
+  }>;
 }
 
 // NOTE: Existing courses will need a migration to add an empty quiz field to each lesson.

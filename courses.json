@@ -241,5 +241,77 @@
         }
       ]
     }
+  },
+  {
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8e"
+    },
+    "title": "Comprehensive Test Course",
+    "description": "A comprehensive course to test all features of the course builder.",
+    "category": "testing",
+    "instructor": "Test Engineer",
+    "duration": 60,
+    "difficulty": "Intermediate",
+    "rating": [],
+    "enrolledCount": 0,
+    "tags": ["testing", "course-builder"],
+    "status": "published",
+    "lessons": [
+      {
+        "title": "Lesson 1: Text Content",
+        "type": "text",
+        "content": "<h1>Welcome to the Test Course!</h1><p>This lesson contains simple text content.</p>",
+        "duration": 10,
+        "quiz": {
+          "title": "Quiz: Text Lesson",
+          "questions": [
+            {
+              "question": "What is the content type of this lesson?",
+              "options": [
+                "Video",
+                "Text",
+                "Image"
+              ],
+              "answer": "Text"
+            }
+          ]
+        }
+      },
+      {
+        "title": "Lesson 2: Video Content",
+        "type": "video",
+        "content": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        "duration": 20
+      },
+      {
+        "title": "Lesson 3: Image Content",
+        "type": "image",
+        "content": "https://via.placeholder.com/600x400.png?text=Test+Image",
+        "duration": 5
+      }
+    ],
+    "finalQuiz": {
+      "title": "Final Assessment",
+      "questions": [
+        {
+          "question": "Which lesson contained a video?",
+          "options": [
+            "Lesson 1",
+            "Lesson 2",
+            "Lesson 3"
+          ],
+          "answer": "Lesson 2"
+        },
+        {
+          "question": "What was the title of the first lesson?",
+          "options": [
+            "Introduction",
+            "Lesson 1: Text Content",
+            "Getting Started"
+          ],
+          "answer": "Lesson 1: Text Content"
+        }
+      ]
+    }
   }
 ]
