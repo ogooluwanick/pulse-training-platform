@@ -7,7 +7,7 @@ import {
   cultureModuleToCourse,
 } from '@/types/culture';
 import { useSession } from 'next-auth/react';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 export function useCultureModules() {
   const { data: session, status } = useSession();

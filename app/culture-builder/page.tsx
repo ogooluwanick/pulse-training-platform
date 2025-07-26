@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Module } from '@/types/culture';
 import ModuleList from '@/components/culture/ModuleList';
 import ModuleEditor from '@/components/culture/ModuleEditor';
-import { useCultureModules } from '@/hooks/use-culture-modules';
-import { toast } from 'sonner';
 import FullPageLoader from '@/components/full-page-loader';
+import { useCultureModules } from '@/hooks/use-culture-modules';
+import toast from 'react-hot-toast';
 
 export default function CultureBuilderPage() {
   const {

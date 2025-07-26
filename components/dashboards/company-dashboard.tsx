@@ -20,7 +20,7 @@ import { Users, AlertTriangle, UserPlus, Mail, Shield, Clock } from "lucide-reac
 import type { User } from "next-auth"
 import FullPageLoader from "@/components/full-page-loader"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { toast } from "sonner"
+import { toast } from "react-hot-toast"
 
 interface CompanyDashboardProps {
   user: User

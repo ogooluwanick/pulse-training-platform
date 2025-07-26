@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 // import { UINotification } from '@/hooks/use-notifications'; 
 import { useUserProfile } from '@/hooks/use-user-profile'; // Keep for isLoadingProfile check
 
-import { toast } from 'sonner';
+import { toast } from 'react-hot-toast';
 import { CheckCircle, XCircle, Info, AlertTriangle } from 'lucide-react';
 import { useNotificationContext } from '@/app/contexts/NotificationContext';
 
@@ -28,7 +28,7 @@ export function NotificationDisplay() {
         }
 
         let iconComponent;
-        let toastFunction: (typeof toast | typeof toast.success | typeof toast.error | typeof toast.warning | typeof toast.info) = toast;
+        let toastFunction: (typeof toast | typeof toast.success | typeof toast.error) = toast;
 
         switch (notification.level) {
           case 'success':
@@ -41,20 +41,17 @@ export function NotificationDisplay() {
             break;
           case 'warning':
             iconComponent = <AlertTriangle className="h-5 w-5 text-yellow-500" />;
-            toastFunction = toast.warning;
+            toastFunction = toast;
             break;
           case 'info':
           default:
             iconComponent = <Info className="h-5 w-5 text-green-500" />;
-            toastFunction = toast.info; // or just toast for default
+            toastFunction = toast; // or just toast for default
             break;
         }
         
-        toastFunction(notification.title, {
-          description: notification.message,
+        toastFunction(notification.message, {
           duration: 2000, // Changed to 2 seconds for all notifications
-          icon: iconComponent,
-          // Add other sonner options if needed, e.g., actions, links
         });
         
         displayedNotificationIds.current.add(notificationId);

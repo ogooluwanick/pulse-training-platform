@@ -108,10 +108,10 @@ export default function UnifiedSettingsPage() {
         ...prev,
         ...(settingsData.notifications || {}),
       }));
-      if (userRole === 'admin' && settingsData.adminPreferences) {
+      if (userRole === 'ADMIN' && settingsData.adminPreferences) {
         setAdminPreferences(settingsData.adminPreferences);
       }
-      if (userRole === 'employee' && settingsData.employeePreferences) {
+      if (userRole === 'EMPLOYEE' && settingsData.employeePreferences) {
         setEmployeePreferences(settingsData.employeePreferences);
       }
       if (settingsData.security) {
@@ -177,9 +177,9 @@ export default function UnifiedSettingsPage() {
       },
     };
 
-    if (userRole === 'admin') {
+    if (userRole === 'ADMIN') {
       payload.adminPreferences = adminPreferences;
-    } else if (userRole === 'employee') {
+    } else if (userRole === 'EMPLOYEE') {
       payload.employeePreferences = employeePreferences;
     }
 
@@ -280,9 +280,9 @@ export default function UnifiedSettingsPage() {
         <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
         <p className="text-gray-600">
           Manage your{' '}
-          {userRole === 'employee'
+          {userRole === 'EMPLOYEE'
             ? 'Employee'
-            : userRole === 'company'
+            : userRole === 'COMPANY'
               ? 'Company'
               : 'Admin'}{' '}
           account settings and preferences
@@ -351,7 +351,7 @@ export default function UnifiedSettingsPage() {
               />
             </div>
             {/* Admin specific notifications */}
-            {userRole === 'admin' && (
+            {userRole === 'ADMIN' && (
               <>
                 <div className="flex items-center justify-between">
                   <div>
@@ -411,7 +411,7 @@ export default function UnifiedSettingsPage() {
               </>
             )}
             {/* Company specific notifications */}
-            {userRole === 'company' && (
+            {userRole === 'COMPANY' && (
               <>
                 <div className="flex items-center justify-between">
                   <div>
@@ -452,7 +452,7 @@ export default function UnifiedSettingsPage() {
               </>
             )}
             {/* Employee specific notifications */}
-            {userRole === 'employee' && (
+            {userRole === 'EMPLOYEE' && (
               <>
                 <div className="flex items-center justify-between">
                   <div>
@@ -495,7 +495,7 @@ export default function UnifiedSettingsPage() {
       </Card>
 
       {/* Admin Specific Settings */}
-      {userRole === 'admin' && (
+      {userRole === 'ADMIN' && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center">

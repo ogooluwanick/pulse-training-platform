@@ -11,7 +11,10 @@
     "difficulty": "Beginner",
     "rating": [],
     "enrolledCount": 0,
-    "tags": ["GDPR", "Data Privacy"],
+    "tags": [
+      "GDPR",
+      "Data Privacy"
+    ],
     "lessons": [
       {
         "title": "Introduction to Data Privacy",
@@ -88,7 +91,10 @@
     "difficulty": "Intermediate",
     "rating": [],
     "enrolledCount": 0,
-    "tags": ["AML", "Finance"],
+    "tags": [
+      "AML",
+      "Finance"
+    ],
     "lessons": [
       {
         "title": "What is Money Laundering?",
@@ -150,7 +156,10 @@
     "difficulty": "Beginner",
     "rating": [],
     "enrolledCount": 0,
-    "tags": ["Culture", "Values"],
+    "tags": [
+      "Culture",
+      "Values"
+    ],
     "lessons": [
       {
         "title": "Our Mission and Vision",
@@ -198,7 +207,10 @@
     "difficulty": "Beginner",
     "rating": [],
     "enrolledCount": 0,
-    "tags": ["Cybersecurity", "Phishing"],
+    "tags": [
+      "Cybersecurity",
+      "Phishing"
+    ],
     "lessons": [
       {
         "title": "Understanding Phishing Attacks",
@@ -254,7 +266,10 @@
     "difficulty": "Intermediate",
     "rating": [],
     "enrolledCount": 0,
-    "tags": ["testing", "course-builder"],
+    "tags": [
+      "testing",
+      "course-builder"
+    ],
     "status": "published",
     "lessons": [
       {

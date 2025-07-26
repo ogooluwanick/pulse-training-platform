@@ -11,6 +11,7 @@ export interface Question {
   type: 'Multiple Choice' | 'True/False';
   options: AnswerOption[];
   correctAnswerId: string;
+  answer?: string; // Added for backend compatibility
 }
 
 // Legacy Module interface for backward compatibility
@@ -185,10 +186,13 @@ export function cultureModuleToCourse(
                           : 'multiple-choice',
                       options: q.options.map((opt) => opt.text),
                       answer:
-                        q.options.find((opt) => opt.id === q.correctAnswerId)
-                          ?.text ||
-                        q.options[0]?.text ||
-                        '',
+                        q.type === 'True/False'
+                          ? q.correctAnswerId // For true/false, answer is the correctAnswerId itself
+                          : q.options.find(
+                              (opt) => opt.id === q.correctAnswerId
+                            )?.text ||
+                            q.options[0]?.text ||
+                            '',
                       correctAnswerId: q.correctAnswerId,
                     })),
                   }
@@ -212,10 +216,13 @@ export function cultureModuleToCourse(
                             : 'multiple-choice',
                         options: q.options.map((opt) => opt.text),
                         answer:
-                          q.options.find((opt) => opt.id === q.correctAnswerId)
-                            ?.text ||
-                          q.options[0]?.text ||
-                          '',
+                          q.type === 'True/False'
+                            ? q.correctAnswerId // For true/false, answer is the correctAnswerId itself
+                            : q.options.find(
+                                (opt) => opt.id === q.correctAnswerId
+                              )?.text ||
+                              q.options[0]?.text ||
+                              '',
                         correctAnswerId: q.correctAnswerId,
                       })),
                     }

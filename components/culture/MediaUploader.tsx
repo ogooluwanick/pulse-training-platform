@@ -14,7 +14,7 @@ import {
   Image as ImageIcon,
   Loader2,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 interface MediaUploaderProps {
   lessonType: 'video' | 'image';
