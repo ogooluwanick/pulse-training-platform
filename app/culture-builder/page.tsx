@@ -63,7 +63,7 @@ export default function CultureBuilderPage() {
     <div className="flex h-screen bg-parchment">
       {/* Desktop Layout */}
       <div className="hidden md:flex w-full">
-        <div className="w-[30%] bg-alabaster border-r border-warm-gray/20">
+        <div className="w-[25%] max-w-[25%] bg-alabaster border-r border-warm-gray/20">
           <ModuleList
             modules={modules}
             selectedModule={selectedModule}
@@ -74,7 +74,7 @@ export default function CultureBuilderPage() {
             isDeleting={isDeleting}
           />
         </div>
-        <div className="w-[70%] p-8">
+        <div className="w-[75%] max-w-[75%] p-4">
           <ModuleEditor
             module={selectedModule}
             onUpdate={handleUpdateModule}
