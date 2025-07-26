@@ -50,6 +50,7 @@ interface ApiResponse {
   timeInvested: number;
   completedCoursesCount: number;
   uncompletedCoursesCount: number;
+  averageFinalQuizScore: number;
 }
 
 // Define a more specific User type
@@ -85,6 +86,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
   const timeInvested = data?.timeInvested || 0;
   const completedCoursesCount = data?.completedCoursesCount || 0;
   const uncompletedCoursesCount = data?.uncompletedCoursesCount || 0;
+  const averageFinalQuizScore = data?.averageFinalQuizScore || 0;
 
   const getStatusColor = (status: CourseWithProgress['status']) => {
     switch (status) {
@@ -267,15 +269,20 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
         <Card className="bg-card border-warm-gray/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-warm-gray">
-              Certificates Earned
+              Average Final Quiz Score
             </CardTitle>
             <Award className="h-4 w-4 text-warning-ochre" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {completedCoursesCount}
+              {averageFinalQuizScore}%
             </div>
-            <p className="text-xs text-warm-gray">Ready for download</p>
+            <p className="text-xs text-warm-gray">
+              {completedCoursesCount > 0 
+                ? `Based on ${completedCoursesCount} completed courses`
+                : 'No completed courses yet'
+              }
+            </p>
           </CardContent>
         </Card>
 

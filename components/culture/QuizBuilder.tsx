@@ -35,7 +35,7 @@ export default function QuizBuilder({ quiz, onUpdateQuiz }: QuizBuilderProps) {
 
   return (
     <div className="mt-8">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 flex-wrap">
         <h3 className="text-xl font-bold text-charcoal">Module Quiz</h3>
         <button
           onClick={addQuestion}

@@ -42,6 +42,24 @@ export async function GET() {
       0
     );
 
+    // Calculate average final quiz score
+    const coursesWithFinalQuizScores = completedCourses.filter(
+      (assignment: any) =>
+        assignment.finalQuizResult &&
+        typeof assignment.finalQuizResult.score === 'number'
+    );
+
+    const averageFinalQuizScore =
+      coursesWithFinalQuizScores.length > 0
+        ? Math.round(
+            coursesWithFinalQuizScores.reduce(
+              (total: number, assignment: any) =>
+                total + assignment.finalQuizResult.score,
+              0
+            ) / coursesWithFinalQuizScores.length
+          )
+        : 0;
+
     const courses = user.courseAssignments.map((assignment: any) => {
       const courseData = assignment.course.toObject();
       const totalLessons = courseData.lessons ? courseData.lessons.length : 0;
@@ -88,6 +106,7 @@ export async function GET() {
         timeInvested,
         completedCoursesCount: completedCourses.length,
         uncompletedCoursesCount: uncompletedCourses.length,
+        averageFinalQuizScore,
       },
       { status: 200 }
     );

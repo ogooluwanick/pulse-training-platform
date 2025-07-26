@@ -94,7 +94,7 @@ export default function ModuleEditor({
           }}
         />
       </div>
-      <div className="flex justify-end items-center mt-6 pt-4 border-t border-warm-gray/20 space-x-4">
+      <div className="flex justify-end items-center mt-6 pt-4 border-t border-warm-gray/20 gap-4 flex-col sm:flex-row">
         <button
           onClick={() => setIsModalOpen(true)}
           className="text-red-500 hover:text-red-400 flex items-center transition-colors"
