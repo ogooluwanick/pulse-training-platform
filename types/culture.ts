@@ -88,87 +88,124 @@ export interface CultureCourse {
 
 // Helper function to validate and filter complete questions
 const validateAndFilterQuestions = (questions: Question[]) => {
-  return questions.filter((q) => {
-    // Debug logging for transformation validation
-    debugLog('Transform validating question:', {
-      text: q.text,
-      type: q.type,
-      options: q.options,
-      correctAnswerId: q.correctAnswerId,
-      hasQuestionText: !!q.text?.trim(),
-    });
-
-    // Question text is required
-    if (!q.text || q.text.trim() === '') {
-      debugLog('❌ Transform rejected: No question text');
-      return false;
-    }
-
-    // For true/false questions
-    if (q.type === 'True/False' || q.type === 'true-false') {
-      const isValid =
-        q.correctAnswerId &&
-        (q.correctAnswerId === 'True' || q.correctAnswerId === 'False');
-      if (!isValid) {
-        debugLog(
-          '❌ Transform rejected T/F: Invalid correctAnswerId:',
-          q.correctAnswerId
-        );
-      } else {
-        debugLog('✅ Transform valid T/F question');
-      }
-      return isValid;
-    }
-
-    // For multiple choice questions
-    if (q.type === 'Multiple Choice' || q.type === 'multiple-choice') {
-      // Handle both array of objects and array of strings for options
-      let validOptions;
-      if (Array.isArray(q.options)) {
-        if (q.options.length > 0 && typeof q.options[0] === 'object') {
-          // Array of objects: [{id: '1', text: 'Option 1'}, ...]
-          validOptions = q.options.filter(
-            (opt) => opt && opt.text && opt.text.trim() !== ''
-          );
-        } else {
-          // Array of strings: ['Option 1', 'Option 2', ...] (used in some contexts)
-          validOptions = q.options.filter(
-            (opt) => opt && typeof opt === 'string' && opt.trim() !== ''
-          );
-        }
-      } else {
-        validOptions = [];
-      }
-
-      const hasEnoughOptions = validOptions.length >= 2;
-      const hasCorrectAnswer =
-        q.correctAnswerId && q.correctAnswerId.trim() !== '';
-
-      debugLog('Transform MC validation:', {
-        optionsArray: q.options,
-        validOptionsCount: validOptions.length,
-        hasEnoughOptions,
+  return questions
+    .filter((q) => {
+      // Debug logging for transformation validation
+      debugLog('Transform validating question:', {
+        text: q.text,
+        type: q.type,
+        options: q.options,
         correctAnswerId: q.correctAnswerId,
-        hasCorrectAnswer,
+        answer: q.answer,
+        hasQuestionText: !!q.text?.trim(),
       });
 
-      if (!hasEnoughOptions) {
-        debugLog('❌ Transform rejected MC: Not enough valid options');
+      // Question text is required
+      if (!q.text || q.text.trim() === '') {
+        debugLog('❌ Transform rejected: No question text');
         return false;
       }
 
-      if (!hasCorrectAnswer) {
-        debugLog('❌ Transform rejected MC: No correct answer selected');
-        return false;
+      // For true/false questions
+      if (q.type === 'True/False' || q.type === 'true-false') {
+        const isValid =
+          q.correctAnswerId &&
+          (q.correctAnswerId === 'True' || q.correctAnswerId === 'False');
+        if (!isValid) {
+          debugLog(
+            '❌ Transform rejected T/F: Invalid correctAnswerId:',
+            q.correctAnswerId
+          );
+        } else {
+          debugLog('✅ Transform valid T/F question');
+        }
+        return isValid;
       }
 
-      debugLog('✅ Transform valid MC question');
-      return true;
-    }
+      // For multiple choice questions
+      if (q.type === 'Multiple Choice' || q.type === 'multiple-choice') {
+        // Handle both array of objects and array of strings for options
+        let validOptions;
+        if (Array.isArray(q.options)) {
+          if (q.options.length > 0 && typeof q.options[0] === 'object') {
+            // Array of objects: [{id: '1', text: 'Option 1'}, ...]
+            validOptions = q.options.filter(
+              (opt) => opt && opt.text && opt.text.trim() !== ''
+            );
+          } else {
+            // Array of strings: ['Option 1', 'Option 2', ...] (used in some contexts)
+            validOptions = q.options.filter(
+              (opt) => opt && typeof opt === 'string' && opt.trim() !== ''
+            );
+          }
+        } else {
+          validOptions = [];
+        }
 
-    debugLog('❌ Transform rejected: Unknown question type:', q.type);
-    return false;
-  });
+        const hasEnoughOptions = validOptions.length >= 2;
+        const hasCorrectAnswer =
+          q.correctAnswerId && q.correctAnswerId.trim() !== '';
+
+        debugLog('Transform MC validation:', {
+          optionsArray: q.options,
+          validOptionsCount: validOptions.length,
+          hasEnoughOptions,
+          correctAnswerId: q.correctAnswerId,
+          hasCorrectAnswer,
+          answer: q.answer,
+        });
+
+        if (!hasEnoughOptions) {
+          debugLog('❌ Transform rejected MC: Not enough valid options');
+          return false;
+        }
+
+        if (!hasCorrectAnswer) {
+          debugLog('❌ Transform rejected MC: No correct answer selected');
+          return false;
+        }
+
+        debugLog('✅ Transform valid MC question');
+        return true;
+      }
+
+      debugLog('❌ Transform rejected: Unknown question type:', q.type);
+      return false;
+    })
+    .map((q) => {
+      // Ensure answer field is set for all valid questions
+      let answerText = q.answer;
+
+      if (!answerText || answerText.trim() === '') {
+        if (q.type === 'True/False' || q.type === 'true-false') {
+          answerText = q.correctAnswerId || 'True';
+        } else if (
+          q.type === 'Multiple Choice' ||
+          q.type === 'multiple-choice'
+        ) {
+          if (Array.isArray(q.options) && q.options.length > 0) {
+            if (typeof q.options[0] === 'object') {
+              // Find the correct answer option
+              const selectedOption = q.options.find(
+                (opt) => opt.id === q.correctAnswerId
+              );
+              answerText = selectedOption?.text || q.options[0].text || '';
+            } else {
+              // Array of strings - use first option
+              answerText = q.options[0] || '';
+            }
+          }
+        }
+      }
+
+      const questionWithAnswer = {
+        ...q,
+        answer: answerText,
+      };
+
+      debugLog('Question with ensured answer:', questionWithAnswer);
+      return questionWithAnswer;
+    });
 };
 
 // Utility functions to convert between formats
@@ -194,47 +231,86 @@ export function courseToCultureModule(course: CultureCourse): Module {
         quiz: lesson.quiz
           ? {
               title: lesson.quiz.title,
-              questions: lesson.quiz.questions.map((q, index) => ({
-                id: `q_${index}`,
-                text: q.question,
-                type:
-                  q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
-                options: q.options.map((opt, i) => ({
-                  id: `opt_${i}`,
-                  text: opt,
-                })),
-                correctAnswerId: q.correctAnswerId || `opt_0`,
-              })),
+              questions: lesson.quiz.questions.map((q, index) => {
+                // Ensure answer field is set when converting from backend
+                let answerText = q.answer;
+                if (!answerText || answerText.trim() === '') {
+                  if (q.type === 'true-false') {
+                    answerText = q.correctAnswerId || 'True';
+                  } else {
+                    answerText = q.options?.[0] || 'Option 1';
+                  }
+                }
+
+                return {
+                  id: `q_${index}`,
+                  text: q.question,
+                  type:
+                    q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
+                  options: q.options.map((opt, i) => ({
+                    id: `opt_${i}`,
+                    text: opt,
+                  })),
+                  correctAnswerId: q.correctAnswerId || `opt_0`,
+                  answer: answerText, // Add the answer field
+                };
+              }),
             }
           : undefined,
       })) || [],
     finalQuiz: course.finalQuiz
       ? {
           title: course.finalQuiz.title,
-          questions: course.finalQuiz.questions.map((q, index) => ({
-            id: `fq_${index}`,
-            text: q.question,
-            type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
-            options: q.options.map((opt, i) => ({
-              id: `fopt_${i}`,
-              text: opt,
-            })),
-            correctAnswerId: q.correctAnswerId || `fopt_0`,
-          })),
+          questions: course.finalQuiz.questions.map((q, index) => {
+            // Ensure answer field is set when converting from backend
+            let answerText = q.answer;
+            if (!answerText || answerText.trim() === '') {
+              if (q.type === 'true-false') {
+                answerText = q.correctAnswerId || 'True';
+              } else {
+                answerText = q.options?.[0] || 'Option 1';
+              }
+            }
+
+            return {
+              id: `fq_${index}`,
+              text: q.question,
+              type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
+              options: q.options.map((opt, i) => ({
+                id: `fopt_${i}`,
+                text: opt,
+              })),
+              correctAnswerId: q.correctAnswerId || `fopt_0`,
+              answer: answerText, // Add the answer field
+            };
+          }),
         }
       : undefined,
     // For backward compatibility, include the primary lesson quiz as module quiz
     quiz:
-      primaryLesson?.quiz?.questions?.map((q, index) => ({
-        id: `q_${index}`,
-        text: q.question,
-        type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
-        options: q.options.map((opt, i) => ({
-          id: `opt_${i}`,
-          text: opt,
-        })),
-        correctAnswerId: q.correctAnswerId || q.answer || 'opt_0',
-      })) || [],
+      primaryLesson?.quiz?.questions?.map((q, index) => {
+        // Ensure answer field is set when converting from backend
+        let answerText = q.answer;
+        if (!answerText || answerText.trim() === '') {
+          if (q.type === 'true-false') {
+            answerText = q.correctAnswerId || 'True';
+          } else {
+            answerText = q.options?.[0] || 'Option 1';
+          }
+        }
+
+        return {
+          id: `q_${index}`,
+          text: q.question,
+          type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
+          options: q.options.map((opt, i) => ({
+            id: `opt_${i}`,
+            text: opt,
+          })),
+          correctAnswerId: q.correctAnswerId || q.answer || 'opt_0',
+          answer: answerText, // Add the answer field
+        };
+      }) || [],
   };
 }
 
@@ -303,6 +379,22 @@ export function cultureModuleToCourse(
                         ? {
                             title: lesson.quiz.title,
                             questions: validQuestions.map((q) => {
+                              // Ensure we have a proper answer field
+                              let answerText = q.answer;
+                              if (!answerText || answerText.trim() === '') {
+                                if (q.type === 'True/False') {
+                                  answerText = q.correctAnswerId || 'True';
+                                } else {
+                                  const selectedOption = q.options.find(
+                                    (opt) => opt.id === q.correctAnswerId
+                                  );
+                                  answerText =
+                                    selectedOption?.text ||
+                                    q.options[0]?.text ||
+                                    '';
+                                }
+                              }
+
                               const convertedQuestion = {
                                 question: q.text,
                                 type:
@@ -310,14 +402,7 @@ export function cultureModuleToCourse(
                                     ? 'true-false'
                                     : 'multiple-choice',
                                 options: q.options.map((opt) => opt.text),
-                                answer:
-                                  q.type === 'True/False'
-                                    ? q.correctAnswerId // For true/false, answer is the correctAnswerId itself
-                                    : q.options.find(
-                                        (opt) => opt.id === q.correctAnswerId
-                                      )?.text ||
-                                      q.options[0]?.text ||
-                                      '',
+                                answer: answerText, // Use the ensured answer text
                                 correctAnswerId: q.correctAnswerId,
                               };
 
@@ -352,23 +437,34 @@ export function cultureModuleToCourse(
                       return validQuestions.length > 0
                         ? {
                             title: 'Module Quiz',
-                            questions: validQuestions.map((q) => ({
-                              question: q.text,
-                              type:
-                                q.type === 'True/False'
-                                  ? 'true-false'
-                                  : 'multiple-choice',
-                              options: q.options.map((opt) => opt.text),
-                              answer:
-                                q.type === 'True/False'
-                                  ? q.correctAnswerId // For true/false, answer is the correctAnswerId itself
-                                  : q.options.find(
-                                      (opt) => opt.id === q.correctAnswerId
-                                    )?.text ||
+                            questions: validQuestions.map((q) => {
+                              // Ensure we have a proper answer field
+                              let answerText = q.answer;
+                              if (!answerText || answerText.trim() === '') {
+                                if (q.type === 'True/False') {
+                                  answerText = q.correctAnswerId || 'True';
+                                } else {
+                                  const selectedOption = q.options.find(
+                                    (opt) => opt.id === q.correctAnswerId
+                                  );
+                                  answerText =
+                                    selectedOption?.text ||
                                     q.options[0]?.text ||
-                                    '',
-                              correctAnswerId: q.correctAnswerId,
-                            })),
+                                    '';
+                                }
+                              }
+
+                              return {
+                                question: q.text,
+                                type:
+                                  q.type === 'True/False'
+                                    ? 'true-false'
+                                    : 'multiple-choice',
+                                options: q.options.map((opt) => opt.text),
+                                answer: answerText, // Use the ensured answer text
+                                correctAnswerId: q.correctAnswerId,
+                              };
+                            }),
                           }
                         : undefined;
                     })()
@@ -383,20 +479,32 @@ export function cultureModuleToCourse(
           return validQuestions.length > 0
             ? {
                 title: module.finalQuiz.title,
-                questions: validQuestions.map((q) => ({
-                  question: q.text,
-                  type:
-                    q.type === 'True/False' ? 'true-false' : 'multiple-choice',
-                  options: q.options.map((opt) => opt.text),
-                  answer:
-                    q.type === 'True/False'
-                      ? q.correctAnswerId // For true/false, answer is the correctAnswerId itself
-                      : q.options.find((opt) => opt.id === q.correctAnswerId)
-                          ?.text ||
-                        q.options[0]?.text ||
-                        '',
-                  correctAnswerId: q.correctAnswerId,
-                })),
+                questions: validQuestions.map((q) => {
+                  // Ensure we have a proper answer field
+                  let answerText = q.answer;
+                  if (!answerText || answerText.trim() === '') {
+                    if (q.type === 'True/False') {
+                      answerText = q.correctAnswerId || 'True';
+                    } else {
+                      const selectedOption = q.options.find(
+                        (opt) => opt.id === q.correctAnswerId
+                      );
+                      answerText =
+                        selectedOption?.text || q.options[0]?.text || '';
+                    }
+                  }
+
+                  return {
+                    question: q.text,
+                    type:
+                      q.type === 'True/False'
+                        ? 'true-false'
+                        : 'multiple-choice',
+                    options: q.options.map((opt) => opt.text),
+                    answer: answerText, // Use the ensured answer text
+                    correctAnswerId: q.correctAnswerId,
+                  };
+                }),
               }
             : undefined;
         })()

@@ -106,7 +106,7 @@ export default function ModuleEditor({
       // Handle lessons
       if (module.lessons && module.lessons.length > 0) {
         const loadedLessons: Lesson[] = module.lessons.map((lesson) => ({
-          id: lesson._id || lesson?.id || Math.random().toString(),
+          id: lesson._id || Math.random().toString(),
           title: lesson.title,
           type: lesson.type,
           content: lesson.content,
@@ -493,7 +493,7 @@ export default function ModuleEditor({
   };
 
   const selectedLesson = lessons.find((l) => l.id === selectedLessonId);
-  
+
   // Debug lesson selection
   debugLog('=== LESSON SELECTION DEBUG ===');
   debugLog('Selected lesson ID:', selectedLessonId);
@@ -501,10 +501,10 @@ export default function ModuleEditor({
   debugLog('Found selected lesson:', selectedLesson);
   debugLog('Selected lesson content:', selectedLesson?.content);
   debugLog('Selected lesson type:', selectedLesson?.type);
-  
+
   // Additional lesson state debugging
   debugLessonStates(lessons, selectedLessonId);
-  
+
   const totalDuration = lessons.reduce(
     (total, lesson) => total + lesson.duration,
     0
