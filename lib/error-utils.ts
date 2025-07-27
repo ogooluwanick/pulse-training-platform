@@ -200,6 +200,32 @@ export function showValidationWarnings(filteredCount: number): string {
   return `Note: ${filteredCount} incomplete ${questionText} ${wasWere} automatically removed. Complete questions require:\n• Question text\n• For multiple choice: at least 2 options with text\n• For true/false: a selected answer\n• A correct answer selection`;
 }
 
+export function debugLessonStates(lessons: any[], selectedLessonId: string | null) {
+  if (!DEBUG_VALIDATION) return;
+  
+  console.log('=== LESSON STATE DEBUGGING ===');
+  console.log('Total lessons:', lessons.length);
+  console.log('Selected lesson ID:', selectedLessonId);
+  
+  lessons.forEach((lesson, index) => {
+    console.log(`Lesson ${index + 1}:`, {
+      id: lesson.id,
+      title: lesson.title,
+      type: lesson.type,
+      contentLength: lesson.content?.length || 0,
+      contentPreview: lesson.content?.substring(0, 50) + '...',
+      isSelected: lesson.id === selectedLessonId
+    });
+  });
+  
+  const selectedLesson = lessons.find(l => l.id === selectedLessonId);
+  if (selectedLesson) {
+    console.log('Selected lesson details:', selectedLesson);
+  } else {
+    console.log('❌ No lesson found for selected ID');
+  }
+}
+
 // Example usage and testing
 export function testErrorParsing() {
   console.log('=== Error Parsing Examples ===');

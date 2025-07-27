@@ -14,9 +14,12 @@ import {
   FileVideo,
   FileImage,
   X,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getHumanReadableError } from '@/lib/error-utils';
+import UniversalVideoPlayer from './UniversalVideoPlayer';
 
 interface MediaUploaderProps {
   lessonType: 'video' | 'image';
@@ -184,14 +187,7 @@ export default function MediaUploader({
             <div className="space-y-2">
               <p className="text-sm text-warm-gray">Current {lessonType}:</p>
               {lessonType === 'video' ? (
-                <div className="relative bg-black rounded-md overflow-hidden">
-                  <video
-                    src={url}
-                    className="w-full h-48 object-contain"
-                    controls
-                    preload="metadata"
-                  />
-                </div>
+                <UniversalVideoPlayer url={url} />
               ) : (
                 <div className="relative bg-gray-100 rounded-md overflow-hidden">
                   <img
@@ -231,9 +227,19 @@ export default function MediaUploader({
       {/* Upload/URL Input Tabs */}
       {!isUploading && (
         <Tabs defaultValue="upload" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="upload">Upload File</TabsTrigger>
-            <TabsTrigger value="url">Enter URL</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 gap-1">
+            <TabsTrigger
+              value="upload"
+              className="px-4 py-2 rounded-md border border-charcoal text-charcoal data-[state=active]:bg-charcoal data-[state=active]:text-white data-[state=active]:hover:opacity-80 hover:bg-charcoal hover:text-white transition-colors"
+            >
+              Upload File
+            </TabsTrigger>
+            <TabsTrigger
+              value="url"
+              className="px-4 py-2 rounded-md border border-charcoal text-charcoal data-[state=active]:bg-charcoal data-[state=active]:text-white data-[state=active]:hover:opacity-80 hover:bg-charcoal hover:text-white transition-colors"
+            >
+              Enter URL
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upload" className="space-y-4">
@@ -270,7 +276,7 @@ export default function MediaUploader({
 
                   <Button
                     onClick={handleFileSelect}
-                    className="w-full"
+                    className="px-4 py-2 rounded-md border border-charcoal text-charcoal hover:bg-charcoal hover:text-white transition-colors w-full"
                     disabled={isUploading}
                   >
                     <Upload size={16} className="mr-2" />
@@ -314,7 +320,7 @@ export default function MediaUploader({
 
                   <Button
                     onClick={handleUrlSubmit}
-                    className="w-full"
+                    className="px-4 py-2 rounded-md border border-charcoal text-charcoal hover:bg-charcoal hover:text-white transition-colors w-full"
                     disabled={!url.trim()}
                   >
                     <LinkIcon size={16} className="mr-2" />

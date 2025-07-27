@@ -33,7 +33,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import MediaUploader from './MediaUploader';
 import toast from 'react-hot-toast';
-import { showValidationWarnings, debugLog } from '@/lib/error-utils';
+import {
+  showValidationWarnings,
+  debugLog,
+  debugLessonStates,
+} from '@/lib/error-utils';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -90,6 +94,7 @@ export default function ModuleEditor({
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Effects
   useEffect(() => {
     if (module) {
       setTitle(module.title);
@@ -98,10 +103,10 @@ export default function ModuleEditor({
       setStatus(module.status || 'draft');
       setDifficulty(module.difficulty || 'Beginner');
 
-      // Load lessons from the module
+      // Handle lessons
       if (module.lessons && module.lessons.length > 0) {
-        const loadedLessons: Lesson[] = module.lessons.map((lesson, index) => ({
-          id: lesson._id || `lesson-${index + 1}`,
+        const loadedLessons: Lesson[] = module.lessons.map((lesson) => ({
+          id: lesson._id || lesson?.id || Math.random().toString(),
           title: lesson.title,
           type: lesson.type,
           content: lesson.content,
@@ -115,30 +120,28 @@ export default function ModuleEditor({
         }));
         setLessons(loadedLessons);
         setSelectedLessonId(loadedLessons[0]?.id || null);
-      } else if (module.content || module.quiz.length > 0) {
-        // Backward compatibility: convert legacy format to lesson
-        const mainLesson: Lesson = {
+      } else {
+        // Create default lesson from legacy content
+        const defaultLesson: Lesson = {
           id: 'lesson-1',
-          title: module.title || 'Main Content',
+          title: 'Lesson 1',
           type: 'text',
-          content: module.content,
+          content:
+            module.content || 'Start writing your lesson content here...',
           duration: 5,
           quiz:
-            module.quiz.length > 0
+            module.quiz && module.quiz.length > 0
               ? {
                   title: 'Lesson Quiz',
                   questions: module.quiz,
                 }
               : undefined,
         };
-        setLessons([mainLesson]);
+        setLessons([defaultLesson]);
         setSelectedLessonId('lesson-1');
-      } else {
-        setLessons([]);
-        setSelectedLessonId(null);
       }
 
-      // Load final quiz
+      // Handle final quiz
       if (module.finalQuiz) {
         setFinalQuiz({
           title: module.finalQuiz.title,
@@ -149,6 +152,15 @@ export default function ModuleEditor({
       }
     }
   }, [module]);
+
+  // Track selectedLessonId changes
+  useEffect(() => {
+    debugLog('=== SELECTED LESSON ID CHANGED ===');
+    debugLog('New selected lesson ID:', selectedLessonId);
+    debugLog('All available lessons:', lessons);
+    const foundLesson = lessons.find((l) => l.id === selectedLessonId);
+    debugLog('Found lesson for new ID:', foundLesson);
+  }, [selectedLessonId, lessons]);
 
   if (!module) {
     return (
@@ -164,8 +176,8 @@ export default function ModuleEditor({
   const validateQuestions = (questions: any[]) => {
     debugLog('=== QUESTION VALIDATION START ===');
     debugLog('Total questions to validate:', questions.length);
-    
-    return questions.filter(q => {
+
+    return questions.filter((q) => {
       // Debug logging with field name checking
       debugLog('Validating question:', {
         question: q.question,
@@ -175,7 +187,7 @@ export default function ModuleEditor({
         type: q.type,
         options: q.options,
         correctAnswerId: q.correctAnswerId,
-        fullQuestionObject: q
+        fullQuestionObject: q,
       });
 
       // Question text is required (check both 'question' and 'text' fields)
@@ -184,22 +196,27 @@ export default function ModuleEditor({
         debugLog('❌ Rejected: No question text', {
           question: q.question,
           text: q.text,
-          questionText
+          questionText,
         });
         return false;
       }
-      
+
       // For true/false questions
       if (q.type === 'True/False' || q.type === 'true-false') {
-        const isValid = q.correctAnswerId && (q.correctAnswerId === 'True' || q.correctAnswerId === 'False');
+        const isValid =
+          q.correctAnswerId &&
+          (q.correctAnswerId === 'True' || q.correctAnswerId === 'False');
         if (!isValid) {
-          debugLog('❌ Rejected T/F: Invalid correctAnswerId:', q.correctAnswerId);
+          debugLog(
+            '❌ Rejected T/F: Invalid correctAnswerId:',
+            q.correctAnswerId
+          );
         } else {
           debugLog('✅ Valid T/F question');
         }
         return isValid;
       }
-      
+
       // For multiple choice questions
       if (q.type === 'Multiple Choice' || q.type === 'multiple-choice') {
         // Handle both array of objects and array of strings for options
@@ -207,18 +224,23 @@ export default function ModuleEditor({
         if (Array.isArray(q.options)) {
           if (q.options.length > 0 && typeof q.options[0] === 'object') {
             // Array of objects: [{id: '1', text: 'Option 1'}, ...]
-            validOptions = q.options.filter((opt: any) => opt && opt.text && opt.text.trim() !== '');
+            validOptions = q.options.filter(
+              (opt: any) => opt && opt.text && opt.text.trim() !== ''
+            );
           } else {
             // Array of strings: ['Option 1', 'Option 2', ...]
-            validOptions = q.options.filter((opt: any) => opt && opt.trim() !== '');
+            validOptions = q.options.filter(
+              (opt: any) => opt && opt.trim() !== ''
+            );
           }
         } else {
           validOptions = [];
         }
 
         const hasEnoughOptions = validOptions.length >= 2;
-        const hasCorrectAnswer = q.correctAnswerId && q.correctAnswerId.trim() !== '';
-        
+        const hasCorrectAnswer =
+          q.correctAnswerId && q.correctAnswerId.trim() !== '';
+
         debugLog('Multiple choice validation:', {
           optionsArray: q.options,
           optionsType: typeof q.options[0],
@@ -226,14 +248,14 @@ export default function ModuleEditor({
           hasEnoughOptions,
           correctAnswerId: q.correctAnswerId,
           hasCorrectAnswer,
-          validOptions
+          validOptions,
         });
 
         if (!hasEnoughOptions) {
           debugLog('❌ Rejected MC: Not enough valid options');
           return false;
         }
-        
+
         if (!hasCorrectAnswer) {
           debugLog('❌ Rejected MC: No correct answer selected');
           return false;
@@ -242,7 +264,7 @@ export default function ModuleEditor({
         debugLog('✅ Valid MC question');
         return true;
       }
-      
+
       debugLog('❌ Rejected: Unknown question type:', q.type);
       return false;
     });
@@ -272,20 +294,25 @@ export default function ModuleEditor({
     const backendLessons = lessons.map((lesson, lessonIndex) => {
       debugLog(`=== LESSON ${lessonIndex + 1} PROCESSING ===`);
       debugLog('Original lesson:', lesson);
-      
+
       if (lesson.quiz && lesson.quiz.questions.length > 0) {
-        debugLog(`Lesson ${lessonIndex + 1} has quiz with ${lesson.quiz.questions.length} questions`);
-        debugLog(`Lesson ${lessonIndex + 1} quiz questions:`, lesson.quiz.questions);
-        
+        debugLog(
+          `Lesson ${lessonIndex + 1} has quiz with ${lesson.quiz.questions.length} questions`
+        );
+        debugLog(
+          `Lesson ${lessonIndex + 1} quiz questions:`,
+          lesson.quiz.questions
+        );
+
         const originalCount = lesson.quiz.questions.length;
         const validQuestions = validateQuestions(lesson.quiz.questions);
-        
+
         debugLog(`Lesson ${lessonIndex + 1} validation results:`, {
           original: originalCount,
           valid: validQuestions.length,
-          validQuestions: validQuestions
+          validQuestions: validQuestions,
         });
-        
+
         filteredLessonQuestions += originalCount - validQuestions.length;
 
         const processedLesson = {
@@ -298,7 +325,7 @@ export default function ModuleEditor({
                 }
               : undefined,
         };
-        
+
         debugLog(`Lesson ${lessonIndex + 1} final processed:`, processedLesson);
         return processedLesson;
       } else {
@@ -359,11 +386,11 @@ export default function ModuleEditor({
                 }
               : undefined,
           };
-          
+
           debugLog(`=== FINAL LESSON ${index + 1} MAPPING ===`);
           debugLog('Backend lesson input:', lesson);
           debugLog('Mapped lesson output:', mappedLesson);
-          
+
           return mappedLesson;
         }),
         finalQuiz: backendFinalQuiz
@@ -402,13 +429,31 @@ export default function ModuleEditor({
   };
 
   const handleDeleteLesson = (lessonId: string) => {
-    setLessons(lessons.filter((l) => l.id !== lessonId));
+    debugLog('=== DELETING LESSON ===');
+    debugLog('Deleting lesson ID:', lessonId);
+    debugLog('Current selected lesson ID:', selectedLessonId);
+    debugLog('Lessons before deletion:', lessons);
+
+    const remainingLessons = lessons.filter((l) => l.id !== lessonId);
+    setLessons(remainingLessons);
+
+    debugLog('Remaining lessons after deletion:', remainingLessons);
+
+    // If we're deleting the currently selected lesson, select another one
     if (selectedLessonId === lessonId) {
-      setSelectedLessonId(lessons.length > 1 ? lessons[0].id : null);
+      const newSelectedLessonId =
+        remainingLessons.length > 0 ? remainingLessons[0].id : null;
+      debugLog('Setting new selected lesson ID:', newSelectedLessonId);
+      setSelectedLessonId(newSelectedLessonId);
     }
   };
 
   const handleUpdateLesson = (lessonId: string, updates: Partial<Lesson>) => {
+    debugLog('=== UPDATING LESSON ===');
+    debugLog('Updating lesson ID:', lessonId);
+    debugLog('Updates:', updates);
+    debugLog('Current lessons before update:', lessons);
+
     setLessons(
       lessons.map((lesson) => {
         if (lesson.id === lessonId) {
@@ -416,6 +461,10 @@ export default function ModuleEditor({
 
           // Clear content when switching lesson types
           if (updates.type && updates.type !== lesson.type) {
+            debugLog('Switching lesson type:', {
+              from: lesson.type,
+              to: updates.type,
+            });
             if (updates.type === 'text') {
               updatedLesson.content =
                 'Start writing your lesson content here...';
@@ -424,6 +473,7 @@ export default function ModuleEditor({
             }
           }
 
+          debugLog('Updated lesson:', updatedLesson);
           return updatedLesson;
         }
         return lesson;
@@ -443,6 +493,18 @@ export default function ModuleEditor({
   };
 
   const selectedLesson = lessons.find((l) => l.id === selectedLessonId);
+  
+  // Debug lesson selection
+  debugLog('=== LESSON SELECTION DEBUG ===');
+  debugLog('Selected lesson ID:', selectedLessonId);
+  debugLog('All lessons:', lessons);
+  debugLog('Found selected lesson:', selectedLesson);
+  debugLog('Selected lesson content:', selectedLesson?.content);
+  debugLog('Selected lesson type:', selectedLesson?.type);
+  
+  // Additional lesson state debugging
+  debugLessonStates(lessons, selectedLessonId);
+  
   const totalDuration = lessons.reduce(
     (total, lesson) => total + lesson.duration,
     0
@@ -644,7 +706,16 @@ export default function ModuleEditor({
                           ? 'ring-2 ring-charcoal'
                           : ''
                       }`}
-                      onClick={() => setSelectedLessonId(lesson.id)}
+                      onClick={() => {
+                        debugLog('=== LESSON CLICKED ===');
+                        debugLog('Clicked lesson ID:', lesson.id);
+                        debugLog('Clicked lesson:', lesson);
+                        debugLog(
+                          'Previous selected lesson ID:',
+                          selectedLessonId
+                        );
+                        setSelectedLessonId(lesson.id);
+                      }}
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center gap-3">
@@ -760,12 +831,20 @@ export default function ModuleEditor({
                         {selectedLesson.type === 'text' ? (
                           <div className="quill-light-theme">
                             <ReactQuill
+                              key={`text-${selectedLesson.id}`} // Force re-render when lesson changes
                               value={selectedLesson.content}
-                              onChange={(content) =>
+                              onChange={(content) => {
+                                debugLog('=== TEXT CONTENT CHANGE ===');
+                                debugLog('Lesson ID:', selectedLesson.id);
+                                debugLog('New content length:', content.length);
+                                debugLog(
+                                  'Previous content:',
+                                  selectedLesson.content
+                                );
                                 handleUpdateLesson(selectedLesson.id, {
                                   content,
-                                })
-                              }
+                                });
+                              }}
                               theme="snow"
                               modules={{
                                 toolbar: [
@@ -786,15 +865,23 @@ export default function ModuleEditor({
                           </div>
                         ) : (
                           <MediaUploader
+                            key={`media-${selectedLesson.id}-${selectedLesson.type}`} // Force re-render when lesson changes
                             lessonType={selectedLesson.type}
                             currentUrl={selectedLesson.content}
                             moduleId={module.id}
                             lessonId={selectedLesson.id}
-                            onUrlChange={(url) =>
+                            onUrlChange={(url) => {
+                              debugLog('=== MEDIA URL CHANGE ===');
+                              debugLog('Lesson ID:', selectedLesson.id);
+                              debugLog('New URL:', url);
+                              debugLog(
+                                'Previous content:',
+                                selectedLesson.content
+                              );
                               handleUpdateLesson(selectedLesson.id, {
                                 content: url,
-                              })
-                            }
+                              });
+                            }}
                           />
                         )}
                       </div>
