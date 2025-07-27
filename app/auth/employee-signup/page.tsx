@@ -86,10 +86,12 @@ export default function EmployeeSignupPage() {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      toast.success('Your account has been created. You can now log in.');
+      toast.success('Your account has been created. You will be redirected to the login page shortly.');
 
-      // Redirect to login page
-      window.location.href = '/auth/signin';
+      // Redirect to login page after 5 seconds
+      setTimeout(() => {
+        window.location.href = '/auth/signin';
+      }, 5000);
     } catch (error: any) {
       toast.error(error.message);
       setError(error.message);

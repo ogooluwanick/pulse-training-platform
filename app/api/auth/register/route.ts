@@ -36,8 +36,12 @@ export async function POST(req: NextRequest) {
 
     let companyId;
     if (role === 'COMPANY' && organizationName) {
+      const capitalizedCompanyName = organizationName
+        .split(' ')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
       const newCompany = {
-        name: organizationName,
+        name: capitalizedCompanyName,
         employees: [],
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -59,7 +63,10 @@ export async function POST(req: NextRequest) {
 
     if (companyId) {
       newUser.companyId = companyId;
-      newUser.companyName = organizationName;
+      newUser.companyName = organizationName
+        .split(' ')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
     }
 
     const result = await usersCollection.insertOne(newUser);

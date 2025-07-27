@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react'; // Import useSession
+import toast from 'react-hot-toast';
 
 export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -76,7 +77,12 @@ export default function SignUpPage() {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      setSuccess(data.message);
+      toast.success('Your account has been created. You will be redirected to the login page shortly.');
+
+      // Redirect to login page after 5 seconds
+      setTimeout(() => {
+        router.push('/auth/signin');
+      }, 5000);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -119,15 +125,6 @@ export default function SignUpPage() {
                 <AlertCircle className="h-4 w-4 text-warning-ochre" />
                 <AlertDescription className="text-warning-ochre">
                   {error}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {success && (
-              <Alert className="border-success-green/20 bg-success-green/10">
-                <CheckCircle className="h-4 w-4 text-success-green" />
-                <AlertDescription className="text-success-green">
-                  {success}
                 </AlertDescription>
               </Alert>
             )}

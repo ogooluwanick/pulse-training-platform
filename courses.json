@@ -1,12 +1,10 @@
 [
   {
-    "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8a"
-    },
+    "_id": "60d5ec49f5a8a12a4c8a8a8a",
     "title": "Data Privacy & GDPR Compliance",
     "description": "Essential training on data protection regulations and best practices for handling personal data.",
     "category": "compliance",
-    "instructor": "John Doe",
+    "instructor": "6872aaf8a5361cc7bbe2078a",
     "duration": 120,
     "difficulty": "Beginner",
     "rating": [],
@@ -26,12 +24,14 @@
           "questions": [
             {
               "question": "What is the main purpose of data privacy?",
+              "type": "multiple-choice",
               "options": [
                 "To hide information from the public",
                 "To protect personal data from unauthorized access",
                 "To sell data to advertisers"
               ],
-              "answer": "To protect personal data from unauthorized access"
+              "answer": "To protect personal data from unauthorized access",
+              "correctAnswerId": null
             }
           ]
         }
@@ -40,19 +40,31 @@
         "title": "GDPR Fundamentals",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=s_b1_v2A-wA",
-        "duration": 45
+        "duration": 45,
+        "quiz": {
+          "title": "Quiz: GDPR Fundamentals",
+          "questions": []
+        }
       },
       {
         "title": "Key Roles and Responsibilities",
         "type": "text",
         "content": "<h2>Data Controller vs. Data Processor</h2><p>Learn the distinction between data controllers and processors and their respective responsibilities under GDPR.</p>",
-        "duration": 25
+        "duration": 25,
+        "quiz": {
+          "title": "Quiz: Key Roles and Responsibilities",
+          "questions": []
+        }
       },
       {
         "title": "Handling Data Subject Access Requests",
         "type": "image",
         "content": "https://example.com/images/dsar_flowchart.png",
-        "duration": 20
+        "duration": 20,
+        "quiz": {
+          "title": "Quiz: Handling Data Subject Access Requests",
+          "questions": []
+        }
       }
     ],
     "finalQuiz": {
@@ -60,33 +72,40 @@
       "questions": [
         {
           "question": "What does GDPR stand for?",
+          "type": "multiple-choice",
           "options": [
             "General Data Protection Regulation",
             "Global Data Privacy Rules",
             "General Data Processing Regulation"
           ],
-          "answer": "General Data Protection Regulation"
+          "answer": "General Data Protection Regulation",
+          "correctAnswerId": null
         },
         {
           "question": "What is considered personal data under GDPR?",
+          "type": "multiple-choice",
           "options": [
             "Name and email address",
             "IP address",
             "All of the above"
           ],
-          "answer": "All of the above"
+          "answer": "All of the above",
+          "correctAnswerId": null
         }
       ]
-    }
+    },
+    "status": "published",
+    "isCompanySpecific": false,
+    "companyId": null,
+    "createdBy": null,
+    "lastModifiedBy": null
   },
   {
-    "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8b"
-    },
+    "_id": "60d5ec49f5a8a12a4c8a8a8b",
     "title": "Anti-Money Laundering (AML)",
     "description": "A comprehensive overview of Anti-Money Laundering regulations and practices to prevent financial crimes.",
     "category": "compliance",
-    "instructor": "Jane Smith",
+    "instructor": "6872aaf8a5361cc7bbe2078a",
     "duration": 180,
     "difficulty": "Intermediate",
     "rating": [],
@@ -106,12 +125,14 @@
           "questions": [
             {
               "question": "How many stages of money laundering are there?",
+              "type": "multiple-choice",
               "options": [
                 "One",
                 "Two",
                 "Three"
               ],
-              "answer": "Three"
+              "answer": "Three",
+              "correctAnswerId": null
             }
           ]
         }
@@ -120,13 +141,21 @@
         "title": "AML Regulations and Legislation",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=some_aml_video",
-        "duration": 70
+        "duration": 70,
+        "quiz": {
+          "title": "Quiz: AML Regulations and Legislation",
+          "questions": []
+        }
       },
       {
         "title": "Customer Due Diligence (CDD)",
         "type": "text",
         "content": "<h2>Implementing Effective CDD</h2><p>Understand the importance of verifying customer identities and assessing their risk profiles.</p>",
-        "duration": 50
+        "duration": 50,
+        "quiz": {
+          "title": "Quiz: Customer Due Diligence (CDD)",
+          "questions": []
+        }
       }
     ],
     "finalQuiz": {
@@ -134,24 +163,29 @@
       "questions": [
         {
           "question": "Which is the first stage of money laundering?",
+          "type": "multiple-choice",
           "options": [
             "Layering",
             "Placement",
             "Integration"
           ],
-          "answer": "Placement"
+          "answer": "Placement",
+          "correctAnswerId": null
         }
       ]
-    }
+    },
+    "status": "published",
+    "isCompanySpecific": false,
+    "companyId": null,
+    "createdBy": null,
+    "lastModifiedBy": null
   },
   {
-    "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8c"
-    },
+    "_id": "60d5ec49f5a8a12a4c8a8a8c",
     "title": "Company Culture & Values",
     "description": "An introduction to our company's culture, mission, and the core values that guide our work.",
     "category": "culture",
-    "instructor": "HR Department",
+    "instructor": "6872aaf8a5361cc7bbe2078a",
     "duration": 60,
     "difficulty": "Beginner",
     "rating": [],
@@ -171,12 +205,14 @@
           "questions": [
             {
               "question": "What is the primary focus of our company's mission?",
+              "type": "multiple-choice",
               "options": [
                 "Profitability",
                 "Customer Satisfaction",
                 "Innovation"
               ],
-              "answer": "Customer Satisfaction"
+              "answer": "Customer Satisfaction",
+              "correctAnswerId": null
             }
           ]
         }
@@ -185,24 +221,35 @@
         "title": "Core Values in Action",
         "type": "image",
         "content": "https://example.com/images/values_infographic.png",
-        "duration": 15
+        "duration": 15,
+        "quiz": {
+          "title": "Quiz: Core Values in Action",
+          "questions": []
+        }
       },
       {
         "title": "A Message from our CEO",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=ceo_message_video",
-        "duration": 25
+        "duration": 25,
+        "quiz": {
+          "title": "Quiz: A Message from our CEO",
+          "questions": []
+        }
       }
-    ]
+    ],
+    "status": "published",
+    "isCompanySpecific": false,
+    "companyId": null,
+    "createdBy": null,
+    "lastModifiedBy": null
   },
   {
-    "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8d"
-    },
+    "_id": "60d5ec49f5a8a12a4c8a8a8d",
     "title": "Cybersecurity Awareness",
     "description": "Learn how to protect our company's digital assets and recognize common cybersecurity threats.",
     "category": "compliance",
-    "instructor": "IT Department",
+    "instructor": "6872aaf8a5361cc7bbe2078a",
     "duration": 90,
     "difficulty": "Beginner",
     "rating": [],
@@ -222,12 +269,14 @@
           "questions": [
             {
               "question": "What is a common sign of a phishing email?",
+              "type": "multiple-choice",
               "options": [
                 "A generic greeting",
                 "A sense of urgency",
                 "All of the above"
               ],
-              "answer": "All of the above"
+              "answer": "All of the above",
+              "correctAnswerId": null
             }
           ]
         }
@@ -236,7 +285,11 @@
         "title": "Creating Strong Passwords",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=password_best_practices",
-        "duration": 45
+        "duration": 45,
+        "quiz": {
+          "title": "Quiz: Creating Strong Passwords",
+          "questions": []
+        }
       }
     ],
     "finalQuiz": {
@@ -244,24 +297,29 @@
       "questions": [
         {
           "question": "What should you do if you receive a suspicious email?",
+          "type": "multiple-choice",
           "options": [
             "Click on the links to investigate",
             "Delete it immediately",
             "Report it to the IT department"
           ],
-          "answer": "Report it to the IT department"
+          "answer": "Report it to the IT department",
+          "correctAnswerId": null
         }
       ]
-    }
+    },
+    "status": "published",
+    "isCompanySpecific": false,
+    "companyId": null,
+    "createdBy": null,
+    "lastModifiedBy": null
   },
   {
-    "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8e"
-    },
+    "_id": "60d5ec49f5a8a12a4c8a8a8e",
     "title": "Comprehensive Test Course",
     "description": "A comprehensive course to test all features of the course builder.",
-    "category": "testing",
-    "instructor": "Test Engineer",
+    "category": "technical",
+    "instructor": "6872aaf8a5361cc7bbe2078a",
     "duration": 60,
     "difficulty": "Intermediate",
     "rating": [],
@@ -270,7 +328,6 @@
       "testing",
       "course-builder"
     ],
-    "status": "published",
     "lessons": [
       {
         "title": "Lesson 1: Text Content",
@@ -282,12 +339,14 @@
           "questions": [
             {
               "question": "What is the content type of this lesson?",
+              "type": "multiple-choice",
               "options": [
                 "Video",
                 "Text",
                 "Image"
               ],
-              "answer": "Text"
+              "answer": "Text",
+              "correctAnswerId": null
             }
           ]
         }
@@ -296,13 +355,21 @@
         "title": "Lesson 2: Video Content",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration": 20
+        "duration": 20,
+        "quiz": {
+          "title": "Quiz: Video Content",
+          "questions": []
+        }
       },
       {
         "title": "Lesson 3: Image Content",
         "type": "image",
         "content": "https://via.placeholder.com/600x400.png?text=Test+Image",
-        "duration": 5
+        "duration": 5,
+        "quiz": {
+          "title": "Quiz: Image Content",
+          "questions": []
+        }
       }
     ],
     "finalQuiz": {
@@ -310,23 +377,32 @@
       "questions": [
         {
           "question": "Which lesson contained a video?",
+          "type": "multiple-choice",
           "options": [
             "Lesson 1",
             "Lesson 2",
             "Lesson 3"
           ],
-          "answer": "Lesson 2"
+          "answer": "Lesson 2",
+          "correctAnswerId": null
         },
         {
           "question": "What was the title of the first lesson?",
+          "type": "multiple-choice",
           "options": [
             "Introduction",
             "Lesson 1: Text Content",
             "Getting Started"
           ],
-          "answer": "Lesson 1: Text Content"
+          "answer": "Lesson 1: Text Content",
+          "correctAnswerId": null
         }
       ]
-    }
+    },
+    "status": "published",
+    "isCompanySpecific": false,
+    "companyId": null,
+    "createdBy": null,
+    "lastModifiedBy": null
   }
 ]

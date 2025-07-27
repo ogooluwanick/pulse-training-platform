@@ -2,6 +2,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import clientPromise from "../../../../lib/mongodb";
+import { sendVerificationEmail } from "../../../../lib/email";
+import crypto from "crypto";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -20,6 +22,26 @@ export async function GET(req: NextRequest) {
   });
 
   if (!user) {
+    // Even if the token is invalid or expired, try to find the user by the token
+    // to resend the verification email.
+    const userToResend = await usersCollection.findOne({ verificationToken: token });
+    if (userToResend) {
+      const newVerificationToken = crypto.randomBytes(32).toString("hex");
+      const newVerificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      await usersCollection.updateOne(
+        { _id: userToResend._id },
+        {
+          $set: {
+            verificationToken: newVerificationToken,
+            verificationTokenExpires: newVerificationTokenExpires,
+          },
+        }
+      );
+
+      await sendVerificationEmail(userToResend.email, `${userToResend.firstName} ${userToResend.lastName}`, newVerificationToken);
+      return NextResponse.redirect(new URL('/auth/verification-result?success=false&error=resent', req.url));
+    }
     return NextResponse.redirect(new URL('/auth/verification-result?success=false&error=invalid', req.url));
   }
 

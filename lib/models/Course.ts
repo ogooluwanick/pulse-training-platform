@@ -57,7 +57,8 @@ const CourseSchema = new Schema(
       required: true,
     },
     instructor: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'User',
       required: false,
     },
     duration: {
@@ -159,7 +160,7 @@ export interface Course {
   title: string;
   description?: string;
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
-  instructor?: string;
+  instructor?: Schema.Types.ObjectId;
   duration?: number;
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   rating?: Array<{

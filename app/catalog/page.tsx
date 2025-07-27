@@ -210,7 +210,7 @@ export default function CourseCatalogPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
-                        <span>{course.enrolledCount.toLocaleString()}</span>
+                        <span>{course?.enrolledCount?.toLocaleString()||0}</span>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1">
