@@ -10,6 +10,7 @@ import { useNotificationContext } from "@/app/contexts/NotificationContext";
 export function TopMenu() {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated";
+  const isLoading = status === "loading";
   const user = session?.user; // Assuming session.user contains the user data
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const { unreadNotificationCount } = useNotificationContext();
@@ -30,7 +31,16 @@ export function TopMenu() {
 
         {/* Right side - Auth/User elements */}
         <div className="flex items-center space-x-4">
-          {isAuthenticated ? (
+          {isLoading ? (
+            /* Loading State */
+            <div className="flex items-center space-x-4">
+              <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+              <div className="flex flex-col space-y-1">
+                <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-2 w-16 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          ) : isAuthenticated ? (
             <>
               {/* Notifications Bell */}
               <div className="relative cursor-pointer" onClick={() => setIsPanelOpen(true)}>
@@ -54,9 +64,11 @@ export function TopMenu() {
                     </div> 
                 }
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold text-charcoal capitalize truncate max-w-[180px]">{user?.firstName || "Loading..."}</span>
+                  <span className="text-sm font-semibold text-charcoal capitalize truncate max-w-[180px]">
+                    {user?.firstName || (isAuthenticated ? "User" : "Loading...")}
+                  </span>
                   <span className="text-xs text-gray-700 capitalize truncate max-w-[180px]">{user?.companyName}</span>
-                  <span className="text-[10px] text-gray-500">{ user?.role}</span>
+                  <span className="text-[10px] text-gray-500">{user?.role}</span>
                 </div>
               </div>
             </>

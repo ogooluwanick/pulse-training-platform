@@ -1,11 +1,11 @@
-import NextAuth, { NextAuthOptions } from "next-auth";
-import CredentialsProvider from "next-auth/providers/credentials"
-import { MongoDBAdapter } from "@next-auth/mongodb-adapter"
-import clientPromise from "@/lib/mongodb"
-import bcrypt from "bcryptjs"
-import { MongoClient, ObjectId } from "mongodb" // Added ObjectId
-import crypto from "crypto" // For token generation
-import { sendVerificationEmail } from "@/lib/email" // For resending verification
+import NextAuth, { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
+import clientPromise from '@/lib/mongodb';
+import bcrypt from 'bcryptjs';
+import { MongoClient, ObjectId } from 'mongodb'; // Added ObjectId
+import crypto from 'crypto'; // For token generation
+import { sendVerificationEmail } from '@/lib/email'; // For resending verification
 
 // clientPromise is now a function that returns Promise<MongoClient>
 // We need to call it to get the promise for the adapter.
@@ -13,32 +13,40 @@ export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise()),
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "email", placeholder: "jsmith@example.com" },
-        password: { label: "Password", type: "password" }
+        email: {
+          label: 'Email',
+          type: 'email',
+          placeholder: 'jsmith@example.com',
+        },
+        password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing email or password");
+          throw new Error('Missing email or password');
         }
 
         // Call clientPromise() to get the Promise<MongoClient>, then await it.
         const client: MongoClient = await clientPromise();
         const db = client.db();
-        const usersCollection = db.collection("users");
-        const companiesCollection = db.collection("companies");
-        const dbUser = await usersCollection.findOne({ email: credentials.email });
+        const usersCollection = db.collection('users');
+        const companiesCollection = db.collection('companies');
+        const dbUser = await usersCollection.findOne({
+          email: credentials.email,
+        });
 
         if (!dbUser) {
-          throw new Error("No user found with this email");
+          throw new Error('No user found with this email');
         }
-        
+
         // Check if email is verified
         if (!dbUser.emailVerified) {
           // Email is not verified, resend verification email
-          const newVerificationToken = crypto.randomBytes(32).toString("hex");
-          const newVerificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+          const newVerificationToken = crypto.randomBytes(32).toString('hex');
+          const newVerificationTokenExpires = new Date(
+            Date.now() + 24 * 60 * 60 * 1000
+          ); // 24 hours
 
           await usersCollection.updateOne(
             { _id: new ObjectId(dbUser._id) },
@@ -51,35 +59,55 @@ export const authOptions: NextAuthOptions = {
           );
 
           try {
-            await sendVerificationEmail(dbUser.email, dbUser.name, newVerificationToken);
-            throw new Error("Your email is not verified. We've sent a new verification link to your email address. Please check your inbox.");
+            await sendVerificationEmail(
+              dbUser.email,
+              dbUser.name,
+              newVerificationToken
+            );
+            throw new Error(
+              "Your email is not verified. We've sent a new verification link to your email address. Please check your inbox."
+            );
           } catch (emailError: any) {
-            console.error("Error resending verification email:", emailError);
+            console.error('Error resending verification email:', emailError);
             // If resending fails, throw a more generic error or the original "please verify"
-            throw new Error("Your email is not verified. Please check your inbox or try registering again if issues persist.");
+            throw new Error(
+              'Your email is not verified. Please check your inbox or try registering again if issues persist.'
+            );
           }
         }
 
-        const isValidPassword = await bcrypt.compare(credentials.password, dbUser.password as string);
-
-        if (!isValidPassword) {
-          throw new Error("Incorrect password");
-        }
-
-        // Update lastOnline on successful login
-        await usersCollection.updateOne(
-          { _id: new ObjectId(dbUser._id) },
-          { $set: { lastOnline: new Date() } }
+        const isValidPassword = await bcrypt.compare(
+          credentials.password,
+          dbUser.password as string
         );
 
+        if (!isValidPassword) {
+          throw new Error('Incorrect password');
+        }
+
+        // Update lastOnline on successful login (background operation to not block login)
+        usersCollection
+          .updateOne(
+            { _id: new ObjectId(dbUser._id) },
+            { $set: { lastOnline: new Date() } }
+          )
+          .catch((err) =>
+            console.error('Failed to update lastOnline during login:', err)
+          );
+
         // Use session timeout from new settings structure
-        const sessionTimeoutInHours = dbUser.settings && dbUser.settings.session && dbUser.settings.session.sessionTimeout
-          ? dbUser.settings.session.sessionTimeout
-          : 4;
+        const sessionTimeoutInHours =
+          dbUser.settings &&
+          dbUser.settings.session &&
+          dbUser.settings.session.sessionTimeout
+            ? dbUser.settings.session.sessionTimeout
+            : 4;
 
         let companyName = dbUser.companyName;
         if (!companyName && dbUser.companyId) {
-          const company = await companiesCollection.findOne({ _id: new ObjectId(dbUser.companyId) });
+          const company = await companiesCollection.findOne({
+            _id: new ObjectId(dbUser.companyId),
+          });
           if (company) {
             companyName = company.name;
             // Optionally, update the user document to include the company name for future logins
@@ -110,7 +138,7 @@ export const authOptions: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
-    signIn: "/login",
+    signIn: '/auth/signin',
     // signOut: '/auth/signout', // Optional: Custom signout page
     // error: '/auth/error', // Optional: Custom error page
     // verifyRequest: '/auth/verify-request', // Optional: Custom verify request page (for email provider)
@@ -119,14 +147,26 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     async jwt({ token, user, trigger, session }) {
-      // Update lastOnline on every JWT refresh (user activity)
-      if (token.id) {
-        const client: MongoClient = await clientPromise();
-        const usersCollection = client.db().collection('users');
-        await usersCollection.updateOne(
-          { _id: new ObjectId(token.id as string) },
-          { $set: { lastOnline: new Date() } }
-        );
+      // Only update lastOnline on initial login or token refresh (not on every request)
+      // This prevents database writes on every JWT verification which slows down session loading
+      if (token.id && user) {
+        // Only update lastOnline when user object is present (initial login)
+        try {
+          const client: MongoClient = await clientPromise();
+          const usersCollection = client.db().collection('users');
+          // Use background update to not block JWT processing
+          usersCollection
+            .updateOne(
+              { _id: new ObjectId(token.id as string) },
+              { $set: { lastOnline: new Date() } }
+            )
+            .catch((err) => console.error('Failed to update lastOnline:', err));
+        } catch (error) {
+          console.error(
+            'Database connection error during lastOnline update:',
+            error
+          );
+        }
       }
 
       if (user) {
@@ -171,4 +211,4 @@ export const authOptions: NextAuthOptions = {
 
 const handler = NextAuth(authOptions);
 
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };
