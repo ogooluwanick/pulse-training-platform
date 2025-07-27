@@ -19,7 +19,12 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getHumanReadableError } from '@/lib/error-utils';
-import UniversalVideoPlayer from './UniversalVideoPlayer';
+import dynamic from 'next/dynamic';
+
+const UniversalVideoPlayer = dynamic(
+  () => import('./UniversalVideoPlayer'),
+  { ssr: false }
+);
 
 interface MediaUploaderProps {
   lessonType: 'video' | 'image';
