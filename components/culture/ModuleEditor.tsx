@@ -32,6 +32,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import MediaUploader from './MediaUploader';
+import toast from 'react-hot-toast';
+import { showValidationWarnings, debugLog } from '@/lib/error-utils';
 
 const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
@@ -158,9 +160,184 @@ export default function ModuleEditor({
     );
   }
 
-  const handleSaveChanges = () => {
+  // Helper function to validate and filter complete questions
+  const validateQuestions = (questions: any[]) => {
+    debugLog('=== QUESTION VALIDATION START ===');
+    debugLog('Total questions to validate:', questions.length);
+    
+    return questions.filter(q => {
+      // Debug logging with field name checking
+      debugLog('Validating question:', {
+        question: q.question,
+        text: q.text,
+        hasQuestionField: !!q.question,
+        hasTextField: !!q.text,
+        type: q.type,
+        options: q.options,
+        correctAnswerId: q.correctAnswerId,
+        fullQuestionObject: q
+      });
+
+      // Question text is required (check both 'question' and 'text' fields)
+      const questionText = q.question || q.text;
+      if (!questionText || questionText.trim() === '') {
+        debugLog('❌ Rejected: No question text', {
+          question: q.question,
+          text: q.text,
+          questionText
+        });
+        return false;
+      }
+      
+      // For true/false questions
+      if (q.type === 'True/False' || q.type === 'true-false') {
+        const isValid = q.correctAnswerId && (q.correctAnswerId === 'True' || q.correctAnswerId === 'False');
+        if (!isValid) {
+          debugLog('❌ Rejected T/F: Invalid correctAnswerId:', q.correctAnswerId);
+        } else {
+          debugLog('✅ Valid T/F question');
+        }
+        return isValid;
+      }
+      
+      // For multiple choice questions
+      if (q.type === 'Multiple Choice' || q.type === 'multiple-choice') {
+        // Handle both array of objects and array of strings for options
+        let validOptions;
+        if (Array.isArray(q.options)) {
+          if (q.options.length > 0 && typeof q.options[0] === 'object') {
+            // Array of objects: [{id: '1', text: 'Option 1'}, ...]
+            validOptions = q.options.filter((opt: any) => opt && opt.text && opt.text.trim() !== '');
+          } else {
+            // Array of strings: ['Option 1', 'Option 2', ...]
+            validOptions = q.options.filter((opt: any) => opt && opt.trim() !== '');
+          }
+        } else {
+          validOptions = [];
+        }
+
+        const hasEnoughOptions = validOptions.length >= 2;
+        const hasCorrectAnswer = q.correctAnswerId && q.correctAnswerId.trim() !== '';
+        
+        debugLog('Multiple choice validation:', {
+          optionsArray: q.options,
+          optionsType: typeof q.options[0],
+          validOptionsCount: validOptions.length,
+          hasEnoughOptions,
+          correctAnswerId: q.correctAnswerId,
+          hasCorrectAnswer,
+          validOptions
+        });
+
+        if (!hasEnoughOptions) {
+          debugLog('❌ Rejected MC: Not enough valid options');
+          return false;
+        }
+        
+        if (!hasCorrectAnswer) {
+          debugLog('❌ Rejected MC: No correct answer selected');
+          return false;
+        }
+
+        debugLog('✅ Valid MC question');
+        return true;
+      }
+      
+      debugLog('❌ Rejected: Unknown question type:', q.type);
+      return false;
+    });
+  };
+
+  const handleSaveChanges = async () => {
+    // Debug: Log all questions before validation
+    debugLog('=== SAVE DEBUG ===');
+    debugLog('All lessons:', lessons);
+    debugLog('Final quiz:', finalQuiz);
+
+    lessons.forEach((lesson, lessonIndex) => {
+      if (lesson.quiz?.questions) {
+        debugLog(`Lesson ${lessonIndex + 1} questions:`, lesson.quiz.questions);
+      }
+    });
+
+    if (finalQuiz?.questions) {
+      debugLog('Final quiz questions:', finalQuiz.questions);
+    }
+
+    // Track filtered questions for user feedback
+    let filteredLessonQuestions = 0;
+    let filteredFinalQuizQuestions = 0;
+
+    // Create data for backend (with validation filtering)
+    const backendLessons = lessons.map((lesson, lessonIndex) => {
+      debugLog(`=== LESSON ${lessonIndex + 1} PROCESSING ===`);
+      debugLog('Original lesson:', lesson);
+      
+      if (lesson.quiz && lesson.quiz.questions.length > 0) {
+        debugLog(`Lesson ${lessonIndex + 1} has quiz with ${lesson.quiz.questions.length} questions`);
+        debugLog(`Lesson ${lessonIndex + 1} quiz questions:`, lesson.quiz.questions);
+        
+        const originalCount = lesson.quiz.questions.length;
+        const validQuestions = validateQuestions(lesson.quiz.questions);
+        
+        debugLog(`Lesson ${lessonIndex + 1} validation results:`, {
+          original: originalCount,
+          valid: validQuestions.length,
+          validQuestions: validQuestions
+        });
+        
+        filteredLessonQuestions += originalCount - validQuestions.length;
+
+        const processedLesson = {
+          ...lesson,
+          quiz:
+            validQuestions.length > 0
+              ? {
+                  ...lesson.quiz,
+                  questions: validQuestions,
+                }
+              : undefined,
+        };
+        
+        debugLog(`Lesson ${lessonIndex + 1} final processed:`, processedLesson);
+        return processedLesson;
+      } else {
+        debugLog(`Lesson ${lessonIndex + 1} has no quiz`);
+      }
+      return lesson;
+    });
+
+    // Create final quiz data for backend (with validation filtering)
+    const backendFinalQuiz =
+      finalQuiz && finalQuiz.questions.length > 0
+        ? (() => {
+            const originalCount = finalQuiz.questions.length;
+            const validQuestions = validateQuestions(finalQuiz.questions);
+            filteredFinalQuizQuestions = originalCount - validQuestions.length;
+
+            return validQuestions.length > 0
+              ? {
+                  ...finalQuiz,
+                  questions: validQuestions,
+                }
+              : undefined;
+          })()
+        : undefined;
+
+    // Provide user feedback about filtered questions
+    const totalFiltered = filteredLessonQuestions + filteredFinalQuizQuestions;
+    if (totalFiltered > 0) {
+      const warningMessage = showValidationWarnings(totalFiltered);
+      toast.success(warningMessage, {
+        duration: 8000, // Show longer since it's educational
+      });
+    } else {
+      // Only show simple success if no questions were filtered
+      toast.success('Culture module saved successfully!');
+    }
+
     if (module) {
-      // Create the full updated module with all new features
+      // Create the full updated module with BACKEND DATA (filtered questions)
       const updatedModule: Module = {
         ...module,
         title,
@@ -168,31 +345,45 @@ export default function ModuleEditor({
         tags,
         status,
         difficulty,
-        lessons: lessons.map((lesson) => ({
-          _id: lesson.id,
-          title: lesson.title,
-          type: lesson.type,
-          content: lesson.content,
-          duration: lesson.duration,
-          quiz: lesson.quiz
-            ? {
-                title: lesson.quiz.title,
-                questions: lesson.quiz.questions,
-              }
-            : undefined,
-        })),
-        finalQuiz: finalQuiz
+        lessons: backendLessons.map((lesson, index) => {
+          const mappedLesson = {
+            _id: lesson.id,
+            title: lesson.title,
+            type: lesson.type,
+            content: lesson.content,
+            duration: lesson.duration,
+            quiz: lesson.quiz
+              ? {
+                  title: lesson.quiz.title,
+                  questions: lesson.quiz.questions,
+                }
+              : undefined,
+          };
+          
+          debugLog(`=== FINAL LESSON ${index + 1} MAPPING ===`);
+          debugLog('Backend lesson input:', lesson);
+          debugLog('Mapped lesson output:', mappedLesson);
+          
+          return mappedLesson;
+        }),
+        finalQuiz: backendFinalQuiz
           ? {
-              title: finalQuiz.title,
-              questions: finalQuiz.questions,
+              title: backendFinalQuiz.title,
+              questions: backendFinalQuiz.questions,
             }
           : undefined,
         // For backward compatibility, keep content and quiz from primary lesson
-        content: lessons[0]?.content || '',
-        quiz: lessons[0]?.quiz?.questions || [],
+        content: backendLessons[0]?.content || '',
+        quiz: backendLessons[0]?.quiz?.questions || [],
       };
 
-      onUpdate(updatedModule);
+      debugLog('Sending to backend:', updatedModule);
+
+      // Send to backend - this will use the filtered data
+      await onUpdate(updatedModule);
+
+      // NOTE: We DO NOT update the UI state here - the UI keeps all questions
+      // including incomplete ones so users can continue editing them
     }
   };
 

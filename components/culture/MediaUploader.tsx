@@ -6,15 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
-  Upload,
-  Link,
-  X,
-  Play,
-  Image as ImageIcon,
   Loader2,
+  Upload,
+  Link as LinkIcon,
+  FileVideo,
+  FileImage,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getHumanReadableError } from '@/lib/error-utils';
 
 interface MediaUploaderProps {
   lessonType: 'video' | 'image';
@@ -113,9 +115,15 @@ export default function MediaUploader({
       } else {
         throw new Error('Upload failed - no URL returned');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      toast.error(error instanceof Error ? error.message : 'Upload failed');
+      const errorMessage =
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        error.message ||
+        'Upload failed';
+      const humanError = getHumanReadableError(errorMessage);
+      toast.error(humanError);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -238,9 +246,9 @@ export default function MediaUploader({
                   >
                     <div className="flex flex-col items-center gap-2">
                       {lessonType === 'video' ? (
-                        <Play className="h-12 w-12 text-warm-gray" />
+                        <FileVideo className="h-12 w-12 text-warm-gray" />
                       ) : (
-                        <ImageIcon className="h-12 w-12 text-warm-gray" />
+                        <FileImage className="h-12 w-12 text-warm-gray" />
                       )}
                       <p className="text-lg font-semibold text-charcoal">
                         Click to upload {lessonType}
@@ -309,7 +317,7 @@ export default function MediaUploader({
                     className="w-full"
                     disabled={!url.trim()}
                   >
-                    <Link size={16} className="mr-2" />
+                    <LinkIcon size={16} className="mr-2" />
                     Save {lessonType === 'video' ? 'Video' : 'Image'} URL
                   </Button>
                 </div>

@@ -10,10 +10,13 @@ import { useCultureModules } from '@/hooks/use-culture-modules';
 import toast from 'react-hot-toast';
 
 export default function CultureBuilderPage() {
+  const { data: session, status } = useSession();
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
+
   const {
     modules,
     loading,
-    error,
+    isLoading,
     isCreating,
     isUpdating,
     isDeleting,
@@ -21,12 +24,13 @@ export default function CultureBuilderPage() {
     updateModule,
     deleteModule,
   } = useCultureModules();
-  const [selectedModule, setSelectedModule] = useState<Module | null>(null);
+
+  const selectedModule = modules.find((m) => m.id === selectedModuleId) || null;
 
   const handleAddModule = async () => {
     const newModule = await createModule();
     if (newModule) {
-      setSelectedModule(newModule);
+      setSelectedModuleId(newModule.id);
       toast.success('New culture module created');
     } else {
       toast.error('Failed to create culture module');
@@ -36,46 +40,51 @@ export default function CultureBuilderPage() {
   const handleDeleteModule = async (moduleId: string) => {
     const success = await deleteModule(moduleId);
     if (success) {
-      if (selectedModule?.id === moduleId) {
-        setSelectedModule(null);
-      }
+      setSelectedModuleId(null);
       toast.success('Culture module deleted');
     } else {
       toast.error('Failed to delete culture module');
     }
   };
 
-  const handleUpdateModule = async (updatedModule: Module) => {
-    const result = await updateModule(updatedModule.id, updatedModule);
-    if (result) {
-      setSelectedModule(result);
+  const handleUpdateModule = async (module: Module) => {
+    // Extract the module ID and create the updates object
+    const { id, ...updates } = module;
+    const updatedModule = await updateModule(id, updates);
+    if (updatedModule) {
       toast.success('Culture module updated');
     } else {
       toast.error('Failed to update culture module');
     }
   };
 
-  // Show initial loading state only
-  if (loading) {
-    return <FullPageLoader placeholder="culture modules" />;
+  if (status === 'loading') {
+    return <FullPageLoader placeholder="Loading session..." />;
+  }
+
+  // Show full page loader when fetching modules
+  if (loading || isLoading) {
+    return <FullPageLoader placeholder="Loading culture modules..." />;
   }
 
   return (
-    <div className="flex h-screen bg-parchment">
-      {/* Desktop Layout */}
-      <div className="hidden md:flex w-full">
-        <div className="w-[25%] max-w-[25%] bg-alabaster border-r border-warm-gray/20">
-          <ModuleList
-            modules={modules}
-            selectedModule={selectedModule}
-            onSelectModule={setSelectedModule}
-            onAddModule={handleAddModule}
-            onDeleteModule={handleDeleteModule}
-            isCreating={isCreating}
-            isDeleting={isDeleting}
-          />
-        </div>
-        <div className="w-[75%] max-w-[75%] p-4">
+    <div className="flex h-full">
+      {/* Module List - Left Sidebar */}
+      <div className="w-[25%] max-w-[25%] bg-warm-gray/5 border-r border-warm-gray/20">
+        <ModuleList
+          modules={modules}
+          selectedModuleId={selectedModuleId}
+          onSelectModule={setSelectedModuleId}
+          onAddModule={handleAddModule}
+          onDeleteModule={handleDeleteModule}
+          isCreating={isCreating}
+          isDeleting={isDeleting}
+        />
+      </div>
+
+      {/* Module Editor - Main Content */}
+      <div className="w-[75%] max-w-[75%] overflow-auto">
+        {selectedModule ? (
           <ModuleEditor
             module={selectedModule}
             onUpdate={handleUpdateModule}
@@ -83,35 +92,24 @@ export default function CultureBuilderPage() {
             isUpdating={isUpdating}
             isDeleting={isDeleting}
           />
-        </div>
-      </div>
-
-      {/* Mobile Layout */}
-      <div className="md:hidden w-full">
-        {!selectedModule ? (
-          <ModuleList
-            modules={modules}
-            selectedModule={selectedModule}
-            onSelectModule={setSelectedModule}
-            onAddModule={handleAddModule}
-            onDeleteModule={handleDeleteModule}
-          />
         ) : (
-          <div className="p-4">
-            <button
-              onClick={() => setSelectedModule(null)}
-              className="mb-4 text-charcoal font-semibold"
-            >
-              &larr; Back to Modules
-            </button>
-            <ModuleEditor
-              module={selectedModule}
-              onUpdate={handleUpdateModule}
-              onDelete={async (moduleId) => {
-                await handleDeleteModule(moduleId);
-                setSelectedModule(null);
-              }}
-            />
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-charcoal mb-4">
+                Welcome to Culture Builder
+              </h2>
+              <p className="text-warm-gray mb-6 max-w-md">
+                Create and manage culture modules for your organization. Select
+                a module from the left panel or create a new one to get started.
+              </p>
+              <button
+                onClick={handleAddModule}
+                disabled={isCreating}
+                className="bg-charcoal text-white px-6 py-3 rounded-lg hover:bg-charcoal/90 transition-colors disabled:opacity-50"
+              >
+                {isCreating ? 'Creating...' : 'Create Your First Module'}
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { Module } from "@/types/culture";
-import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
-import DeleteConfirmationModal from "./DeleteConfirmationModal";
+import { Module } from '@/types/culture';
+import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 
 interface ModuleListProps {
   modules: Module[];
-  selectedModule: Module | null;
-  onSelectModule: (module: Module) => void;
+  selectedModuleId: string | null;
+  onSelectModule: (moduleId: string) => void;
   onAddModule: () => void;
   onDeleteModule: (moduleId: string) => void;
   isCreating?: boolean;
@@ -17,7 +17,7 @@ interface ModuleListProps {
 
 export default function ModuleList({
   modules,
-  selectedModule,
+  selectedModuleId,
   onSelectModule,
   onAddModule,
   onDeleteModule,
@@ -71,14 +71,14 @@ export default function ModuleList({
           <div
             key={module.id}
             className={`flex items-center justify-between p-4 rounded-lg cursor-pointer bg-white shadow-soft transition-all duration-200 ${
-              selectedModule?.id === module.id
-                ? "border-2 border-charcoal bg-warm-gray/10"
-                : "border border-transparent hover:bg-warm-gray/10"
+              selectedModuleId === module.id
+                ? 'border-2 border-charcoal bg-warm-gray/10'
+                : 'border border-transparent hover:bg-warm-gray/10'
             } ${isDeleting ? 'opacity-50' : ''}`}
-            onClick={() => !isDeleting && onSelectModule(module)}
+            onClick={() => !isDeleting && onSelectModule(module.id)}
           >
             <h3 className="font-semibold text-charcoal truncate pr-4">
-              {module.title || "Untitled Module"}
+              {module.title || 'Untitled Module'}
             </h3>
             <button
               onClick={(e) => {

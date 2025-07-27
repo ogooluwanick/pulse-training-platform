@@ -8,6 +8,7 @@ import {
 } from '@/types/culture';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
+import { getHumanReadableError, debugLog } from '@/lib/error-utils';
 
 export function useCultureModules() {
   const { data: session, status } = useSession();
@@ -44,11 +45,15 @@ export function useCultureModules() {
       // Mark as fetched for this user
       lastFetchedUserId.current = session.user.id;
       hasFetched.current = true;
-    } catch (err) {
+    } catch (error: any) {
+      console.error('Error fetching culture modules:', error);
       const errorMessage =
-        err instanceof Error ? err.message : 'An error occurred';
-      console.error('Fetch modules error:', err);
-      toast.error(`Failed to load culture modules: ${errorMessage}`);
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        error.message ||
+        'Unknown error';
+      const humanError = getHumanReadableError(errorMessage);
+      toast.error(`Failed to load culture modules: ${humanError}`);
       // Clear error state so it doesn't block UI
       setError(null);
     } finally {
@@ -104,7 +109,8 @@ export function useCultureModules() {
         const errorMessage =
           data.details || data.error || 'Failed to create culture module';
         console.error('API Error:', data);
-        toast.error(`Failed to create module: ${errorMessage}`);
+        const humanError = getHumanReadableError(errorMessage);
+        toast.error(`Failed to create module: ${humanError}`);
         return null;
       }
 
@@ -115,11 +121,15 @@ export function useCultureModules() {
       }
 
       return null;
-    } catch (err) {
+    } catch (error: any) {
+      console.error('Create module error:', error);
       const errorMessage =
-        err instanceof Error ? err.message : 'An error occurred';
-      console.error('Create module error:', err);
-      toast.error(`Failed to create module: ${errorMessage}`);
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        error.message ||
+        'Unknown error';
+      const humanError = getHumanReadableError(errorMessage);
+      toast.error(`Failed to create module: ${humanError}`);
       return null;
     } finally {
       setIsCreating(false);
@@ -136,17 +146,26 @@ export function useCultureModules() {
       setError(null);
 
       // Convert Module updates to Course format using the utility function
+      debugLog('=== MODULE TO COURSE TRANSFORMATION ===');
+      debugLog('Input Module updates:', updates);
+
+      const fullModule = {
+        id: moduleId,
+        title: '',
+        content: '',
+        quiz: [],
+        ...updates,
+      } as Module;
+
+      debugLog('Full Module before transformation:', fullModule);
+
       const courseUpdates = cultureModuleToCourse(
-        {
-          id: moduleId,
-          title: '',
-          content: '',
-          quiz: [],
-          ...updates,
-        } as Module,
+        fullModule,
         session?.user?.companyId || session?.user?.id || '',
         session?.user?.id || ''
       );
+
+      debugLog('Course updates after transformation:', courseUpdates);
 
       // Remove fields that shouldn't be updated
       delete courseUpdates.companyId;
@@ -168,7 +187,8 @@ export function useCultureModules() {
         const errorMessage =
           data.details || data.error || 'Failed to update culture module';
         console.error('API Error:', data);
-        toast.error(`Failed to update module: ${errorMessage}`);
+        const humanError = getHumanReadableError(errorMessage);
+        toast.error(`Failed to update module: ${humanError}`);
         return null;
       }
 
@@ -181,11 +201,15 @@ export function useCultureModules() {
       }
 
       return null;
-    } catch (err) {
+    } catch (error: any) {
+      console.error('Update module error:', error);
       const errorMessage =
-        err instanceof Error ? err.message : 'An error occurred';
-      console.error('Update module error:', err);
-      toast.error(`Failed to update module: ${errorMessage}`);
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        error.message ||
+        'Unknown error';
+      const humanError = getHumanReadableError(errorMessage);
+      toast.error(`Failed to update module: ${humanError}`);
       return null;
     } finally {
       setIsUpdating(false);
@@ -208,17 +232,22 @@ export function useCultureModules() {
         const errorMessage =
           data.details || data.error || 'Failed to delete culture module';
         console.error('API Error:', data);
-        toast.error(`Failed to delete module: ${errorMessage}`);
+        const humanError = getHumanReadableError(errorMessage);
+        toast.error(`Failed to delete module: ${humanError}`);
         return false;
       }
 
       setModules((prev) => prev.filter((m) => m.id !== moduleId));
       return true;
-    } catch (err) {
+    } catch (error: any) {
+      console.error('Delete module error:', error);
       const errorMessage =
-        err instanceof Error ? err.message : 'An error occurred';
-      console.error('Delete module error:', err);
-      toast.error(`Failed to delete module: ${errorMessage}`);
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        error.message ||
+        'Unknown error';
+      const humanError = getHumanReadableError(errorMessage);
+      toast.error(`Failed to delete module: ${humanError}`);
       return false;
     } finally {
       setIsDeleting(false);
