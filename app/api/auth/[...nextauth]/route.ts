@@ -61,7 +61,7 @@ export const authOptions: NextAuthOptions = {
           try {
             await sendVerificationEmail(
               dbUser.email,
-              dbUser.name,
+              `${dbUser.firstName} ${dbUser.lastName}`,
               newVerificationToken
             );
             throw new Error(

@@ -34,6 +34,21 @@ export default function VerificationResultPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#fcf8f9' }}>
+       <div className="w-full max-w-md space-y-6">
+          {/* Logo */}
+          <div className="text-center space-y-2">
+            <div className="flex justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-charcoal text-alabaster">
+                <span className="text-lg font-bold">P</span>
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-charcoal">
+              Welcome to Pulse
+            </h1>
+            <p className="text-warm-gray">
+              Sign in to your intelligent workspace
+            </p>
+          </div>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -60,6 +75,7 @@ export default function VerificationResultPage() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

@@ -80,8 +80,12 @@ export default function ResetPasswordPage() {
               <span className="text-lg font-bold">P</span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-charcoal">Reset Your Password</h1>
-          <p className="text-warm-gray">Enter your new password below</p>
+          <h1 className="text-2xl font-bold text-charcoal">
+              Welcome to Pulse
+            </h1>
+            <p className="text-warm-gray">
+              Sign in to your intelligent workspace
+            </p>
         </div>
 
         <Card className="bg-parchment border-warm-gray/20 shadow-soft-lg">

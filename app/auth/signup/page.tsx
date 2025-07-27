@@ -103,10 +103,12 @@ export default function SignUpPage() {
               <span className="text-lg font-bold">P</span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-charcoal">Join Pulse</h1>
-          <p className="text-warm-gray">
-            Create your intelligent workspace account
-          </p>
+          <h1 className="text-2xl font-bold text-charcoal">
+              Welcome to Pulse
+            </h1>
+            <p className="text-warm-gray">
+              Sign in to your intelligent workspace
+            </p>
         </div>
 
         {/* Sign Up Card */}

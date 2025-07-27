@@ -1,5 +1,6 @@
 'use client';
 
+import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,29 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import toast from 'react-hot-toast';
+import FullPageLoader from '@/components/full-page-loader';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const departments = [
+  "Human Resources",
+  "Engineering",
+  "Marketing",
+  "Sales",
+  "Finance",
+  "Customer Support",
+  "Product Management",
+  "Design",
+  "IT",
+  "Operations",
+  "Legal",
+  "Administration",
+];
 
 export default function EmployeeSignupPage() {
   const searchParams = useSearchParams();
@@ -101,11 +125,7 @@ export default function EmployeeSignupPage() {
   };
 
   if (checkingToken) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p>Verifying invitation...</p>
-      </div>
-    );
+    return <FullPageLoader placeholder="Verifying invitation..." />;
   }
 
   if (!isTokenValid) {
@@ -139,10 +159,12 @@ export default function EmployeeSignupPage() {
               <span className="text-lg font-bold">P</span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-charcoal">Join Pulse</h1>
-          <p className="text-warm-gray">
-            Create your intelligent workspace account
-          </p>
+          <h1 className="text-2xl font-bold text-charcoal">
+              Welcome to Pulse
+            </h1>
+            <p className="text-warm-gray">
+              Sign in to your intelligent workspace
+            </p>
         </div>
 
         {/* Sign Up Card */}
@@ -184,14 +206,18 @@ export default function EmployeeSignupPage() {
               </div>
               <div className="grid gap-2">
                 <Label className="text-charcoal font-medium" htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  type="text"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft pr-10"
-                  required
-                />
+                <Select onValueChange={setDepartment} value={department}>
+                  <SelectTrigger className="w-full bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft">
+                    <SelectValue placeholder="Select a department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="grid gap-2">
                 <Label className="text-charcoal font-medium"  htmlFor="password">Password</Label>

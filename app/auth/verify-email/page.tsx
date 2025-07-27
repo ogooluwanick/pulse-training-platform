@@ -65,8 +65,12 @@ export default function VerifyEmailPage() {
               <span className="text-lg font-bold">P</span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-charcoal">Verify Your Email</h1>
-          <p className="text-warm-gray">Confirm your email address to activate your account.</p>
+          <h1 className="text-2xl font-bold text-charcoal">
+              Welcome to Pulse
+            </h1>
+            <p className="text-warm-gray">
+              Sign in to your intelligent workspace
+            </p>
         </div>
 
         <Card className="bg-parchment border-warm-gray/20 shadow-soft-lg">
