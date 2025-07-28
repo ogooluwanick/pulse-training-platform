@@ -1,10 +1,14 @@
 [
   {
-    "_id": "60d5ec49f5a8a12a4c8a8a8a",
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8a"
+    },
     "title": "Data Privacy & GDPR Compliance",
     "description": "Essential training on data protection regulations and best practices for handling personal data.",
     "category": "compliance",
-    "instructor": "6886a4d4e733962f77f78c00",
+    "instructor": {
+      "$oid": "6886a4d4e733962f77f78c00"
+    },
     "duration": 120,
     "difficulty": "Beginner",
     "rating": [],
@@ -101,11 +105,15 @@
     "lastModifiedBy": null
   },
   {
-    "_id": "60d5ec49f5a8a12a4c8a8a8b",
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8b"
+    },
     "title": "Anti-Money Laundering (AML)",
     "description": "A comprehensive overview of Anti-Money Laundering regulations and practices to prevent financial crimes.",
     "category": "compliance",
-    "instructor": "6886a4d4e733962f77f78c00",
+    "instructor": {
+      "$oid": "6886a4d4e733962f77f78c00"
+    },
     "duration": 180,
     "difficulty": "Intermediate",
     "rating": [],
@@ -181,11 +189,15 @@
     "lastModifiedBy": null
   },
   {
-    "_id": "60d5ec49f5a8a12a4c8a8a8c",
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8c"
+    },
     "title": "Company Culture & Values",
     "description": "An introduction to our company's culture, mission, and the core values that guide our work.",
     "category": "culture",
-    "instructor": "6886a4d4e733962f77f78c00",
+    "instructor": {
+      "$oid": "6886a4d4e733962f77f78c00"
+    },
     "duration": 60,
     "difficulty": "Beginner",
     "rating": [],
@@ -245,11 +257,15 @@
     "lastModifiedBy": null
   },
   {
-    "_id": "60d5ec49f5a8a12a4c8a8a8d",
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8d"
+    },
     "title": "Cybersecurity Awareness",
     "description": "Learn how to protect our company's digital assets and recognize common cybersecurity threats.",
     "category": "compliance",
-    "instructor": "6886a4d4e733962f77f78c00",
+    "instructor": {
+      "$oid": "6886a4d4e733962f77f78c00"
+    },
     "duration": 90,
     "difficulty": "Beginner",
     "rating": [],
@@ -315,11 +331,15 @@
     "lastModifiedBy": null
   },
   {
-    "_id": "60d5ec49f5a8a12a4c8a8a8e",
+    "_id": {
+      "$oid": "60d5ec49f5a8a12a4c8a8a8e"
+    },
     "title": "Comprehensive Test Course",
     "description": "A comprehensive course to test all features of the course builder.",
     "category": "technical",
-    "instructor": "6886a4d4e733962f77f78c00",
+    "instructor": {
+      "$oid": "6886a4d4e733962f77f78c00"
+    },
     "duration": 60,
     "difficulty": "Intermediate",
     "rating": [],

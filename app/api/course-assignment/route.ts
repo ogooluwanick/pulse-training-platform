@@ -45,6 +45,65 @@ export async function GET(req: NextRequest) {
     });
     console.log('🏢 Assignments for this company:', companyAssignmentsCount);
 
+    // Debug: Get raw assignments to see what course IDs they reference
+    const rawAssignments = await CourseAssignment.find({
+      companyId: new mongoose.Types.ObjectId(companyId as string),
+    }).select('course employee status');
+    
+    console.log('🔍 Raw assignments found:');
+    rawAssignments.forEach((assignment, index) => {
+      console.log(`   ${index + 1}. Assignment ID: ${assignment._id}`);
+      console.log(`      Course ID: ${assignment.course}`);
+      console.log(`      Employee ID: ${assignment.employee}`);
+      console.log(`      Status: ${assignment.status}`);
+    });
+
+    // Debug: Check if referenced courses exist
+    const courseIds = rawAssignments.map(a => a.course).filter(Boolean);
+    console.log('📚 Course IDs referenced in assignments:', courseIds);
+    
+    if (courseIds.length > 0) {
+      const existingCourses = await Course.find({ _id: { $in: courseIds } }).select('_id title');
+      console.log('✅ Existing courses found:', existingCourses.length);
+      existingCourses.forEach(course => {
+        console.log(`   - ${course._id}: ${course.title}`);
+      });
+      
+      const missingCourseIds = courseIds.filter(id => 
+        !existingCourses.some(course => course._id.toString() === id.toString())
+      );
+      console.log('❌ Missing course IDs:', missingCourseIds);
+    }
+
+    // Debug: Check what courses actually exist in the database
+    const totalCourses = await Course.countDocuments();
+    console.log('📚 Total courses in database:', totalCourses);
+    
+    if (totalCourses > 0) {
+      const sampleCourses = await Course.find({}).limit(5).select('_id title');
+      console.log('📋 Sample courses in database:');
+      sampleCourses.forEach(course => {
+        console.log(`   - ${course._id}: ${course.title}`);
+      });
+    }
+
+    // Debug: Check if referenced employees exist
+    const employeeIds = rawAssignments.map(a => a.employee).filter(Boolean);
+    console.log('👥 Employee IDs referenced in assignments:', employeeIds);
+    
+    if (employeeIds.length > 0) {
+      const existingEmployees = await User.find({ _id: { $in: employeeIds } }).select('_id firstName lastName email');
+      console.log('✅ Existing employees found:', existingEmployees.length);
+      existingEmployees.forEach(employee => {
+        console.log(`   - ${employee._id}: ${employee.firstName} ${employee.lastName} (${employee.email})`);
+      });
+      
+      const missingEmployeeIds = employeeIds.filter(id => 
+        !existingEmployees.some(employee => employee._id.toString() === id.toString())
+      );
+      console.log('❌ Missing employee IDs:', missingEmployeeIds);
+    }
+
     // Get all course assignments for the company with populated data
     const assignments = await CourseAssignment.aggregate([
       {
@@ -68,11 +127,18 @@ export async function GET(req: NextRequest) {
           as: 'employeeDetails',
         },
       },
+      // Use $unwind with preserveNullAndEmptyArrays to keep assignments even if course/employee not found
       {
-        $unwind: '$courseDetails',
+        $unwind: {
+          path: '$courseDetails',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
-        $unwind: '$employeeDetails',
+        $unwind: {
+          path: '$employeeDetails',
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $addFields: {
@@ -84,9 +150,14 @@ export async function GET(req: NextRequest) {
               else: {
                 $cond: {
                   if: {
-                    $gt: [
-                      { $size: { $ifNull: ['$courseDetails.lessons', []] } },
-                      0,
+                    $and: [
+                      { $ne: ['$courseDetails', null] },
+                      {
+                        $gt: [
+                          { $size: { $ifNull: ['$courseDetails.lessons', []] } },
+                          0,
+                        ],
+                      },
                     ],
                   },
                   then: {
@@ -118,20 +189,26 @@ export async function GET(req: NextRequest) {
         $project: {
           _id: 1,
           course: {
-            _id: '$courseDetails._id',
-            title: '$courseDetails.title',
-            category: '$courseDetails.category',
-            lessons: '$courseDetails.lessons',
-            finalQuiz: '$courseDetails.finalQuiz',
+            _id: { $ifNull: ['$courseDetails._id', null] },
+            title: { $ifNull: ['$courseDetails.title', 'Course Not Found'] },
+            category: { $ifNull: ['$courseDetails.category', 'unknown'] },
+            lessons: { $ifNull: ['$courseDetails.lessons', []] },
+            finalQuiz: { $ifNull: ['$courseDetails.finalQuiz', null] },
           },
           assignee: {
-            _id: '$employeeDetails._id',
+            _id: { $ifNull: ['$employeeDetails._id', null] },
             name: {
-              $concat: [
-                '$employeeDetails.firstName',
-                ' ',
-                '$employeeDetails.lastName',
-              ],
+              $cond: {
+                if: { $ne: ['$employeeDetails', null] },
+                then: {
+                  $concat: [
+                    { $ifNull: ['$employeeDetails.firstName', 'Unknown'] },
+                    ' ',
+                    { $ifNull: ['$employeeDetails.lastName', 'User'] },
+                  ],
+                },
+                else: 'Unknown User',
+              },
             },
             avatar: {
               $ifNull: [
@@ -139,7 +216,7 @@ export async function GET(req: NextRequest) {
                 '/placeholder-user.jpg',
               ],
             },
-            department: '$employeeDetails.department',
+            department: { $ifNull: ['$employeeDetails.department', null] },
           },
           status: 1,
           endDate: 1,
@@ -156,6 +233,16 @@ export async function GET(req: NextRequest) {
     ]);
 
     console.log('✅ Found assignments after aggregation:', assignments.length);
+
+    // Debug: Log the final results
+    console.log('📋 Final assignment results:');
+    assignments.forEach((assignment, index) => {
+      console.log(`   ${index + 1}. Assignment ID: ${assignment._id}`);
+      console.log(`      Course: ${assignment.course?.title || 'NOT FOUND'} (ID: ${assignment.course?._id || 'null'})`);
+      console.log(`      Assignee: ${assignment.assignee?.name || 'NOT FOUND'} (ID: ${assignment.assignee?._id || 'null'})`);
+      console.log(`      Status: ${assignment.status}`);
+      console.log(`      Progress: ${assignment.progress}%`);
+    });
 
     return NextResponse.json(assignments, { status: 200 });
   } catch (error) {

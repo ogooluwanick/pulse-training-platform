@@ -183,17 +183,73 @@ export default function ReportsPage() {
 
       {isLoading ? (
         <div className="space-y-4 sm:space-y-6">
+          {/* Stats Widgets Skeleton */}
           <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            <Skeleton className="h-20 sm:h-24" />
-            <Skeleton className="h-20 sm:h-24" />
-            <Skeleton className="h-20 sm:h-24" />
+            <Card className="bg-alabaster border-warm-gray/20">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24 bg-warm-gray/30" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 bg-charcoal/20" />
+                <Skeleton className="h-3 w-32 mt-2 bg-warm-gray/30" />
+              </CardContent>
+            </Card>
+            <Card className="bg-alabaster border-warm-gray/20">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24 bg-warm-gray/30" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 bg-charcoal/20" />
+                <Skeleton className="h-3 w-32 mt-2 bg-warm-gray/30" />
+              </CardContent>
+            </Card>
+            <Card className="bg-alabaster border-warm-gray/20">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-4 w-24 bg-warm-gray/30" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-8 w-16 bg-charcoal/20" />
+                <Skeleton className="h-3 w-32 mt-2 bg-warm-gray/30" />
+              </CardContent>
+            </Card>
           </div>
-          <div className="w-full">
-            <Skeleton className="h-64 sm:h-80" />
-          </div>
-          <div className="w-full">
-            <Skeleton className="h-64 sm:h-80" />
-          </div>
+          
+          {/* Chart Skeleton */}
+          <Card className="bg-alabaster border-warm-gray/20">
+            <CardHeader>
+              <Skeleton className="h-6 w-48 bg-charcoal/20" />
+              <Skeleton className="h-4 w-64 bg-warm-gray/30" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-64 sm:h-80 w-full bg-warm-gray/20" />
+            </CardContent>
+          </Card>
+          
+          {/* Table Skeleton */}
+          <Card className="bg-alabaster border-warm-gray/20">
+            <CardHeader>
+              <Skeleton className="h-6 w-48 bg-charcoal/20" />
+              <Skeleton className="h-4 w-64 bg-warm-gray/30" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-4 py-2 border-b border-warm-gray/20">
+                  <Skeleton className="h-4 w-32 bg-warm-gray/30" />
+                  <Skeleton className="h-4 w-24 bg-warm-gray/30" />
+                  <Skeleton className="h-4 w-20 bg-warm-gray/30" />
+                  <Skeleton className="h-4 w-16 bg-warm-gray/30" />
+                </div>
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4 py-2">
+                    <Skeleton className="h-4 w-32 bg-warm-gray/20" />
+                    <Skeleton className="h-4 w-24 bg-warm-gray/20" />
+                    <Skeleton className="h-4 w-20 bg-warm-gray/20" />
+                    <Skeleton className="h-4 w-16 bg-warm-gray/20" />
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : error ? (
         <div className="text-center text-red-500 p-4">
