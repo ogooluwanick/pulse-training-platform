@@ -19,6 +19,9 @@
     ],
     "lessons": [
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a8b"
+        },
         "title": "Introduction to Data Privacy",
         "type": "text",
         "content": "<h1>Understanding Data Privacy</h1><p>This lesson covers the fundamental concepts of data privacy, its importance, and the key principles of data protection.</p>",
@@ -41,6 +44,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a8c"
+        },
         "title": "GDPR Fundamentals",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=s_b1_v2A-wA",
@@ -51,6 +57,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a8d"
+        },
         "title": "Key Roles and Responsibilities",
         "type": "text",
         "content": "<h2>Data Controller vs. Data Processor</h2><p>Learn the distinction between data controllers and processors and their respective responsibilities under GDPR.</p>",
@@ -61,6 +70,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a8e"
+        },
         "title": "Handling Data Subject Access Requests",
         "type": "image",
         "content": "https://example.com/images/dsar_flowchart.png",
@@ -106,7 +118,7 @@
   },
   {
     "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8b"
+      "$oid": "60d5ec49f5a8a12a4c8a8a8f"
     },
     "title": "Anti-Money Laundering (AML)",
     "description": "A comprehensive overview of Anti-Money Laundering regulations and practices to prevent financial crimes.",
@@ -124,6 +136,9 @@
     ],
     "lessons": [
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a90"
+        },
         "title": "What is Money Laundering?",
         "type": "text",
         "content": "<h1>The Basics of Money Laundering</h1><p>This lesson explains the three stages of money laundering: placement, layering, and integration.</p>",
@@ -146,6 +161,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a91"
+        },
         "title": "AML Regulations and Legislation",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=some_aml_video",
@@ -156,6 +174,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a92"
+        },
         "title": "Customer Due Diligence (CDD)",
         "type": "text",
         "content": "<h2>Implementing Effective CDD</h2><p>Understand the importance of verifying customer identities and assessing their risk profiles.</p>",
@@ -190,7 +211,7 @@
   },
   {
     "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8c"
+      "$oid": "60d5ec49f5a8a12a4c8a8a93"
     },
     "title": "Company Culture & Values",
     "description": "An introduction to our company's culture, mission, and the core values that guide our work.",
@@ -208,6 +229,9 @@
     ],
     "lessons": [
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a94"
+        },
         "title": "Our Mission and Vision",
         "type": "text",
         "content": "<h1>Our Guiding Principles</h1><p>Discover the mission that drives us and the vision we are working towards.</p>",
@@ -230,6 +254,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a95"
+        },
         "title": "Core Values in Action",
         "type": "image",
         "content": "https://example.com/images/values_infographic.png",
@@ -240,6 +267,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a96"
+        },
         "title": "A Message from our CEO",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=ceo_message_video",
@@ -258,7 +288,7 @@
   },
   {
     "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8d"
+      "$oid": "60d5ec49f5a8a12a4c8a8a97"
     },
     "title": "Cybersecurity Awareness",
     "description": "Learn how to protect our company's digital assets and recognize common cybersecurity threats.",
@@ -276,6 +306,9 @@
     ],
     "lessons": [
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a98"
+        },
         "title": "Understanding Phishing Attacks",
         "type": "text",
         "content": "<h1>Don't Get Hooked!</h1><p>Learn to identify phishing emails and protect yourself from credential theft.</p>",
@@ -298,6 +331,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a99"
+        },
         "title": "Creating Strong Passwords",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=password_best_practices",
@@ -332,7 +368,7 @@
   },
   {
     "_id": {
-      "$oid": "60d5ec49f5a8a12a4c8a8a8e"
+      "$oid": "60d5ec49f5a8a12a4c8a8a9a"
     },
     "title": "Comprehensive Test Course",
     "description": "A comprehensive course to test all features of the course builder.",
@@ -350,6 +386,9 @@
     ],
     "lessons": [
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a9b"
+        },
         "title": "Lesson 1: Text Content",
         "type": "text",
         "content": "<h1>Welcome to the Test Course!</h1><p>This lesson contains simple text content.</p>",
@@ -372,6 +411,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a9c"
+        },
         "title": "Lesson 2: Video Content",
         "type": "video",
         "content": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
@@ -382,6 +424,9 @@
         }
       },
       {
+        "_id": {
+          "$oid": "60d5ec49f5a8a12a4c8a8a9d"
+        },
         "title": "Lesson 3: Image Content",
         "type": "image",
         "content": "https://via.placeholder.com/600x400.png?text=Test+Image",

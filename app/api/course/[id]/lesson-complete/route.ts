@@ -17,9 +17,17 @@ export async function POST(
 
   const courseId = params.id;
   const userId = session.user.id;
-  const { lessonId, quizResult } = await req.json();
+  const requestBody = await req.json();
+  const { lessonId, quizResult } = requestBody;
+
+  console.log('API received request body:', requestBody);
+  console.log('Extracted lessonId:', lessonId);
+  console.log('Extracted quizResult:', quizResult);
+  console.log('courseId from params:', courseId);
+  console.log('userId from session:', userId);
 
   if (!lessonId) {
+    console.log('Lesson ID is missing!');
     return NextResponse.json(
       { message: 'Lesson ID is required' },
       { status: 400 }
@@ -66,9 +74,10 @@ export async function POST(
     }
 
     // Check if all lessons are completed to update overall status
-    const course = await import('@/lib/models/Course')
-      .then((m) => m.default)
-      .findById(courseId);
+    const CourseModel = await import('@/lib/models/Course').then(
+      (m) => m.default
+    );
+    const course = await CourseModel.findById(courseId);
     if (course && course.lessons) {
       const totalLessons = course.lessons.length;
       const completedLessons =

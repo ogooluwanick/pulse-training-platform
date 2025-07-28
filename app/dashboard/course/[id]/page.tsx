@@ -42,7 +42,7 @@ import FullPageLoader from '@/components/full-page-loader';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import toast from 'react-hot-toast';
 import { isYouTubeUrl } from '@/lib/utils';
-import { Course } from '@/lib/models/Course';
+import { Course, Lesson } from '@/lib/models/Course';
 import CourseRating from '@/components/course-rating';
 import CourseCompletionRatingModal from '@/components/course-completion-rating-modal';
 
@@ -89,14 +89,14 @@ export default function CoursePage() {
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCompletedLessons, setShowCompletedLessons] = useState(true);
-  const [currentLesson, setCurrentLesson] = useState<any>(null);
+  const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [showLessonQuiz, setShowLessonQuiz] = useState(false);
   const [lessonQuizPassed, setLessonQuizPassed] = useState(false);
   const [lessonAttemptCount, setLessonAttemptCount] = useState(0);
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [showNextLesson, setShowNextLesson] = useState(false);
-  const [nextLesson, setNextLesson] = useState<any>(null);
+  const [nextLesson, setNextLesson] = useState<Lesson | null>(null);
 
   // Helper to build modal steps: [lesson0, quiz0, lesson1, quiz1, ..., finalQuiz]
   const buildModalSteps = (course: Course) => {
@@ -267,7 +267,13 @@ export default function CoursePage() {
     }
   };
 
-  const handleLessonStart = (lesson: any) => {
+  const handleLessonStart = (lessonId: string) => {
+    const lesson = course?.lessons.find((l) => l._id === lessonId);
+    if (!lesson) {
+      toast.error('Could not find lesson details. Please refresh.');
+      return;
+    }
+
     // Check if lesson is locked (previous quiz not passed)
     const lessonIndex =
       course?.lessons.findIndex((l: any) => l._id === lesson._id) || 0;
@@ -306,21 +312,31 @@ export default function CoursePage() {
 
     if (result.passed) {
       try {
+        if (!currentLesson?._id) {
+          console.error('ERROR: currentLesson._id is undefined!');
+          toast.error(
+            'Error: Lesson ID not found. Please refresh the page and try again.'
+          );
+          return;
+        }
+
+        const requestBody = {
+          lessonId: currentLesson._id,
+          quizResult: {
+            score: result.score,
+            passed: result.passed,
+            answers: result.answers,
+            attemptCount: lessonAttemptCount + 1,
+            completedAt: new Date().toISOString(),
+          },
+        };
+
         const response = await fetch(
           `/api/course/${params.id}/lesson-complete`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              lessonId: currentLesson._id,
-              quizResult: {
-                score: result.score,
-                passed: result.passed,
-                answers: result.answers,
-                attemptCount: lessonAttemptCount + 1,
-                completedAt: new Date().toISOString(),
-              },
-            }),
+            body: JSON.stringify(requestBody),
           }
         );
 
@@ -682,7 +698,7 @@ export default function CoursePage() {
                     <div className="flex items-center gap-2">
                       {!isLocked && (
                         <Button
-                          onClick={() => handleLessonStart(lesson)}
+                          onClick={() => handleLessonStart(lesson._id)}
                           className="bg-charcoal hover:bg-charcoal/90 text-alabaster"
                           size="sm"
                         >
@@ -917,7 +933,7 @@ export default function CoursePage() {
                   description: 'Test your understanding of this lesson',
                   questions: currentLesson.quiz.questions.map(
                     (q: any, i: number) => ({
-                      id: String(i),
+                      id: `${currentLesson._id}-${i}`,
                       type: 'multiple-choice',
                       question: q.question,
                       options: q.options,

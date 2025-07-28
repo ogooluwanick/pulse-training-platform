@@ -277,6 +277,7 @@ export default function QuizModal({
         // User passed - proceed normally
         setShowResults(true);
         onComplete(result);
+        toast.success('Quiz passed successfully! You can now proceed to the next lesson.');
 
         // Clear session data on successful completion
         if (lessonId) {
@@ -495,7 +496,7 @@ export default function QuizModal({
                   </div>
                   <div className="text-xl font-medium text-charcoal mb-2">
                     {quizResults.passed
-                      ? 'Congratulations! You Passed!'
+                      ? '🎉 Congratulations! You Passed! 🎉'
                       : 'Quiz Not Passed'}
                   </div>
                   <div className="text-warm-gray">
@@ -575,8 +576,11 @@ export default function QuizModal({
                     Retake Quiz
                   </Button>
                 )}
-                <Button onClick={onClose} className="flex-1 btn-primary">
-                  {quizResults.passed ? 'Complete Lesson' : 'Continue Learning'}
+                <Button 
+                  onClick={onClose} 
+                  className="flex-1 bg-success-green hover:bg-success-green/90 text-alabaster"
+                >
+                  {quizResults.passed ? 'Continue to Next Lesson' : 'Continue Learning'}
                 </Button>
               </div>
             </div>
@@ -720,7 +724,7 @@ export default function QuizModal({
                 </Button>
                 <Button
                   onClick={handleSubmitQuiz}
-                  disabled={isSubmitting || !validateQuizSubmission()}
+                  disabled={isSubmitting}
                   className="bg-charcoal text-parchment hover:bg-warm-gray"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit Quiz'}

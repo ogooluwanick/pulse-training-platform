@@ -153,21 +153,41 @@ export default function LessonPage() {
 
     if (passed) {
       try {
+        console.log('=== DEBUG INFO ===');
+        console.log('params object:', params);
+        console.log('params.lessonId type:', typeof params.lessonId);
+        console.log('params.lessonId value:', params.lessonId);
+        console.log('params.id type:', typeof params.id);
+        console.log('params.id value:', params.id);
+
+        if (!params.lessonId) {
+          console.error('ERROR: params.lessonId is undefined or null!');
+          toast.error(
+            'Error: Lesson ID not found. Please refresh the page and try again.'
+          );
+          return;
+        }
+
+        const requestBody = {
+          lessonId: params.lessonId,
+          quizResult: {
+            score,
+            passed,
+            answers,
+            attemptCount: attemptCount + 1,
+            completedAt: new Date().toISOString(),
+          },
+        };
+
+        console.log('Sending request with body:', requestBody);
+        console.log('Request body JSON:', JSON.stringify(requestBody));
+
         const response = await fetch(
           `/api/course/${params.id}/lesson-complete`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              lessonId: params.lessonId,
-              quizResult: {
-                score,
-                passed,
-                answers,
-                attemptCount: attemptCount + 1,
-                completedAt: new Date().toISOString(),
-              },
-            }),
+            body: JSON.stringify(requestBody),
           }
         );
 
