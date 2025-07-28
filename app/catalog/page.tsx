@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import FullPageLoader from '@/components/full-page-loader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,16 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  BookOpen,
-  Clock,
-  Award,
-  Users,
-  Star,
-  Search,
-  Play,
-  Heart,
-} from 'lucide-react';
+import { Clock, Award, Users, Star, Search, Play, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { formatDuration } from '@/lib/duration';
 
@@ -41,10 +31,10 @@ interface Course {
   _id: string;
   title: string;
   description: string;
-  instructor: { name: string } | string;
+  instructor: { firstName?: string; name?: string } | string;
   duration: number;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  category: 'compliance' | 'skills' | 'culture' | 'technical';
+  category?: 'compliance' | 'skills' | 'culture' | 'technical';
   rating: number;
   averageRating?: number;
   totalRatings?: number;
@@ -54,8 +44,36 @@ interface Course {
   isSaved?: boolean;
 }
 
-interface AssignedCourse extends Course {
-  assignedCount: number;
+interface AssignedCourse {
+  _id: string;
+  course: {
+    _id: string;
+    title: string;
+    description: string;
+    category?: 'compliance' | 'skills' | 'culture' | 'technical';
+    difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+    duration: number;
+    lessons: any[];
+    finalQuiz: any;
+    tags: string[];
+  };
+  assignee: {
+    _id: string;
+    name: string;
+    email: string;
+    avatar: string;
+    department?: string;
+  };
+  status: string;
+  assignmentType: string;
+  interval?: string;
+  endDate?: string;
+  progress: number;
+  lessonProgress: any[];
+  finalQuizResult?: any;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
 }
 
 export default function CourseCatalogPage() {
@@ -97,7 +115,9 @@ export default function CourseCatalogPage() {
   useEffect(() => {
     if (savedCoursesData?.savedCourses) {
       setSavedCourses(
-        savedCoursesData.savedCourses.map((id: any) => id.toString())
+        savedCoursesData.savedCourses.map((id: string | number) =>
+          id.toString()
+        )
       );
     }
   }, [savedCoursesData]);
@@ -195,7 +215,17 @@ export default function CourseCatalogPage() {
     }
   };
 
+  const getInstructorName = (instructor: Course['instructor']): string => {
+    if (typeof instructor === 'string') {
+      return instructor;
+    }
+    return instructor?.firstName || instructor?.name || 'Pulse Platform';
+  };
+
   const getCategoryColor = (category: Course['category']) => {
+    if (!category) {
+      return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
     switch (category) {
       case 'compliance':
         return 'bg-red-100 text-red-800 border-red-200';
@@ -358,8 +388,10 @@ export default function CourseCatalogPage() {
                           className={getCategoryColor(course.category)}
                           variant="outline"
                         >
-                          {course.category.charAt(0).toUpperCase() +
-                            course.category.slice(1)}
+                          {course.category
+                            ? course.category.charAt(0).toUpperCase() +
+                              course.category.slice(1)
+                            : 'Unknown'}
                         </Badge>
                         <Badge
                           className={getDifficultyColor(course.difficulty)}
@@ -379,9 +411,7 @@ export default function CourseCatalogPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center justify-between text-sm text-warm-gray">
-                        <span>
-                          By {course?.instructor?.firstName || 'Pulse Platform'}
-                        </span>
+                        <span>By {getInstructorName(course.instructor)}</span>
                         <div className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
                           <span>
@@ -402,12 +432,12 @@ export default function CourseCatalogPage() {
                         <div className="flex items-center gap-1">
                           <Users className="h-3 w-3" />
                           <span>
-                            {course?.enrolledCount?.toLocaleString() || 0}
+                            {(course.enrolledCount || 0).toLocaleString()}
                           </span>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {course.tags.map((tag: any) => (
+                        {course.tags.map((tag: string) => (
                           <Badge
                             key={tag}
                             variant="outline"
@@ -474,53 +504,97 @@ export default function CourseCatalogPage() {
         <TabsContent value="enrolled" className="space-y-6">
           {assignedCourses.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {assignedCourses.map((course) => (
+              {assignedCourses.map((assignment) => (
                 <Card
-                  key={course._id}
+                  key={assignment._id}
                   className="bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft"
                 >
                   <CardHeader className="space-y-4">
                     <div className="flex items-start justify-between">
                       <Badge
-                        className={getCategoryColor(course.category)}
+                        className={getCategoryColor(assignment.course.category)}
                         variant="outline"
                       >
-                        {course.category.charAt(0).toUpperCase() +
-                          course.category.slice(1)}
+                        {assignment.course.category
+                          ? assignment.course.category.charAt(0).toUpperCase() +
+                            assignment.course.category.slice(1)
+                          : 'Unknown'}
                       </Badge>
                       <Badge
-                        className={getDifficultyColor(course.difficulty)}
+                        className={getDifficultyColor(
+                          assignment.course.difficulty
+                        )}
                         variant="secondary"
                       >
-                        {course.difficulty}
+                        {assignment.course.difficulty}
                       </Badge>
                     </div>
                     <div>
                       <CardTitle className="text-lg text-charcoal">
-                        {course.title}
+                        {assignment.course.title}
                       </CardTitle>
                       <CardDescription className="text-warm-gray mt-2">
-                        {course.description}
+                        {assignment.course.description}
                       </CardDescription>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between text-sm text-warm-gray">
-                      <span>
-                        By {course?.instructor?.firstName || 'Pulse Platform'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-charcoal/10 flex items-center justify-center">
+                          <span className="text-xs font-medium text-charcoal">
+                            {assignment.assignee.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <span className="font-medium text-charcoal">
+                          {assignment.assignee.name}
+                        </span>
+                      </div>
                       <div className="flex items-center gap-1">
-                        <Users className="h-3 w-3" />
-                        <span>{course.assignedCount} Assigned</span>
+                        <div className="w-2 h-2 rounded-full bg-success-green"></div>
+                        <span className="text-xs">{assignment.progress}%</span>
                       </div>
                     </div>
+                    <div className="flex items-center gap-4 text-sm text-warm-gray">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>
+                          {formatDuration(assignment.course.duration)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        <span>{assignment.course.lessons.length} lessons</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          assignment.status === 'completed'
+                            ? 'bg-success-green/10 text-success-green border-success-green/20'
+                            : assignment.status === 'in_progress'
+                              ? 'bg-warning-ochre/10 text-warning-ochre border-warning-ochre/20'
+                              : 'bg-warm-gray/10 text-warm-gray border-warm-gray/20'
+                        }`}
+                      >
+                        {assignment.status === 'completed'
+                          ? 'Completed'
+                          : assignment.status === 'in_progress'
+                            ? 'In Progress'
+                            : 'Not Started'}
+                      </Badge>
+                      <span className="text-xs text-warm-gray">
+                        {new Date(assignment.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
                     <Link
-                      href={`/dashboard/course/${course._id}`}
+                      href={`/dashboard/course/${assignment.course._id}`}
                       className="mt-3 w-full"
                     >
                       <Button className="w-full bg-charcoal hover:bg-charcoal/90 text-alabaster">
                         <Play className="h-4 w-4 mr-2" />
-                        View Course
+                        View Assignment
                       </Button>
                     </Link>
                   </CardContent>
