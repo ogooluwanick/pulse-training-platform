@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
@@ -21,8 +21,11 @@ import {
   Mail,
   AlertTriangle,
   CheckCircle,
+  Eye,
+  ClipboardList,
 } from "lucide-react"
 import { AuthGuard } from "@/components/auth-guard"
+import Link from "next/link"
 
 interface Company {
   id: string
@@ -42,6 +45,20 @@ interface Company {
   contactName: string
 }
 
+interface Assignment {
+  _id: string;
+  course: {
+    _id: string;
+    title: string;
+  };
+  assignee: {
+    _id: string;
+    name: string;
+  };
+  status: string;
+  progress: number;
+}
+
 interface PlatformStats {
   totalCompanies: number
   activeCompanies: number
@@ -49,86 +66,6 @@ interface PlatformStats {
   monthlyRevenue: number
   averageCompletion: number
   newSignups: number
-}
-
-const mockCompanies: Company[] = [
-  {
-    id: "1",
-    name: "TechCorp Solutions",
-    domain: "techcorp.com",
-    industry: "Technology",
-    size: "100-500",
-    plan: "Enterprise",
-    status: "active",
-    employees: 150,
-    activeUsers: 142,
-    completionRate: 87,
-    joinDate: "2023-01-15",
-    lastActivity: "2 hours ago",
-    monthlyRevenue: 2499,
-    contactEmail: "admin@techcorp.com",
-    contactName: "Sarah Johnson",
-  },
-  {
-    id: "2",
-    name: "Global Finance Inc",
-    domain: "globalfinance.com",
-    industry: "Finance",
-    size: "500+",
-    plan: "Enterprise Plus",
-    status: "active",
-    employees: 750,
-    activeUsers: 698,
-    completionRate: 92,
-    joinDate: "2022-11-08",
-    lastActivity: "1 hour ago",
-    monthlyRevenue: 4999,
-    contactEmail: "training@globalfinance.com",
-    contactName: "Michael Chen",
-  },
-  {
-    id: "3",
-    name: "HealthCare Partners",
-    domain: "healthcarepartners.com",
-    industry: "Healthcare",
-    size: "51-100",
-    plan: "Professional",
-    status: "trial",
-    employees: 85,
-    activeUsers: 45,
-    completionRate: 65,
-    joinDate: "2024-01-10",
-    lastActivity: "1 day ago",
-    monthlyRevenue: 0,
-    contactEmail: "hr@healthcarepartners.com",
-    contactName: "Lisa Rodriguez",
-  },
-  {
-    id: "4",
-    name: "Manufacturing Co",
-    domain: "manufacturingco.com",
-    industry: "Manufacturing",
-    size: "100-500",
-    plan: "Enterprise",
-    status: "suspended",
-    employees: 200,
-    activeUsers: 0,
-    completionRate: 45,
-    joinDate: "2023-06-22",
-    lastActivity: "2 weeks ago",
-    monthlyRevenue: 2499,
-    contactEmail: "admin@manufacturingco.com",
-    contactName: "David Kim",
-  },
-]
-
-const mockPlatformStats: PlatformStats = {
-  totalCompanies: 47,
-  activeCompanies: 42,
-  totalUsers: 3250,
-  monthlyRevenue: 125000,
-  averageCompletion: 84,
-  newSignups: 8,
 }
 
 export default function CompanyManagementPage() {
@@ -139,6 +76,57 @@ export default function CompanyManagementPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isContactDialogOpen, setIsContactDialogOpen] = useState(false)
   const [contactMessage, setContactMessage] = useState("")
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null)
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await fetch("/api/company")
+        if (response.ok) {
+          const data = await response.json()
+          setCompanies(data)
+        } else {
+          console.error("Failed to fetch companies")
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error)
+      }
+    }
+
+    const fetchAssignments = async () => {
+      try {
+        const response = await fetch("/api/course-assignment")
+        if (response.ok) {
+          const data = await response.json()
+          setAssignments(data)
+        } else {
+          console.error("Failed to fetch assignments")
+        }
+      } catch (error) {
+        console.error("Error fetching assignments:", error)
+      }
+    }
+
+    const fetchPlatformStats = async () => {
+      try {
+        const response = await fetch("/api/company/dashboard-metrics")
+        if (response.ok) {
+          const data = await response.json()
+          setPlatformStats(data)
+        } else {
+          console.error("Failed to fetch platform stats")
+        }
+      } catch (error) {
+        console.error("Error fetching platform stats:", error)
+      }
+    }
+
+    fetchCompanies()
+    fetchAssignments()
+    fetchPlatformStats()
+  }, [])
 
   const getStatusColor = (status: Company["status"]) => {
     switch (status) {
@@ -192,7 +180,7 @@ export default function CompanyManagementPage() {
     setContactMessage("")
   }
 
-  const filteredCompanies = mockCompanies.filter((company) => {
+  const filteredCompanies = companies.filter((company) => {
     const matchesSearch =
       company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       company.domain.toLowerCase().includes(searchTerm.toLowerCase())
@@ -224,8 +212,8 @@ export default function CompanyManagementPage() {
               <Building2 className="h-4 w-4 text-charcoal" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{mockPlatformStats.totalCompanies}</div>
-              <p className="text-xs text-success-green">+{mockPlatformStats.newSignups} this month</p>
+              <div className="text-2xl font-bold text-charcoal">{platformStats?.totalCompanies}</div>
+              <p className="text-xs text-success-green">+{platformStats?.newSignups} this month</p>
             </CardContent>
           </Card>
 
@@ -235,9 +223,9 @@ export default function CompanyManagementPage() {
               <CheckCircle className="h-4 w-4 text-success-green" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{mockPlatformStats.activeCompanies}</div>
+              <div className="text-2xl font-bold text-charcoal">{platformStats?.activeCompanies}</div>
               <p className="text-xs text-warm-gray">
-                {Math.round((mockPlatformStats.activeCompanies / mockPlatformStats.totalCompanies) * 100)}% active
+                {platformStats && Math.round((platformStats.activeCompanies / platformStats.totalCompanies) * 100)}% active
               </p>
             </CardContent>
           </Card>
@@ -248,7 +236,7 @@ export default function CompanyManagementPage() {
               <Users className="h-4 w-4 text-charcoal" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{mockPlatformStats.totalUsers.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-charcoal">{platformStats?.totalUsers.toLocaleString()}</div>
               <p className="text-xs text-success-green">+12% from last month</p>
             </CardContent>
           </Card>
@@ -260,7 +248,7 @@ export default function CompanyManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-charcoal">
-                ${mockPlatformStats.monthlyRevenue.toLocaleString()}
+                ${platformStats?.monthlyRevenue.toLocaleString()}
               </div>
               <p className="text-xs text-success-green">+8% from last month</p>
             </CardContent>
@@ -272,7 +260,7 @@ export default function CompanyManagementPage() {
               <TrendingUp className="h-4 w-4 text-success-green" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{mockPlatformStats.averageCompletion}%</div>
+              <div className="text-2xl font-bold text-charcoal">{platformStats?.averageCompletion}%</div>
               <p className="text-xs text-success-green">+3% from last month</p>
             </CardContent>
           </Card>
@@ -283,7 +271,7 @@ export default function CompanyManagementPage() {
               <Plus className="h-4 w-4 text-charcoal" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{mockPlatformStats.newSignups}</div>
+              <div className="text-2xl font-bold text-charcoal">{platformStats?.newSignups}</div>
               <p className="text-xs text-warm-gray">This month</p>
             </CardContent>
           </Card>
@@ -383,6 +371,22 @@ export default function CompanyManagementPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
+                    <Link href={`/dashboard/course/try-out/60d5ec49f5a8a12a4c8a8a8a`} passHref>
+                      <Button variant="outline" size="sm" className="bg-alabaster border-warm-gray/30">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Try It
+                      </Button>
+                    </Link>
+                    <Link href={`/dashboard/course/view/${company.id}`} passHref>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="bg-alabaster border-warm-gray/30"
+                      >
+                        <ClipboardList className="h-4 w-4 mr-2" />
+                        View Assignments
+                      </Button>
+                    </Link>
                     <Button
                       variant="outline"
                       size="sm"

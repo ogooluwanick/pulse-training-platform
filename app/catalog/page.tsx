@@ -460,7 +460,7 @@ export default function CourseCatalogPage() {
                           </Link>
                         ) : (
                           <Link
-                            href={`/dashboard/course/${course._id}`}
+                            href={`/dashboard/course/try-out/${course._id}`}
                             className="flex-1"
                           >
                             <Button className="w-full bg-charcoal hover:bg-charcoal/90 text-alabaster">
@@ -567,7 +567,7 @@ export default function CourseCatalogPage() {
                         <span>{assignment.course.lessons.length} lessons</span>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between !mb-3">
                       <Badge
                         variant="outline"
                         className={`text-xs ${
@@ -588,15 +588,17 @@ export default function CourseCatalogPage() {
                         {new Date(assignment.createdAt).toLocaleDateString()}
                       </span>
                     </div>
-                    <Link
-                      href={`/dashboard/course/${assignment.course._id}`}
-                      className="mt-3 w-full"
-                    >
-                      <Button className="w-full bg-charcoal hover:bg-charcoal/90 text-alabaster">
-                        <Play className="h-4 w-4 mr-2" />
-                        View Assignment
-                      </Button>
-                    </Link>
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/dashboard/course/view/${assignment.course._id}?assignmentId=${assignment._id}`}
+                        className="flex-1"
+                      >
+                        <Button className="w-full bg-charcoal hover:bg-charcoal/90 text-alabaster">
+                          <Play className="h-4 w-4 mr-2" />
+                          View Assignment
+                        </Button>
+                      </Link>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
