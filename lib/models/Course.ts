@@ -87,6 +87,7 @@ const CourseSchema = new Schema(
     enrolledCount: {
       type: Number,
       required: false,
+      default: 0,
     },
     tags: {
       type: [String],
@@ -160,13 +161,15 @@ export interface Course {
   title: string;
   description?: string;
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
-  instructor?: Schema.Types.ObjectId;
+  instructor?: { name: string };
   duration?: number;
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   rating?: Array<{
     user: string;
     rating: number;
   }>;
+  averageRating?: number;
+  totalRatings?: number;
   enrolledCount?: number;
   tags: string[];
   lessons: Lesson[];

@@ -24,28 +24,21 @@ export async function GET() {
           course: course._id,
         });
 
-        interface CourseRating {
-          rating: number;
-          [key: string]: any;
-        }
-
-        interface CourseType {
-          _id: string;
-          rating?: CourseRating[];
-          tags?: string[];
-          [key: string]: any;
-        }
-
-        const averageRating: number =
+        // Calculate average rating and total ratings
+        const averageRating =
           course.rating && course.rating.length > 0
-            ? course.rating.reduce((acc: number, r: CourseRating) => acc + r.rating, 0) /
+            ? course.rating.reduce((acc: number, r: any) => acc + r.rating, 0) /
               course.rating.length
             : 0;
+
+        const totalRatings = course.rating ? course.rating.length : 0;
 
         return {
           ...course,
           enrolledCount,
-          rating: averageRating,
+          averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+          totalRatings,
+          rating: averageRating, // Keep for backward compatibility
           tags: course.tags || [],
         };
       })

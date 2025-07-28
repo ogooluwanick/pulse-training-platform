@@ -1,4 +1,5 @@
-export function formatDuration(seconds: number): string {
+export function formatDuration(minutes: number): string {
+  const seconds = minutes * 60;
   if (seconds === 0) return '0s';
   const units = [
     { label: 'yr', secs: 365 * 24 * 3600 },
@@ -14,4 +15,4 @@ export function formatDuration(seconds: number): string {
     }
   }
   return `${seconds}s`;
-} 
+}

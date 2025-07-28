@@ -29,13 +29,29 @@ export async function POST(
       );
     }
 
-    // First, remove all existing assignments for this employee
+    // First, get existing assignments to track which courses to decrement
     const existingAssignments = await CourseAssignment.find({
       employee: employeeId,
     });
+    const existingCourseIds = existingAssignments.map((a) => a.course.toString());
     const existingAssignmentIds = existingAssignments.map((a) => a._id);
 
+    // Get new course IDs
+    const newCourseIds = assignments.map((a) => a.courseId);
+
+    // Remove all existing assignments for this employee
     await CourseAssignment.deleteMany({ employee: employeeId });
+
+    // Decrement enrolledCount for courses that are no longer assigned
+    const coursesToDecrement = existingCourseIds.filter(
+      (courseId) => !newCourseIds.includes(courseId)
+    );
+    if (coursesToDecrement.length > 0) {
+      await Course.updateMany(
+        { _id: { $in: coursesToDecrement } },
+        { $inc: { enrolledCount: -1 } }
+      );
+    }
 
     // Then, create the new assignments
     const newAssignmentDocs = await Promise.all(
@@ -65,6 +81,17 @@ export async function POST(
     let createdAssignments: any[] = [];
     if (newAssignmentDocs.length > 0) {
       createdAssignments = await CourseAssignment.insertMany(newAssignmentDocs);
+    }
+
+    // Increment enrolledCount for newly assigned courses
+    const coursesToIncrement = newCourseIds.filter(
+      (courseId) => !existingCourseIds.includes(courseId)
+    );
+    if (coursesToIncrement.length > 0) {
+      await Course.updateMany(
+        { _id: { $in: coursesToIncrement } },
+        { $inc: { enrolledCount: 1 } }
+      );
     }
 
     // Update user's courseAssignments

@@ -28,6 +28,9 @@ import {
   Clock,
   Users,
   TrendingUp,
+  Star,
+  Search,
+  Play,
 } from 'lucide-react';
 import { QuizModal } from '@/components/quiz-modal';
 import { YouTubeVideo } from '@/components/ui/youtube-video';
@@ -36,6 +39,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { isYouTubeUrl } from '@/lib/utils';
 
 import { Course } from '@/lib/models/Course';
+import CourseRating from '@/components/course-rating';
+import CourseCompletionRatingModal from '@/components/course-completion-rating-modal';
 
 export default function CoursePage() {
   const params = useParams();
@@ -48,6 +53,8 @@ export default function CoursePage() {
   const [progress, setProgress] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<number>(0); // 0 = first lesson content
+  const [showRatingPrompt, setShowRatingPrompt] = useState(false);
+  const [courseCompleted, setCourseCompleted] = useState(false);
 
   // Helper to build modal steps: [lesson0, quiz0, lesson1, quiz1, ..., finalQuiz]
   const buildModalSteps = (course: Course) => {
@@ -106,15 +113,36 @@ export default function CoursePage() {
     setFinalQuizPassed(passed);
     setShowFinalQuiz(false);
     if (passed) {
-      await fetch(`/api/course/${params.id}/final-quiz-complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          finalQuizResult: { score, passed },
-        }),
-      });
+      const response = await fetch(
+        `/api/course/${params.id}/final-quiz-complete`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            finalQuizResult: { score, passed },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        setCourseCompleted(true);
+
+        // Show rating prompt if user hasn't rated yet
+        if (result.shouldPromptRating) {
+          setShowRatingPrompt(true);
+        }
+      }
     }
     // TODO: Optionally update UI to reflect course completion
+  };
+
+  const handleRatingSubmit = (rating: number) => {
+    setShowRatingPrompt(false);
+    // Optionally refresh course data to show updated rating
+    if (course) {
+      // Update course state with new rating info if needed
+    }
   };
 
   const renderLessonContent = (lesson: any) => {
@@ -200,6 +228,9 @@ export default function CoursePage() {
         <div>
           <h1 className="text-3xl font-bold text-charcoal">{course.title}</h1>
           <p className="text-warm-gray">{course.description}</p>
+          <p className="text-warm-gray">
+            By {course.instructor?.name || 'Pulse'}
+          </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
@@ -606,6 +637,17 @@ export default function CoursePage() {
             maxAttempts: 1,
           }}
           onComplete={handleFinalQuizComplete}
+        />
+      )}
+
+      {/* Rating Prompt */}
+      {showRatingPrompt && course && (
+        <CourseCompletionRatingModal
+          isOpen={showRatingPrompt}
+          onClose={() => setShowRatingPrompt(false)}
+          courseId={params.id as string}
+          courseTitle={course.title}
+          onRatingSubmit={handleRatingSubmit}
         />
       )}
     </div>

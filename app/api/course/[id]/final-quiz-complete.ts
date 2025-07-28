@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
+import Course from '@/lib/models/Course';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -35,8 +36,14 @@ export async function POST(
   assignment.finalQuizResult = finalQuizResult;
 
   await assignment.save();
+
+  // Check if user has already rated this course
+  const course = await Course.findById(courseId);
+  const hasRated = course?.rating.some((r: any) => r.user.toString() === userId) || false;
+
   return NextResponse.json({
     message: 'Course marked as completed',
     assignment,
+    shouldPromptRating: !hasRated, // Only prompt if user hasn't rated yet
   });
 }

@@ -1,21 +1,27 @@
-import { Schema, model, models } from "mongoose"
+import { Schema, model, models } from 'mongoose';
 
 const CompanySchema = new Schema(
   {
     name: {
       type: String,
-      required: [true, "Company name is required"],
+      required: [true, 'Company name is required'],
     },
     employees: [
       {
         type: Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
+      },
+    ],
+    savedCourses: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Course',
       },
     ],
   },
   { timestamps: true }
-)
+);
 
-const Company = models.Company || model("Company", CompanySchema)
+const Company = models.Company || model('Company', CompanySchema);
 
-export default Company
+export default Company;
