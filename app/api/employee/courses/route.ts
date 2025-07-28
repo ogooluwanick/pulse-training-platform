@@ -15,29 +15,29 @@ export async function GET() {
   }
 
   try {
-    const user = await User.findById(session.user.id).populate({
-      path: 'courseAssignments',
-      populate: {
-        path: 'course',
-        model: 'Course',
-      },
+    // Find course assignments directly for the user
+    const courseAssignments = await CourseAssignment.find({
+      employee: session.user.id,
+    }).populate({
+      path: 'course',
+      model: 'Course',
     });
 
-    if (!user) {
-      return NextResponse.json({ message: 'User not found' }, { status: 404 });
+    if (!courseAssignments) {
+      return NextResponse.json({ message: 'No course assignments found' }, { status: 404 });
     }
 
-    const completedCourses = user.courseAssignments.filter(
+    const completedCourses = courseAssignments.filter(
       (assignment: any) => assignment.status === 'completed'
     );
 
-    const uncompletedCourses = user.courseAssignments.filter(
+    const uncompletedCourses = courseAssignments.filter(
       (assignment: any) => assignment.status !== 'completed'
     );
 
     const timeInvested = completedCourses.reduce(
       (total: number, assignment: any) => {
-        return total + (assignment.course.duration || 0);
+        return total + (assignment.course?.duration || 0);
       },
       0
     );
@@ -60,8 +60,8 @@ export async function GET() {
           )
         : 0;
 
-    const courses = user.courseAssignments.map((assignment: any) => {
-      const courseData = assignment.course.toObject();
+    const courses = courseAssignments.map((assignment: any) => {
+      const courseData = assignment.course?.toObject() || {};
       const totalLessons = courseData.lessons ? courseData.lessons.length : 0;
 
       // Calculate completed lessons from lessonProgress
@@ -94,9 +94,14 @@ export async function GET() {
         totalLessons: totalLessons,
         completedLessons: completedLessons,
         difficulty: courseData.difficulty,
-        assignedAt: assignment.assignedAt
-          ? assignment.assignedAt.toISOString()
-          : null,
+        assignedAt: assignment.createdAt ? assignment.createdAt.toISOString() : null,
+        completedAt: assignment.completedAt ? assignment.completedAt.toISOString() : null,
+        assignmentType: assignment.assignmentType,
+        interval: assignment.interval,
+        endDate: assignment.endDate ? assignment.endDate.toISOString() : null,
+        tags: courseData.tags || [],
+        rating: courseData.rating || [],
+        enrolledCount: courseData.enrolledCount || 0,
       };
     });
 

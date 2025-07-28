@@ -21,13 +21,15 @@ import {
   AlertTriangle,
   TrendingUp,
   Users,
+  Calendar,
+  Target,
 } from 'lucide-react';
-import type { User } from 'next-auth'; // Import the original User type
+import type { User } from 'next-auth';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatDuration } from '@/lib/duration';
 
-// Interface for course data received from the API
+// Updated interface for course data from the API
 interface CourseWithProgress {
   _id: string;
   title: string;
@@ -42,10 +44,42 @@ interface CourseWithProgress {
   rating?: any[];
   enrolledCount?: number;
   tags?: string[];
-  assignedAt?: string; // Added for overdue filter
+  assignedAt?: string;
+  completedAt?: string;
+  assignmentType?: 'one-time' | 'interval';
+  interval?: 'daily' | 'monthly' | 'yearly';
+  endDate?: string;
 }
 
-interface ApiResponse {
+interface LearningStats {
+  totalCourses: number;
+  completedCourses: number;
+  inProgressCourses: number;
+  notStartedCourses: number;
+  overdueCourses: number;
+  completedThisMonth: number;
+  uncompletedCoursesCount: number;
+  totalTimeInvested: number;
+  certificatesEarned: number;
+}
+
+interface SkillProgress {
+  [category: string]: {
+    total: number;
+    completed: number;
+    progress: number;
+    averageProgress?: number;
+  };
+}
+
+interface LearningApiResponse {
+  courses: CourseWithProgress[];
+  stats: LearningStats;
+  skillProgress: SkillProgress;
+  uncompletedCoursesCount: number;
+}
+
+interface CoursesApiResponse {
   courses: CourseWithProgress[];
   timeInvested: number;
   completedCoursesCount: number;
@@ -54,16 +88,23 @@ interface ApiResponse {
 }
 
 // Define a more specific User type
-// Note: courseAssignments on the user prop might not be used as the component fetches fresh data.
 interface ExtendedUser extends User {
-  courseAssignments?: any[]; // Using any[] to avoid conflict with the new structure.
+  courseAssignments?: any[];
 }
 
 interface EmployeeDashboardProps {
   user: ExtendedUser;
 }
 
-const fetchCourseAssignments = async (): Promise<ApiResponse> => {
+const fetchLearningData = async (): Promise<LearningApiResponse> => {
+  const response = await fetch(`/api/employee/learning`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch learning data');
+  }
+  return response.json();
+};
+
+const fetchCourseAssignments = async (): Promise<CoursesApiResponse> => {
   const response = await fetch(`/api/employee/courses`);
   if (!response.ok) {
     throw new Error('Failed to fetch course assignments');
@@ -76,17 +117,46 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     'all' | 'not-started' | 'in-progress' | 'completed' | 'overdue'
   >('all');
 
-  const { data, isLoading, error } = useQuery<ApiResponse, Error>({
-    queryKey: ['courseAssignments', user.id],
-    queryFn: fetchCourseAssignments,
-    enabled: !!user.id, // Only run the query if the user ID is available
+  // Fetch learning data for enhanced stats
+  const { data: learningData, isLoading: isLoadingLearning } = useQuery<
+    LearningApiResponse,
+    Error
+  >({
+    queryKey: ['learningData', user.id],
+    queryFn: fetchLearningData,
+    enabled: !!user.id,
   });
 
-  const courseAssignments = data?.courses || [];
-  const timeInvested = data?.timeInvested || 0;
-  const completedCoursesCount = data?.completedCoursesCount || 0;
-  const uncompletedCoursesCount = data?.uncompletedCoursesCount || 0;
-  const averageFinalQuizScore = data?.averageFinalQuizScore || 0;
+  // Fetch course assignments for basic course data
+  const { data: coursesData, isLoading: isLoadingCourses } = useQuery<
+    CoursesApiResponse,
+    Error
+  >({
+    queryKey: ['courseAssignments', user.id],
+    queryFn: fetchCourseAssignments,
+    enabled: !!user.id,
+  });
+
+  const isLoading = isLoadingLearning || isLoadingCourses;
+  const error = learningData ? null : new Error('Failed to load data');
+
+  // Use learning data if available, fallback to courses data
+  const courseAssignments = learningData?.courses || coursesData?.courses || [];
+  const stats = learningData?.stats;
+  const skillProgress = learningData?.skillProgress || {};
+
+  // Fallback stats from courses data
+  const timeInvested =
+    learningData?.stats?.totalTimeInvested || coursesData?.timeInvested || 0;
+  const completedCoursesCount =
+    learningData?.stats?.completedCourses ||
+    coursesData?.completedCoursesCount ||
+    0;
+  const uncompletedCoursesCount =
+    learningData?.stats?.uncompletedCoursesCount ||
+    coursesData?.uncompletedCoursesCount ||
+    0;
+  const averageFinalQuizScore = coursesData?.averageFinalQuizScore || 0;
 
   const getStatusColor = (status: CourseWithProgress['status']) => {
     switch (status) {
@@ -140,6 +210,21 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     }
   };
 
+  const getAssignmentTypeBadge = (assignment: CourseWithProgress) => {
+    if (assignment.assignmentType === 'interval' && assignment.interval) {
+      return (
+        <Badge
+          variant="outline"
+          className="text-xs bg-alabaster border-warm-gray/30"
+        >
+          <Calendar className="h-3 w-3 mr-1" />
+          {assignment.interval}
+        </Badge>
+      );
+    }
+    return null;
+  };
+
   // Calculate stats based on courseAssignments
   const assignedCoursesCount = courseAssignments?.length || 0;
 
@@ -158,7 +243,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
   // Filter courses for the "My Courses" section
   const now = new Date();
   const filteredUserCourses = (courseAssignments || []).filter(
-    (ca: CourseWithProgress & { assignedAt?: string }) => {
+    (ca: CourseWithProgress) => {
       if (activeFilter === 'not-started') {
         return ca.status === 'not-started';
       }
@@ -183,18 +268,16 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
   );
 
   // Overdue logic for badge
-  const hasOverdue = courseAssignments.some(
-    (ca: CourseWithProgress & { assignedAt?: string }) => {
-      if (!ca.assignedAt || ca.status === 'completed') return false;
-      const assignedDate = new Date(ca.assignedAt);
-      const diffDays =
-        (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
-      return (
-        diffDays > 14 &&
-        (ca.status === 'not-started' || ca.status === 'in-progress')
-      );
-    }
-  );
+  const hasOverdue = courseAssignments.some((ca: CourseWithProgress) => {
+    if (!ca.assignedAt || ca.status === 'completed') return false;
+    const assignedDate = new Date(ca.assignedAt);
+    const diffDays =
+      (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+    return (
+      diffDays > 14 &&
+      (ca.status === 'not-started' || ca.status === 'in-progress')
+    );
+  });
 
   return (
     <div
@@ -233,7 +316,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
         </div>
       </div>
 
-      {/* Stats Overview */}
+      {/* Enhanced Stats Overview */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-card border-warm-gray/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -269,19 +352,25 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
         <Card className="bg-card border-warm-gray/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-warm-gray">
-              Average Final Quiz Score
+              {stats?.completedThisMonth ? 'This Month' : 'Average Quiz Score'}
             </CardTitle>
-            <Award className="h-4 w-4 text-warning-ochre" />
+            {stats?.completedThisMonth ? (
+              <Target className="h-4 w-4 text-warning-ochre" />
+            ) : (
+              <Award className="h-4 w-4 text-warning-ochre" />
+            )}
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {averageFinalQuizScore}%
+              {stats?.completedThisMonth || averageFinalQuizScore}
+              {stats?.completedThisMonth ? '' : '%'}
             </div>
             <p className="text-xs text-warm-gray">
-              {completedCoursesCount > 0 
-                ? `Based on ${completedCoursesCount} completed courses`
-                : 'No completed courses yet'
-              }
+              {stats?.completedThisMonth
+                ? 'Courses completed this month'
+                : completedCoursesCount > 0
+                  ? `Based on ${completedCoursesCount} completed courses`
+                  : 'No completed courses yet'}
             </p>
           </CardContent>
         </Card>
@@ -297,10 +386,51 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
             <div className="text-2xl font-bold text-charcoal">
               {formattedTotalTimeInvested}
             </div>
-            <p className="text-xs text-warm-gray">This quarter</p>
+            <p className="text-xs text-warm-gray">
+              {stats?.certificatesEarned
+                ? `${stats.certificatesEarned} certificates earned`
+                : 'This quarter'}
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Skill Progress Section - Only show if we have skill progress data */}
+      {Object.keys(skillProgress).length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-charcoal">Skill Development</h2>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Object.entries(skillProgress).map(([category, data]) => (
+              <Card key={category} className="bg-card border-warm-gray/20">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-charcoal capitalize">
+                    {category} Skills
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-warm-gray">Progress</span>
+                      <span className="text-charcoal font-medium">
+                        {data.averageProgress || 0}%
+                      </span>
+                    </div>
+                    <Progress
+                      value={data.averageProgress || 0}
+                      className="h-2"
+                    />
+                    <div className="flex justify-between text-xs text-warm-gray">
+                      <span>
+                        {data.completed} of {data.total} completed
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Course Grid */}
       <div className="space-y-6">
@@ -433,15 +563,18 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                       <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-alabaster border border-warm-gray/20">
                         {getCategoryIcon(assignment.category)}
                       </div>
-                      <Badge
-                        className={`${getStatusColor(assignment.status)} flex items-center gap-1`}
-                        variant="secondary"
-                      >
-                        {getStatusIcon(assignment.status)}
-                        {assignment.status === 'not-started' && 'Not Started'}
-                        {assignment.status === 'in-progress' && 'In Progress'}
-                        {assignment.status === 'completed' && 'Completed'}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-2">
+                        <Badge
+                          className={`${getStatusColor(assignment.status)} flex items-center gap-1`}
+                          variant="secondary"
+                        >
+                          {getStatusIcon(assignment.status)}
+                          {assignment.status === 'not-started' && 'Not Started'}
+                          {assignment.status === 'in-progress' && 'In Progress'}
+                          {assignment.status === 'completed' && 'Completed'}
+                        </Badge>
+                        {getAssignmentTypeBadge(assignment)}
+                      </div>
                     </div>
                     <div>
                       <CardTitle className="text-lg text-charcoal group-hover:text-charcoal/80 transition-soft">
@@ -494,6 +627,17 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                           <Clock className="h-3 w-3" />
                           <span>
                             {formatDuration(assignment.duration * 60)}
+                          </span>
+                        </div>
+                      )}
+                      {assignment.assignedAt && (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>
+                            Assigned:{' '}
+                            {new Date(
+                              assignment.assignedAt
+                            ).toLocaleDateString()}
                           </span>
                         </div>
                       )}
