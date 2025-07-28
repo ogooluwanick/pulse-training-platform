@@ -257,12 +257,22 @@ export default function LessonPage() {
   const renderLessonContent = () => {
     if (!lesson) return null;
 
-    // Check if content is a video URL (YouTube, Vimeo, or direct video file)
-    if (
+    // Check if lesson type is video or if content is a video URL
+    const isVideoLesson =
+      lesson.type === 'video' ||
       isYouTubeUrl(lesson.content) ||
       lesson.content.match(/\.(mp4|webm|ogg|mov)$/i) ||
-      lesson.content.includes('vimeo.com')
-    ) {
+      lesson.content.includes('vimeo.com');
+
+    // Check if lesson type is image or if content is an image URL
+    const isImageLesson =
+      lesson.type === 'image' ||
+      (lesson.content &&
+        (lesson.content.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ||
+          lesson.content.includes('cloudinary.com') ||
+          lesson.content.includes('images.unsplash.com')));
+
+    if (isVideoLesson) {
       return (
         <div className="space-y-6">
           <div className="relative">
@@ -272,6 +282,69 @@ export default function LessonPage() {
               width="100%"
               height="400px"
             />
+            <div className="absolute top-2 right-2 z-10">
+              <Badge className="bg-charcoal/80 text-alabaster">
+                <Clock className="h-3 w-3 mr-1" />
+                {lesson.duration} min
+              </Badge>
+            </div>
+          </div>
+          {lesson.notes && lesson.notes.length > 0 && (
+            <div className="prose prose-lg max-w-none">
+              <h3 className="text-lg font-semibold text-charcoal mb-4">
+                Key Points
+              </h3>
+              <ul className="space-y-2">
+                {lesson.notes.map((note: string, index: number) => (
+                  <li key={index} className="text-charcoal">
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (isImageLesson) {
+      return (
+        <div className="space-y-6">
+          <div className="relative w-full">
+            <div className="aspect-video w-full rounded-lg shadow-lg overflow-hidden bg-warm-gray/10">
+              {lesson.content ? (
+                <img
+                  src={lesson.content}
+                  alt={lesson.title}
+                  className="w-full h-full object-contain rounded-lg"
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    e.currentTarget.style.display = 'none';
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.className =
+                      'w-full h-full bg-warm-gray/20 rounded-lg flex items-center justify-center text-warm-gray';
+                    fallbackDiv.innerHTML = `
+                      <div class="text-center">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-warm-gray/50" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                        </svg>
+                        <p class="text-sm">Image could not be loaded</p>
+                      </div>
+                    `;
+                    e.currentTarget.parentNode?.appendChild(fallbackDiv);
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-warm-gray/20 rounded-lg flex items-center justify-center text-warm-gray">
+                  <div className="text-center">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-warm-gray/50" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-sm">No image available</p>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="absolute top-2 right-2 z-10">
               <Badge className="bg-charcoal/80 text-alabaster">
                 <Clock className="h-3 w-3 mr-1" />

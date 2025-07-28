@@ -31,15 +31,32 @@ export async function POST(
     );
   }
 
-  assignment.status = 'completed';
-  assignment.completedAt = new Date();
+  // Only mark as completed if all lessons are also completed
+  const CourseModel = await import('@/lib/models/Course').then(
+    (m) => m.default
+  );
+  const course = await CourseModel.findById(courseId);
+
+  if (course && course.lessons) {
+    const totalLessons = course.lessons.length;
+    const completedLessons =
+      assignment.lessonProgress?.filter((lp: any) => lp.status === 'completed')
+        .length || 0;
+
+    if (completedLessons >= totalLessons) {
+      assignment.status = 'completed';
+      assignment.completedAt = new Date();
+    }
+  }
+
   assignment.finalQuizResult = finalQuizResult;
 
   await assignment.save();
 
   // Check if user has already rated this course
-  const course = await Course.findById(courseId);
-  const hasRated = course?.rating.some((r: any) => r.user.toString() === userId) || false;
+  const courseData = await Course.findById(courseId);
+  const hasRated =
+    courseData?.rating.some((r: any) => r.user.toString() === userId) || false;
 
   return NextResponse.json({
     message: 'Course marked as completed',

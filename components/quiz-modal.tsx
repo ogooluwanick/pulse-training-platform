@@ -403,6 +403,20 @@ export default function QuizModal({
   };
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
+  
+  // Debug logging
+  console.log('=== QUIZ MODAL DEBUG ===');
+  console.log('quiz:', quiz);
+  console.log('quiz.questions:', quiz.questions);
+  console.log('quiz.questions.length:', quiz.questions?.length);
+  console.log('currentQuestionIndex:', currentQuestionIndex);
+  console.log('currentQuestion:', currentQuestion);
+  
+  if (!currentQuestion) {
+    console.error('ERROR: currentQuestion is undefined!');
+    console.error('quiz.questions:', quiz.questions);
+    console.error('currentQuestionIndex:', currentQuestionIndex);
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCloseModal}>
@@ -615,26 +629,35 @@ export default function QuizModal({
               />
             </div>
 
-            <Card className="bg-alabaster border-warm-gray/20">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg text-charcoal">
-                    {currentQuestion.question}
-                  </CardTitle>
-                  {currentQuestion.required !== false && (
-                    <Badge className="bg-red-500 text-alabaster text-xs">
-                      Required
-                    </Badge>
+            {currentQuestion ? (
+              <Card className="bg-alabaster border-warm-gray/20">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg text-charcoal">
+                      {currentQuestion.question}
+                    </CardTitle>
+                    {currentQuestion.required !== false && (
+                      <Badge className="bg-red-500 text-alabaster text-xs">
+                        Required
+                      </Badge>
+                    )}
+                  </div>
+                  {currentQuestion.type === 'multiple-select' && (
+                    <CardDescription className="text-warm-gray">
+                      Select all that apply
+                    </CardDescription>
                   )}
-                </div>
-                {currentQuestion.type === 'multiple-select' && (
-                  <CardDescription className="text-warm-gray">
-                    Select all that apply
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>{renderQuestion(currentQuestion)}</CardContent>
-            </Card>
+                </CardHeader>
+                <CardContent>{renderQuestion(currentQuestion)}</CardContent>
+              </Card>
+            ) : (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Error: Quiz question not found. Please refresh the page and try again.
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Question Navigation */}
             <div className="flex flex-wrap gap-2 p-4 bg-alabaster rounded-lg border border-warm-gray/20">
@@ -672,19 +695,8 @@ export default function QuizModal({
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Previous
               </Button>
-              <div className="flex items-center space-x-2">
-                {autoSaveEnabled && (
-                  <Badge variant="outline" className="text-xs">
-                    Auto-save enabled
-                  </Badge>
-                )}
-                {session && (
-                  <Badge variant="secondary" className="text-xs">
-                    Session restored
-                  </Badge>
-                )}
-              </div>
               <Button
+                variant="outline"
                 onClick={() =>
                   setCurrentQuestionIndex(
                     Math.min(

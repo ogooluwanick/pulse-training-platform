@@ -52,16 +52,17 @@ export async function POST(
     }
 
     // Check if lesson is already completed
-    const existingLessonProgress = assignment.lessonProgress?.find(
-      (lp: any) => lp.lessonId === lessonId
+    const existingLessonIndex = assignment.lessonProgress?.findIndex(
+      (lp: any) => lp.lessonId.toString() === lessonId
     );
 
-    if (existingLessonProgress) {
-      // Update existing lesson progress
-      existingLessonProgress.status = 'completed';
-      existingLessonProgress.completedAt = new Date();
+    if (existingLessonIndex !== -1) {
+      // Update existing lesson progress - REPLACE the quiz result, don't add multiple
+      assignment.lessonProgress[existingLessonIndex].status = 'completed';
+      assignment.lessonProgress[existingLessonIndex].completedAt = new Date();
       if (quizResult) {
-        existingLessonProgress.quizResult = quizResult;
+        // Replace the quiz result instead of adding multiple attempts
+        assignment.lessonProgress[existingLessonIndex].quizResult = quizResult;
       }
     } else {
       // Add new lesson progress
@@ -78,6 +79,7 @@ export async function POST(
       (m) => m.default
     );
     const course = await CourseModel.findById(courseId);
+
     if (course && course.lessons) {
       const totalLessons = course.lessons.length;
       const completedLessons =
@@ -85,9 +87,23 @@ export async function POST(
           (lp: any) => lp.status === 'completed'
         ).length || 0;
 
+      // Only mark as completed if ALL lessons are done AND final quiz is passed (if exists)
       if (completedLessons >= totalLessons) {
-        assignment.status = 'completed';
-        assignment.completedAt = new Date();
+        // Check if there's a final quiz and if it's been passed
+        if (course.finalQuiz) {
+          // Course is only complete if final quiz is also passed
+          if (assignment.finalQuizResult?.passed) {
+            assignment.status = 'completed';
+            assignment.completedAt = new Date();
+          } else {
+            // All lessons done but final quiz not passed yet
+            assignment.status = 'in-progress';
+          }
+        } else {
+          // No final quiz, mark as completed
+          assignment.status = 'completed';
+          assignment.completedAt = new Date();
+        }
       } else if (assignment.status === 'not-started') {
         assignment.status = 'in-progress';
       }

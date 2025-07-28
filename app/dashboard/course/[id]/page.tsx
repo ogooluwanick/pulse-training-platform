@@ -18,6 +18,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   BookOpen,
@@ -144,16 +145,13 @@ export default function CoursePage() {
             .map((lp: LessonProgress) => lp.lessonId) || [];
         setCompletedLessons(completed);
 
-        // Calculate progress
-        const totalItems =
-          courseData.lessons.length + (courseData.finalQuiz ? 1 : 0);
-        const completedCount =
-          completed.length + (assignmentData.status === 'completed' ? 1 : 0);
+        // Calculate progress based on lessons completed
+        const totalItems = courseData.lessons.length;
+        const completedCount = completed.length;
         setProgress(Math.round((completedCount / totalItems) * 100));
 
-        // Check if course is completed
-        if (assignmentData.status === 'completed') {
-          setCourseCompleted(true);
+        // Check if final quiz is passed
+        if (assignmentData.finalQuizResult?.passed) {
           setFinalQuizPassed(true);
         }
       } else {
@@ -190,7 +188,7 @@ export default function CoursePage() {
       (lp: LessonProgress) => lp.lessonId === previousLesson._id
     );
 
-    // Lesson is locked if previous lesson is not completed OR if previous lesson has a quiz that wasn't passed
+    // Lesson is locked if previous lesson is not completed
     if (
       !previousLessonProgress ||
       previousLessonProgress.status !== 'completed'
@@ -212,6 +210,26 @@ export default function CoursePage() {
 
   const allLessonsCompleted =
     course && course.lessons.every((l) => completedLessons.includes(l._id));
+
+  // Check if course is truly completed (all lessons + final quiz if exists)
+  const isCourseCompleted = () => {
+    if (!course || !assignment) return false;
+
+    // All lessons must be completed
+    const allLessonsDone = course.lessons.every((l) =>
+      completedLessons.includes(l._id)
+    );
+
+    if (!allLessonsDone) return false;
+
+    // If there's a final quiz, it must be passed
+    if (course.finalQuiz) {
+      return assignment.finalQuizResult?.passed === true;
+    }
+
+    // No final quiz, so course is complete if all lessons are done
+    return true;
+  };
 
   const handleFinalQuizComplete = async (result: any) => {
     setFinalQuizPassed(result.passed);
@@ -239,7 +257,7 @@ export default function CoursePage() {
         }
 
         const responseData = await response.json();
-        setCourseCompleted(true);
+        setFinalQuizPassed(true);
         toast.success('Congratulations! Course completed successfully!');
 
         // Show rating prompt if user hasn't rated yet
@@ -267,6 +285,56 @@ export default function CoursePage() {
     }
   };
 
+  const handleMarkAsComplete = async () => {
+    try {
+      if (!currentLesson?._id) {
+        console.error('ERROR: currentLesson._id is undefined!');
+        toast.error(
+          'Error: Lesson ID not found. Please refresh the page and try again.'
+        );
+        return;
+      }
+
+      const requestBody = {
+        lessonId: currentLesson._id,
+      };
+
+      const response = await fetch(`/api/course/${params.id}/lesson-complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark lesson as completed');
+      }
+
+      toast.success('Lesson completed successfully!');
+
+      // Check if there's a next lesson
+      const nextLessonIndex = currentLessonIndex + 1;
+      if (course && nextLessonIndex < course.lessons.length) {
+        const nextLessonData = course.lessons[nextLessonIndex];
+        setNextLesson(nextLessonData);
+        setShowNextLesson(true);
+      } else {
+        // No next lesson, check if we should show final quiz
+        if (course?.finalQuiz && allLessonsCompleted) {
+          setShowLessonModal(false);
+          setShowFinalQuiz(true);
+        } else {
+          setShowLessonModal(false);
+        }
+      }
+
+      // Refresh course data
+      await fetchCourseData();
+    } catch (error) {
+      toast.error('Failed to save lesson completion');
+      console.error('Error completing lesson:', error);
+    }
+  };
+
   const handleLessonStart = (lessonId: string) => {
     const lesson = course?.lessons.find((l) => l._id === lessonId);
     if (!lesson) {
@@ -274,7 +342,6 @@ export default function CoursePage() {
       return;
     }
 
-    // Check if lesson is locked (previous quiz not passed)
     const lessonIndex =
       course?.lessons.findIndex((l: any) => l._id === lesson._id) || 0;
 
@@ -288,6 +355,14 @@ export default function CoursePage() {
       return;
     }
 
+    const nextLessonIndex = lessonIndex + 1;
+    if (course && nextLessonIndex < course.lessons.length) {
+      const nextLessonData = course.lessons[nextLessonIndex];
+      setNextLesson(nextLessonData);
+    } else {
+      setNextLesson(null);
+    }
+
     setCurrentLesson(lesson);
     setShowLessonModal(true);
     setShowLessonQuiz(false);
@@ -299,7 +374,7 @@ export default function CoursePage() {
     );
 
     if (lessonProgress?.status === 'completed') {
-      setLessonQuizPassed(true);
+      setLessonQuizPassed(lessonProgress.quizResult?.passed || false);
       setLessonAttemptCount(lessonProgress.quizResult?.attemptCount || 0);
     } else {
       setLessonQuizPassed(false);
@@ -401,12 +476,23 @@ export default function CoursePage() {
   };
 
   const renderLessonContent = (lesson: any) => {
-    // Check if content is a video URL (YouTube, Vimeo, or direct video file)
-    if (
+    // Check if lesson type is video or if content is a video URL
+    const isVideoLesson =
+      lesson.type === 'video' ||
       isYouTubeUrl(lesson.content) ||
       lesson.content.match(/\.(mp4|webm|ogg|mov)$/i) ||
-      lesson.content.includes('vimeo.com')
-    ) {
+      lesson.content.includes('vimeo.com');
+
+    // Check if lesson type is image or if content is an image URL
+    const isImageLesson =
+      lesson.type === 'image' ||
+      (lesson.content && (
+        lesson.content.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ||
+        lesson.content.includes('cloudinary.com') ||
+        lesson.content.includes('images.unsplash.com')
+      ));
+
+    if (isVideoLesson) {
       return (
         <div className="space-y-6">
           <UniversalVideoPlayer
@@ -415,6 +501,62 @@ export default function CoursePage() {
             width="100%"
             height="400px"
           />
+          {lesson.notes && lesson.notes.length > 0 && (
+            <div className="prose prose-lg max-w-none">
+              <h3 className="text-lg font-semibold text-charcoal mb-4">
+                Key Points
+              </h3>
+              <ul className="space-y-2">
+                {lesson.notes.map((note: string, index: number) => (
+                  <li key={index} className="text-charcoal">
+                    {note}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (isImageLesson) {
+      return (
+        <div className="space-y-6">
+          <div className="relative w-full">
+            <div className="aspect-video w-full rounded-lg shadow-lg overflow-hidden bg-warm-gray/10">
+              {lesson.content ? (
+                <img
+                  src={lesson.content}
+                  alt={lesson.title}
+                  className="w-full h-full object-contain rounded-lg"
+                  onError={(e) => {
+                    // Fallback if image fails to load
+                    e.currentTarget.style.display = 'none';
+                    const fallbackDiv = document.createElement('div');
+                    fallbackDiv.className = 'w-full h-full bg-warm-gray/20 rounded-lg flex items-center justify-center text-warm-gray';
+                    fallbackDiv.innerHTML = `
+                      <div class="text-center">
+                        <svg class="w-16 h-16 mx-auto mb-4 text-warm-gray/50" fill="currentColor" viewBox="0 0 20 20">
+                          <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                        </svg>
+                        <p class="text-sm">Image could not be loaded</p>
+                      </div>
+                    `;
+                    e.currentTarget.parentNode?.appendChild(fallbackDiv);
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-warm-gray/20 rounded-lg flex items-center justify-center text-warm-gray">
+                  <div className="text-center">
+                    <svg className="w-16 h-16 mx-auto mb-4 text-warm-gray/50" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-sm">No image available</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
           {lesson.notes && lesson.notes.length > 0 && (
             <div className="prose prose-lg max-w-none">
               <h3 className="text-lg font-semibold text-charcoal mb-4">
@@ -486,8 +628,8 @@ export default function CoursePage() {
     );
   }
 
-  const totalItems = course.lessons.length + (course.finalQuiz ? 1 : 0);
-  const completedCount = completedLessons.length + (finalQuizPassed ? 1 : 0);
+  const totalItems = course.lessons.length;
+  const completedCount = completedLessons.length;
   const progressPercent = Math.round((completedCount / totalItems) * 100);
 
   return (
@@ -501,7 +643,7 @@ export default function CoursePage() {
           <h1 className="text-3xl font-bold text-charcoal">{course.title}</h1>
           <p className="text-warm-gray mt-2">{course.description}</p>
         </div>
-        <div className="flex items-center gap-4">
+        {/* <div className="flex items-center gap-4">
           <div className="text-right">
             <div className="text-2xl font-bold text-charcoal">
               {progressPercent}%
@@ -509,7 +651,7 @@ export default function CoursePage() {
             <div className="text-sm text-warm-gray">Complete</div>
           </div>
           <Progress value={progressPercent} className="w-32 h-2" />
-        </div>
+        </div> */}
       </div>
 
       {/* Stats Cards */}
@@ -595,7 +737,7 @@ export default function CoursePage() {
             <Progress value={progressPercent} className="h-3" />
             <div className="flex justify-between text-sm text-warm-gray">
               <span>
-                {completedCount} of {totalItems} items completed
+                {completedCount} of {totalItems} lessons completed
               </span>
               <span>
                 {course.lessons.length - completedLessons.length} lessons
@@ -716,15 +858,25 @@ export default function CoursePage() {
       </Card>
 
       {/* Final Quiz Section */}
-      {course.finalQuiz && allLessonsCompleted && !courseCompleted && (
-        <Card className="bg-card border-warm-gray/20">
+      {course.finalQuiz && (
+        <Card
+          className={`bg-card border-warm-gray/20 ${
+            assignment?.finalQuizResult?.passed
+              ? 'bg-success-green/10 border-success-green/30'
+              : ''
+          }`}
+        >
           <CardHeader>
             <CardTitle className="text-charcoal flex items-center gap-2">
               <Award className="h-5 w-5" />
               Final Quiz
             </CardTitle>
             <CardDescription className="text-warm-gray">
-              Complete the final quiz to finish the course
+              {!allLessonsCompleted
+                ? 'Complete all lessons to unlock the final quiz'
+                : assignment?.finalQuizResult?.passed
+                  ? 'You have passed the final quiz. You can retake it if needed.'
+                  : 'Complete the final quiz to finish the course'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -738,12 +890,40 @@ export default function CoursePage() {
                     Test your knowledge of the entire course
                   </p>
                 </div>
+                {!allLessonsCompleted ? (
+                  <Badge variant="outline" className="text-warm-gray">
+                    <Lock className="h-3 w-3 mr-1" />
+                    Locked
+                  </Badge>
+                ) : assignment?.finalQuizResult?.passed ? (
+                  <Badge className="bg-success-green text-alabaster">
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Passed
+                  </Badge>
+                ) : null}
               </div>
               <Button
-                onClick={() => setShowFinalQuiz(true)}
-                className="bg-warning-ochre hover:bg-warning-ochre/90 text-alabaster px-8"
+                onClick={() => {
+                  if (allLessonsCompleted) {
+                    setShowFinalQuiz(true);
+                  } else {
+                    toast.error(
+                      'Please complete all lessons before taking the final quiz.'
+                    );
+                  }
+                }}
+                disabled={!allLessonsCompleted}
+                className={`px-4 py-2 rounded-md transition-colors ${
+                  allLessonsCompleted
+                    ? 'bg-warning-ochre hover:bg-warning-ochre/90 text-alabaster'
+                    : 'bg-warm-gray/30 text-warm-gray cursor-not-allowed'
+                }`}
               >
-                Take Final Quiz
+                {!allLessonsCompleted
+                  ? 'Complete All Lessons First'
+                  : assignment?.finalQuizResult?.passed
+                    ? 'Re-take Final Quiz'
+                    : 'Take Final Quiz'}
               </Button>
             </div>
           </CardContent>
@@ -751,7 +931,7 @@ export default function CoursePage() {
       )}
 
       {/* Course Completion */}
-      {courseCompleted && (
+      {isCourseCompleted() && (
         <Card className="bg-success-green/10 border-success-green/30">
           <CardHeader>
             <CardTitle className="text-charcoal flex items-center gap-2">
@@ -779,33 +959,35 @@ export default function CoursePage() {
       )}
 
       {/* Final Quiz Modal */}
-      <QuizModal
-        isOpen={showFinalQuiz}
-        onClose={() => setShowFinalQuiz(false)}
-        quiz={{
-          id: 'final-quiz',
-          title: course.finalQuiz?.title || 'Final Quiz',
-          description: 'Test your knowledge of the entire course',
-          questions:
-            course.finalQuiz?.questions.map((q, i) => ({
-              id: String(i),
-              type: 'multiple-choice',
-              question: q.question,
-              options: q.options,
-              correctAnswer: q.answer,
-              required: false, // Make questions optional
-            })) || [],
-          timeLimit: 60,
-          passingScore: 80,
-          maxAttempts: 3,
-          allowRetake: true,
-          showResults: true,
-        }}
-        onComplete={handleFinalQuizComplete}
-        courseId={params.id as string}
-        lessonId="final-quiz"
-        isFinalQuiz={true}
-      />
+      {allLessonsCompleted && (
+        <QuizModal
+          isOpen={showFinalQuiz}
+          onClose={() => setShowFinalQuiz(false)}
+          quiz={{
+            id: 'final-quiz',
+            title: course.finalQuiz?.title || 'Final Quiz',
+            description: 'Test your knowledge of the entire course',
+            questions:
+              course.finalQuiz?.questions.map((q, i) => ({
+                id: String(i),
+                type: 'multiple-choice',
+                question: q.question,
+                options: q.options,
+                correctAnswer: q.answer,
+                required: false, // Make questions optional
+              })) || [],
+            timeLimit: 60,
+            passingScore: 80,
+            maxAttempts: 3,
+            allowRetake: true,
+            showResults: true,
+          }}
+          onComplete={handleFinalQuizComplete}
+          courseId={params.id as string}
+          lessonId="final-quiz"
+          isFinalQuiz={true}
+        />
+      )}
 
       {/* Lesson Modal */}
       <Dialog
@@ -863,11 +1045,19 @@ export default function CoursePage() {
                       <div className="flex items-center gap-4">
                         <Button
                           onClick={() => setShowLessonQuiz(true)}
-                          className="bg-warning-ochre hover:bg-warning-ochre/90 text-alabaster px-8"
-                          disabled={lessonQuizPassed}
+                          className="px-4 py-2 rounded-md bg-warning-ochre hover:bg-warning-ochre/90 text-alabaster transition-colors"
                         >
-                          {lessonQuizPassed ? 'Quiz Passed' : 'Take Quiz'}
+                          {lessonQuizPassed ? 'Retake Quiz' : 'Take Quiz'}
                         </Button>
+
+                        {lessonQuizPassed && nextLesson && (
+                          <Button
+                            onClick={handleContinueToNextLesson}
+                            className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                          >
+                            Next Lesson
+                          </Button>
+                        )}
 
                         {lessonAttemptCount > 0 && !lessonQuizPassed && (
                           <span className="text-sm text-warm-gray">
@@ -875,6 +1065,88 @@ export default function CoursePage() {
                           </span>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                {/* No Quiz Section - Add Next button for completed lessons */}
+                {currentLesson &&
+                  (!currentLesson.quiz ||
+                    !currentLesson.quiz.questions ||
+                    currentLesson.quiz.questions.length === 0) &&
+                  isLessonCompleted(currentLesson._id) &&
+                  nextLesson && (
+                    <div className="mt-8 p-4 bg-alabaster rounded-lg border border-warm-gray/20">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-charcoal">
+                            Lesson Completed
+                          </h3>
+                          <p className="text-sm text-warm-gray">
+                            This lesson has been completed successfully
+                          </p>
+                        </div>
+                        <Badge className="bg-success-green text-alabaster">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Completed
+                        </Badge>
+                      </div>
+                      <div className="mt-4">
+                        <Button
+                          onClick={handleContinueToNextLesson}
+                          className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                        >
+                          Continue to Next Lesson
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* No Quiz Section - Show completion message for last lesson */}
+                {currentLesson &&
+                  (!currentLesson.quiz ||
+                    !currentLesson.quiz.questions ||
+                    currentLesson.quiz.questions.length === 0) &&
+                  isLessonCompleted(currentLesson._id) &&
+                  !nextLesson && (
+                    <div className="mt-8 p-4 bg-alabaster rounded-lg border border-warm-gray/20">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-charcoal">
+                            Lesson Completed
+                          </h3>
+                          <p className="text-sm text-warm-gray">
+                            This lesson has been completed successfully
+                          </p>
+                        </div>
+                        <Badge className="bg-success-green text-alabaster">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Completed
+                        </Badge>
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-sm text-warm-gray">
+                          This is the last lesson.{' '}
+                          {course?.finalQuiz
+                            ? 'Complete the final quiz to finish the course.'
+                            : 'Course completed!'}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                {/* No Quiz Section */}
+                {currentLesson &&
+                  (!currentLesson.quiz ||
+                    !currentLesson.quiz.questions ||
+                    currentLesson.quiz.questions.length === 0) &&
+                  !isLessonCompleted(currentLesson._id) && (
+                    <div className="mt-8">
+                      <Button
+                        onClick={handleMarkAsComplete}
+                        className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                      >
+                        Mark as Complete
+                      </Button>
                     </div>
                   )}
               </div>
@@ -906,14 +1178,14 @@ export default function CoursePage() {
                   <div className="flex gap-3">
                     <Button
                       onClick={handleContinueToNextLesson}
-                      className="bg-charcoal hover:bg-charcoal/90 text-alabaster"
+                      className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
                     >
                       Continue to Next Lesson
                     </Button>
                     <Button
                       onClick={handleSkipToNextLesson}
                       variant="outline"
-                      className="border-warm-gray/30"
+                      className="px-4 py-2 rounded-md border-warm-gray/30 transition-colors"
                     >
                       Skip for Now
                     </Button>
