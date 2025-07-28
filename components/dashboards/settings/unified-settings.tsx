@@ -41,6 +41,21 @@ import { Textarea } from '@/components/ui/textarea'; // Added Textarea import
 import toast from 'react-hot-toast';
 import FullPageLoader from '@/components/full-page-loader';
 
+const departments = [
+  "Human Resources",
+  "Engineering",
+  "Marketing",
+  "Sales",
+  "Finance",
+  "Customer Support",
+  "Product Management",
+  "Design",
+  "IT",
+  "Operations",
+  "Legal",
+  "Administration",
+];
+
 export default function UnifiedSettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -493,6 +508,90 @@ export default function UnifiedSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Employee Specific Settings */}
+      {userRole === 'EMPLOYEE' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="h-5 w-5 mr-2" />
+              Employee Preferences
+            </CardTitle>
+            <CardDescription>
+              Customize your employee profile and experience
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Select
+                  value={employeePreferences.department}
+                  onValueChange={(v) =>
+                    handleEmployeePreferenceChange('department', v)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((department) => (
+                      <SelectItem key={department} value={department}>
+                        {department}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-500">
+                  Choose the department you belong to.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Employee Specific Settings */}
+      {userRole === 'EMPLOYEE' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Users className="h-5 w-5 mr-2" />
+              Employee Preferences
+            </CardTitle>
+            <CardDescription>
+              Customize your employee profile and experience
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Select
+                  value={employeePreferences.department}
+                  onValueChange={(v) =>
+                    handleEmployeePreferenceChange('department', v)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((department) => (
+                      <SelectItem key={department} value={department}>
+                        {department}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-500">
+                  Choose the department you belong to.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Admin Specific Settings */}
       {userRole === 'ADMIN' && (

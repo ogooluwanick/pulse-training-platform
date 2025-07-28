@@ -42,30 +42,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check if course exists - use the same method that works for the debug query
-    let course;
-    try {
-      // Use find instead of findById since that's working in the debug section
-      const foundCourses = await Course.find({ _id: cleanCourseId });
-      course = foundCourses.length > 0 ? foundCourses[0] : null;
-      console.log('Course found with find method:', course ? 'Yes' : 'No');
-
-      if (!course) {
-        // Try alternative methods as backup
-        course = await Course.findById(cleanCourseId);
-        console.log('Course found with findById:', course ? 'Yes' : 'No');
-      }
-
-      if (!course) {
-        // Try with explicit ObjectId conversion
-        const objectId = new mongoose.Types.ObjectId(cleanCourseId);
-        const foundWithObjectId = await Course.find({ _id: objectId });
-        course = foundWithObjectId.length > 0 ? foundWithObjectId[0] : null;
-        console.log('Course found with ObjectId find:', course ? 'Yes' : 'No');
-      }
-    } catch (dbError) {
-      console.error('Database error:', dbError);
-    }
+    // Check if course exists
+    const course = await Course.findById(cleanCourseId);
 
     if (!course) {
       // Let's debug what courses actually exist

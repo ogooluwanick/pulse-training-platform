@@ -16,7 +16,7 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const courses = await Course.find({}).lean();
+    const courses = await Course.find({}).populate('instructor').lean();
 
     const coursesWithAggregates = await Promise.all(
       courses.map(async (course) => {

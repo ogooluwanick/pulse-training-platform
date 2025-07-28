@@ -161,7 +161,7 @@ export interface Course {
   title: string;
   description?: string;
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
-  instructor?: { name: string };
+  instructor?: { name: string } | string;
   duration?: number;
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   rating?: Array<{

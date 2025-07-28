@@ -13,7 +13,7 @@ export async function GET() {
   }
 
   try {
-    const courses = await Course.find({}).lean();
+    const courses = await Course.find({}).populate('instructor').lean();
 
     const coursesWithRatings = courses.map((course) => {
       // Calculate average rating and total ratings

@@ -12,6 +12,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const departments = [
+  "Human Resources",
+  "Engineering",
+  "Marketing",
+  "Sales",
+  "Finance",
+  "Customer Support",
+  "Product Management",
+  "Design",
+  "IT",
+  "Operations",
+  "Legal",
+  "Administration",
+];
 
 interface Employee {
   id: string;
@@ -99,13 +121,18 @@ export default function EditEmployeeModal({
             <Label htmlFor="department" className="text-charcoal font-medium">
               Department
             </Label>
-            <Input
-              id="department"
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className="bg-alabaster border-warm-gray/30 focus:border-charcoal"
-              placeholder="Enter department"
-            />
+            <Select onValueChange={setDepartment} value={department}>
+              <SelectTrigger className="w-full bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft">
+                <SelectValue placeholder="Select a department" />
+              </SelectTrigger>
+              <SelectContent>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept}>
+                    {dept}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <DialogFooter className="flex flex-row-reverse gap-2 pt-4">

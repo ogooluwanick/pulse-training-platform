@@ -45,11 +45,13 @@ interface Course {
   _id: string;
   title: string;
   description: string;
-  instructor: string;
+  instructor: { firstName?: string; name?: string } | string;
   duration: number;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
   rating: number;
+  averageRating?: number;
+  totalRatings?: number;
   enrolledCount: number;
   tags: string[];
 }
@@ -57,7 +59,11 @@ interface Course {
 interface Employee {
   email: string;
   id: string;
-  name: string;
+  name?: string;
+  // Handle raw user objects from database
+  _id?: string;
+  firstName?: string;
+  lastName?: string;
 }
 
 interface AssignmentDetails {
@@ -131,12 +137,20 @@ export default function MassAssignCourseModal({
     if (isOpen) {
       setSelectedEmployeeIds([]);
       setSelectedAssignments([]);
+      // Debug: Log employee data structure
+      console.log('Employees data structure:', employees);
+      const debugEmployees = Array.isArray(employees) ? employees : [];
+      if (debugEmployees && debugEmployees.length > 0) {
+        console.log('First employee structure:', debugEmployees[0]);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, employees]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedEmployeeIds(employees.map((e) => e.id));
+      setSelectedEmployeeIds(
+        safeEmployees.map((e) => e.id || e._id || '').filter(Boolean)
+      );
     } else {
       setSelectedEmployeeIds([]);
     }
@@ -206,6 +220,9 @@ export default function MassAssignCourseModal({
     course.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Ensure employees is always an array
+  const safeEmployees = Array.isArray(employees) ? employees : [];
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-parchment border-warm-gray/20 shadow-xl max-w-6xl max-h-[90vh] flex flex-col">
@@ -227,34 +244,39 @@ export default function MassAssignCourseModal({
                 id="select-all"
                 onCheckedChange={handleSelectAll}
                 checked={
-                  employees.length > 0 &&
-                  selectedEmployeeIds.length === employees.length
+                  safeEmployees.length > 0 &&
+                  selectedEmployeeIds.length === safeEmployees.length
                 }
               />
               <label htmlFor="select-all">Select All</label>
             </div>
             <ScrollArea className="flex-grow rounded-md border border-warm-gray/20 p-4 bg-alabaster">
               <div className="space-y-2">
-                {employees.map((employee) => (
-                  <div
-                    key={employee.id}
-                    className="flex items-center space-x-2 w-full"
-                  >
-                    <Checkbox
-                      id={employee.id}
-                      onCheckedChange={() => handleSelectEmployee(employee.id)}
-                      checked={selectedEmployeeIds.includes(employee.id)}
-                    />
-                    <div className="flex flex-col overflow-hidden flex-1">
-                      <span className="capitalize font-medium text-charcoal">
-                        {employee.name}
-                      </span>
-                      <span className="text-sm text-warm-gray truncate">
-                        {employee.email}
-                      </span>
+                {safeEmployees.map((employee) => {
+                  const employeeId = employee.id || employee._id || '';
+                  return (
+                    <div
+                      key={employeeId}
+                      className="flex items-center space-x-2 w-full"
+                    >
+                      <Checkbox
+                        id={employeeId}
+                        onCheckedChange={() => handleSelectEmployee(employeeId)}
+                        checked={selectedEmployeeIds.includes(employeeId)}
+                      />
+                      <div className="flex flex-col overflow-hidden flex-1">
+                        <span className="capitalize font-medium text-charcoal">
+                          {employee.name ||
+                            `${employee.firstName || ''} ${employee.lastName || ''}`.trim() ||
+                            'Unknown Employee'}
+                        </span>
+                        <span className="text-sm text-warm-gray truncate">
+                          {employee.email || 'No email'}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ScrollArea>
           </div>
@@ -326,10 +348,23 @@ export default function MassAssignCourseModal({
                           <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
                             <div>
                               <div className="flex items-center justify-between text-sm text-warm-gray">
-                                <span>By {course.instructor}</span>
+                                <span>
+                                  By{' '}
+                                  {typeof course.instructor === 'object'
+                                    ? course.instructor?.firstName ||
+                                      'Pulse Platform'
+                                    : course.instructor || 'Pulse Platform'}
+                                </span>
                                 <div className="flex items-center gap-1">
                                   <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
-                                  <span>{course.rating}</span>
+                                  <span>
+                                    {course.averageRating
+                                      ? course.averageRating.toFixed(1)
+                                      : '0.0'}
+                                  </span>
+                                  <span className="text-xs">
+                                    ({course.totalRatings || 0})
+                                  </span>
                                 </div>
                               </div>
                               <div className="flex items-center gap-4 text-sm text-warm-gray mt-2">

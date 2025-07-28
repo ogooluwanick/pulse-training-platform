@@ -22,10 +22,20 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion } from 'framer-motion';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Users, Star } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { formatDuration } from '@/lib/duration';
 import { Calendar } from '@/components/ui/calendar';
@@ -34,11 +44,13 @@ interface Course {
   _id: string;
   title: string;
   description: string;
-  instructor: string;
+  instructor: { firstName?: string; name?: string } | string;
   duration: number;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
   rating: number;
+  averageRating?: number;
+  totalRatings?: number;
   enrolledCount: number;
   tags: string[];
 }
@@ -72,7 +84,9 @@ const fetchCourses = async (): Promise<Course[]> => {
   return res.json();
 };
 
-const fetchAssignments = async (employeeId: string): Promise<AssignmentDetails[]> => {
+const fetchAssignments = async (
+  employeeId: string
+): Promise<AssignmentDetails[]> => {
   const res = await fetch(`/api/company/employees/${employeeId}/assignments`);
   if (!res.ok) {
     throw new Error('Network response was not ok');
@@ -131,19 +145,27 @@ export default function AssignCourseModal({
     queryFn: fetchCourses,
   });
 
-  const { data: initialAssignments, isLoading: isLoadingAssignments } = useQuery<AssignmentDetails[]>({
-    queryKey: ['assignments', employee?.id],
-    queryFn: () => fetchAssignments(employee!.id),
-    enabled: !!employee,
-  });
+  const { data: initialAssignments, isLoading: isLoadingAssignments } =
+    useQuery<AssignmentDetails[]>({
+      queryKey: ['assignments', employee?.id],
+      queryFn: () => fetchAssignments(employee!.id),
+      enabled: !!employee,
+    });
 
   useEffect(() => {
     if (initialAssignments) {
-      const filteredAssignments = initialAssignments.filter(assignment => {
-        if (assignment.type === 'one-time' && assignment.status === 'completed') {
+      const filteredAssignments = initialAssignments.filter((assignment) => {
+        if (
+          assignment.type === 'one-time' &&
+          assignment.status === 'completed'
+        ) {
           return false;
         }
-        if (assignment.type === 'interval' && assignment.endDate && new Date(assignment.endDate) < new Date()) {
+        if (
+          assignment.type === 'interval' &&
+          assignment.endDate &&
+          new Date(assignment.endDate) < new Date()
+        ) {
           return false;
         }
         return true;
@@ -174,7 +196,9 @@ export default function AssignCourseModal({
   ) => {
     setSelectedAssignments(
       selectedAssignments.map((a) =>
-        a.courseId === courseId ? { ...a, type, interval: undefined, endDate: undefined } : a
+        a.courseId === courseId
+          ? { ...a, type, interval: undefined, endDate: undefined }
+          : a
       )
     );
   };
@@ -282,18 +306,31 @@ export default function AssignCourseModal({
                       <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
                         <div>
                           <div className="flex items-center justify-between text-sm text-warm-gray">
-                            <span>By {course.instructor}</span>
+                            <span>
+                              By{' '}
+                              {typeof course.instructor === 'object'
+                                ? course.instructor?.firstName ||
+                                  'Pulse Platform'
+                                : course.instructor || 'Pulse Platform'}
+                            </span>
                             <div className="flex items-center gap-1">
                               <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
-                              <span>{course.rating}</span>
+                              <span>
+                                {course.averageRating
+                                  ? course.averageRating.toFixed(1)
+                                  : '0.0'}
+                              </span>
+                              <span className="text-xs">
+                                ({course.totalRatings || 0})
+                              </span>
                             </div>
                           </div>
-                              <div className="flex items-center gap-4 text-sm text-warm-gray mt-2">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  <span>{formatDuration(course.duration)}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-4 text-sm text-warm-gray mt-2">
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              <span>{formatDuration(course.duration)}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
                               <Users className="h-3 w-3" />
                               <span>
                                 {(course.enrolledCount || 0).toLocaleString()}
@@ -353,7 +390,9 @@ export default function AssignCourseModal({
                                     <SelectItem value="monthly">
                                       Monthly
                                     </SelectItem>
-                                    <SelectItem value="yearly">Yearly</SelectItem>
+                                    <SelectItem value="yearly">
+                                      Yearly
+                                    </SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <Popover>
@@ -374,7 +413,9 @@ export default function AssignCourseModal({
                                       mode="single"
                                       captionLayout="dropdown-buttons"
                                       selected={assignment.endDate}
-                                      onSelect={(date: Date | undefined) => handleEndDateChange(course._id, date)}
+                                      onSelect={(date: Date | undefined) =>
+                                        handleEndDateChange(course._id, date)
+                                      }
                                       initialFocus
                                     />
                                   </PopoverContent>

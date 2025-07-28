@@ -1,16 +1,19 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { type ClassValue, clsx } from "clsx"
+import { twMerge } from "tailwind-merge"
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  return twMerge(clsx(inputs))
 }
 
-export function isYouTubeUrl(url: string): boolean {
-  const youtubePatterns = [
-    /^https?:\/\/(www\.)?youtube\.com\/watch\?v=/,
-    /^https?:\/\/youtu\.be\//,
-    /^https?:\/\/(www\.)?youtube\.com\/embed\//,
-  ];
+// YouTube URL validation
+export const isYouTubeUrl = (url: string): boolean => {
+  const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w-]+(&[\w=]*)?$/;
+  return youtubeRegex.test(url);
+};
 
-  return youtubePatterns.some((pattern) => pattern.test(url));
-}
+// Utility function to consistently format instructor names
+export const getInstructorName = (instructor: { name: string } | string | null | undefined): string => {
+  if (!instructor) return 'Pulse Platform';
+  if (typeof instructor === 'string') return instructor || 'Pulse Platform';
+  return instructor.name || 'Pulse Platform';
+};

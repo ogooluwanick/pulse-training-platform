@@ -5,6 +5,28 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const departments = [
+  "Human Resources",
+  "Engineering",
+  "Marketing",
+  "Sales",
+  "Finance",
+  "Customer Support",
+  "Product Management",
+  "Design",
+  "IT",
+  "Operations",
+  "Legal",
+  "Administration",
+];
 
 interface PersonalInformationProps {
   profileData: any;
@@ -98,6 +120,27 @@ export default function PersonalInformation({
           />
         </div>
       </div>
+      {profileData.role === 'employee' && (
+        <div className="space-y-2">
+          <Label htmlFor="department">Department</Label>
+          <Select
+            value={profileData.department}
+            onValueChange={(value) => handleInputChange('department', value)}
+            disabled={!isEditing}
+          >
+            <SelectTrigger className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft">
+              <SelectValue placeholder="Select a department" />
+            </SelectTrigger>
+            <SelectContent>
+              {departments.map((department) => (
+                <SelectItem key={department} value={department}>
+                  {department}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
     </div>
   );
 }

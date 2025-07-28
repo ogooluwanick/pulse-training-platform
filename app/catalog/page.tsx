@@ -34,13 +34,14 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { formatDuration } from '@/lib/duration';
+
 import { toast } from 'react-hot-toast';
 
 interface Course {
   _id: string;
   title: string;
   description: string;
-  instructor: { name: string };
+  instructor: { name: string } | string;
   duration: number;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   category: 'compliance' | 'skills' | 'culture' | 'technical';
@@ -95,22 +96,37 @@ export default function CourseCatalogPage() {
 
   useEffect(() => {
     if (savedCoursesData?.savedCourses) {
-      setSavedCourses(savedCoursesData.savedCourses.map((id: any) => id.toString()));
+      setSavedCourses(
+        savedCoursesData.savedCourses.map((id: any) => id.toString())
+      );
     }
   }, [savedCoursesData]);
 
   // Save/Unsave course mutation
   const saveCourse = useMutation({
-    mutationFn: async ({ courseId, save }: { courseId: string; save: boolean }) => {
-      console.log('Frontend: Attempting to save course:', { courseId, save, type: typeof courseId }); // Debug log
-      
-      const url = save 
+    mutationFn: async ({
+      courseId,
+      save,
+    }: {
+      courseId: string;
+      save: boolean;
+    }) => {
+      console.log('Frontend: Attempting to save course:', {
+        courseId,
+        save,
+        type: typeof courseId,
+      }); // Debug log
+
+      const url = save
         ? '/api/company/courses/save'
         : `/api/company/courses/save?courseId=${courseId}`;
-      
+
       console.log('Frontend: Request URL:', url); // Debug log
-      console.log('Frontend: Request body:', save ? JSON.stringify({ courseId }) : 'No body'); // Debug log
-      
+      console.log(
+        'Frontend: Request body:',
+        save ? JSON.stringify({ courseId }) : 'No body'
+      ); // Debug log
+
       const response = await fetch(url, {
         method: save ? 'POST' : 'DELETE',
         headers: save ? { 'Content-Type': 'application/json' } : {},
@@ -118,7 +134,7 @@ export default function CourseCatalogPage() {
       });
 
       console.log('Frontend: Response status:', response.status); // Debug log
-      
+
       if (!response.ok) {
         const error = await response.json();
         console.error('Frontend: API Error:', error); // Debug log
@@ -131,20 +147,22 @@ export default function CourseCatalogPage() {
     },
     onSuccess: (data, variables) => {
       const { courseId, save } = variables;
-      
+
       if (save) {
-        setSavedCourses(prev => [...prev, courseId]);
+        setSavedCourses((prev) => [...prev, courseId]);
         toast.success('Course saved to your interests!');
       } else {
-        setSavedCourses(prev => prev.filter(id => id !== courseId));
+        setSavedCourses((prev) => prev.filter((id) => id !== courseId));
         toast.success('Course removed from saved courses');
       }
-      
+
       // Refresh saved courses data
       queryClient.invalidateQueries({ queryKey: ['savedCourses'] });
     },
     onError: (error) => {
-      toast.error(error instanceof Error ? error.message : 'Failed to update course');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update course'
+      );
     },
   });
 
@@ -205,7 +223,9 @@ export default function CourseCatalogPage() {
       selectedDifficulty === 'all' || course.difficulty === selectedDifficulty;
     const matchesSaved = !showSavedOnly || savedCourses.includes(course._id);
 
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesSaved;
+    return (
+      matchesSearch && matchesCategory && matchesDifficulty && matchesSaved
+    );
   });
 
   if (isLoading) {
@@ -285,15 +305,17 @@ export default function CourseCatalogPage() {
               </SelectContent>
             </Select>
             <Button
-              variant={showSavedOnly ? "default" : "outline"}
+              variant={showSavedOnly ? 'default' : 'outline'}
               onClick={() => setShowSavedOnly(!showSavedOnly)}
               className={`w-full md:w-auto ${
-                showSavedOnly 
-                  ? 'bg-charcoal hover:bg-charcoal/90 text-alabaster' 
+                showSavedOnly
+                  ? 'bg-charcoal hover:bg-charcoal/90 text-alabaster'
                   : 'border-warm-gray/30 bg-transparent hover:bg-warm-gray/5 text-warm-gray'
               }`}
             >
-              <Heart className={`h-4 w-4 mr-2 ${showSavedOnly ? 'fill-current' : ''}`} />
+              <Heart
+                className={`h-4 w-4 mr-2 ${showSavedOnly ? 'fill-current' : ''}`}
+              />
               {showSavedOnly ? 'Show All' : 'Saved Only'}
               {savedCourses.length > 0 && (
                 <Badge variant="secondary" className="ml-2 bg-warm-gray/20">
@@ -308,10 +330,7 @@ export default function CourseCatalogPage() {
       {/* Course Tabs */}
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-2 bg-card border-warm-gray/20">
-          <TabsTrigger
-            value="all"
-            className="data-[state=active]:bg-alabaster"
-          >
+          <TabsTrigger value="all" className="data-[state=active]:bg-alabaster">
             All Courses
           </TabsTrigger>
           <TabsTrigger
@@ -327,7 +346,7 @@ export default function CourseCatalogPage() {
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredCourses.map((course) => {
                 const isSaved = savedCourses.includes(course._id);
-                
+
                 return (
                   <Card
                     key={course._id}
@@ -361,7 +380,7 @@ export default function CourseCatalogPage() {
                     <CardContent className="space-y-4">
                       <div className="flex items-center justify-between text-sm text-warm-gray">
                         <span>
-                          By {course.instructor?.name || 'Pulse Platform'}
+                          By {course?.instructor?.firstName || 'Pulse Platform'}
                         </span>
                         <div className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
@@ -424,14 +443,16 @@ export default function CourseCatalogPage() {
                           variant="outline"
                           size="icon"
                           className={`bg-transparent border-warm-gray/30 hover:border-warning-ochre/50 transition-colors ${
-                            isSaved 
-                              ? 'text-warning-ochre border-warning-ochre/50 bg-warning-ochre/10' 
+                            isSaved
+                              ? 'text-warning-ochre border-warning-ochre/50 bg-warning-ochre/10'
                               : 'text-warm-gray hover:text-warning-ochre'
                           }`}
                           onClick={() => handleToggleSave(course._id)}
                           disabled={saveCourse.isPending}
                         >
-                          <Award className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`} />
+                          <Award
+                            className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`}
+                          />
                         </Button>
                       </div>
                     </CardContent>
@@ -442,7 +463,9 @@ export default function CourseCatalogPage() {
           ) : (
             <div className="text-center py-12">
               <p className="text-warm-gray">
-                {showSavedOnly ? 'No saved courses found.' : 'No courses found.'}
+                {showSavedOnly
+                  ? 'No saved courses found.'
+                  : 'No courses found.'}
               </p>
             </div>
           )}
@@ -484,7 +507,7 @@ export default function CourseCatalogPage() {
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between text-sm text-warm-gray">
                       <span>
-                        By {course.instructor?.name || 'Pulse Platform'}
+                        By {course?.instructor?.firstName || 'Pulse Platform'}
                       </span>
                       <div className="flex items-center gap-1">
                         <Users className="h-3 w-3" />
