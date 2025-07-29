@@ -68,8 +68,8 @@ export default function FilterBar({
       <Card className="bg-card text-card-foreground shadow-neumorphic">
         <CardHeader className="p-3 sm:p-4 lg:p-6">
           <div className="flex items-center gap-2">
-            <Skeleton className="h-5 w-5 rounded-md bg-muted/60" />
-            <Skeleton className="h-6 w-32 bg-muted/60" />
+            <Skeleton className="h-5 w-5 rounded-md bg-warm-gray/30" />
+            <Skeleton className="h-6 w-32 bg-warm-gray/30" />
           </div>
         </CardHeader>
         <CardContent className="p-3 sm:p-4 lg:p-6 pt-0 space-y-6">
@@ -77,15 +77,15 @@ export default function FilterBar({
             {/* Date Range Skeleton */}
             <div className="space-y-3">
               <div className="flex items-center gap-2 pb-2 border-b border-border">
-                <Skeleton className="h-4 w-4 rounded-md bg-muted/60" />
-                <Skeleton className="h-4 w-20 bg-muted/60" />
+                <Skeleton className="h-4 w-4 rounded-md bg-warm-gray/30" />
+                <Skeleton className="h-4 w-20 bg-warm-gray/30" />
               </div>
               {/* Calendar-like skeleton */}
               <div className="shadow-neumorphic rounded-md bg-background/50 p-3">
                 {/* Header with month/year */}
                 <div className="flex justify-center items-center gap-2 pb-4 mb-4 border-b border-border/30">
-                  <Skeleton className="h-6 w-20 bg-muted/60" />
-                  <Skeleton className="h-6 w-16 bg-muted/60" />
+                  <Skeleton className="h-6 w-20 bg-warm-gray/30" />
+                  <Skeleton className="h-6 w-16 bg-warm-gray/30" />
                 </div>
                 {/* Week days */}
                 <div className="grid grid-cols-7 gap-1 mb-2">
@@ -113,17 +113,17 @@ export default function FilterBar({
               {/* Filter Options Skeleton */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 pb-2 border-b border-border">
-                  <Skeleton className="h-4 w-4 rounded-md bg-muted/60" />
-                  <Skeleton className="h-4 w-24 bg-muted/60" />
+                  <Skeleton className="h-4 w-4 rounded-md bg-warm-gray/30" />
+                  <Skeleton className="h-4 w-24 bg-warm-gray/30" />
                 </div>
                 <div className="space-y-3">
                   <div className="space-y-1">
                     <Skeleton className="h-3 w-16 bg-muted/50" />
-                    <Skeleton className="h-10 w-full rounded-md bg-muted/60" />
+                    <Skeleton className="h-10 w-full rounded-md bg-warm-gray/30" />
                   </div>
                   <div className="space-y-1">
                     <Skeleton className="h-3 w-12 bg-muted/50" />
-                    <Skeleton className="h-10 w-full rounded-md bg-muted/60" />
+                    <Skeleton className="h-10 w-full rounded-md bg-warm-gray/30" />
                   </div>
                 </div>
               </div>
@@ -131,14 +131,14 @@ export default function FilterBar({
               {/* Actions Skeleton */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2 pb-2 border-b border-border">
-                  <Skeleton className="h-4 w-4 rounded-md bg-muted/60" />
-                  <Skeleton className="h-4 w-16 bg-muted/60" />
+                  <Skeleton className="h-4 w-4 rounded-md bg-warm-gray/30" />
+                  <Skeleton className="h-4 w-16 bg-warm-gray/30" />
                 </div>
                 <div className="space-y-2">
-                  <Skeleton className="h-10 w-full rounded-md bg-muted/60" />
+                  <Skeleton className="h-10 w-full rounded-md bg-warm-gray/30" />
                   <div className="grid grid-cols-2 gap-2">
-                    <Skeleton className="h-10 rounded-md bg-muted/60" />
-                    <Skeleton className="h-10 rounded-md bg-muted/60" />
+                    <Skeleton className="h-10 rounded-md bg-warm-gray/30" />
+                    <Skeleton className="h-10 rounded-md bg-warm-gray/30" />
                   </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import Course from '@/lib/models/Course';
+import { scheduleIntervalAssignment } from '@/lib/cron-manager';
 
 export async function POST(
   req: NextRequest,
@@ -29,81 +30,103 @@ export async function POST(
       );
     }
 
-    // First, get existing assignments to track which courses to decrement
     const existingAssignments = await CourseAssignment.find({
       employee: employeeId,
-    });
-    const existingCourseIds = existingAssignments.map((a) => a.course.toString());
-    const existingAssignmentIds = existingAssignments.map((a) => a._id);
+    }).populate('course');
 
-    // Get new course IDs
+    const existingCourseIds = existingAssignments.map((a) =>
+      a.course._id.toString()
+    );
     const newCourseIds = assignments.map((a) => a.courseId);
 
-    // Remove all existing assignments for this employee
-    await CourseAssignment.deleteMany({ employee: employeeId });
-
-    // Decrement enrolledCount for courses that are no longer assigned
-    const coursesToDecrement = existingCourseIds.filter(
-      (courseId) => !newCourseIds.includes(courseId)
+    // Assignments to remove
+    const assignmentsToRemove = existingAssignments.filter(
+      (a) => !newCourseIds.includes(a.course._id.toString())
     );
-    if (coursesToDecrement.length > 0) {
-      await Course.updateMany(
-        { _id: { $in: coursesToDecrement } },
-        { $inc: { enrolledCount: -1 } }
+    const assignmentIdsToRemove = assignmentsToRemove.map((a) => a._id);
+    const courseIdsToDecrement = assignmentsToRemove.map((a) => a.course._id);
+
+    // Assignments to add
+    const assignmentsToAdd = assignments.filter(
+      (a) => !existingCourseIds.includes(a.courseId)
+    );
+
+    // Remove old assignments
+    if (assignmentIdsToRemove.length > 0) {
+      await CourseAssignment.deleteMany({ _id: { $in: assignmentIdsToRemove } });
+      await User.findByIdAndUpdate(employeeId, {
+        $pull: { courseAssignments: { $in: assignmentIdsToRemove } },
+      });
+      if (courseIdsToDecrement.length > 0) {
+        await Course.updateMany(
+          { _id: { $in: courseIdsToDecrement } },
+          { $inc: { enrolledCount: -1 } }
+        );
+      }
+    }
+
+    // Add new assignments
+    if (assignmentsToAdd.length > 0) {
+      const newAssignmentDocs = await Promise.all(
+        assignmentsToAdd
+          .filter((a) => a.type === 'one-time')
+          .map(async (assignment) => {
+            const course = await Course.findById(assignment.courseId);
+            return {
+              employee: new mongoose.Types.ObjectId(employeeId),
+              course: new mongoose.Types.ObjectId(assignment.courseId),
+              assignmentType: assignment.type,
+              interval: assignment.interval,
+              endDate: assignment.endDate,
+              assignedAt: new Date(),
+              status: 'not-started',
+              companyId: new mongoose.Types.ObjectId(session.user.companyId),
+              lessonProgress:
+                course && course.lessons
+                  ? course.lessons.map(
+                      (lesson: { _id: mongoose.Types.ObjectId }) => ({
+                        lessonId: lesson._id,
+                        status: 'not-started',
+                      })
+                    )
+                  : [],
+            };
+          })
       );
+
+      assignmentsToAdd
+        .filter((a) => a.type === 'interval')
+        .forEach((assignment) => {
+          scheduleIntervalAssignment({
+            employee: new mongoose.Types.ObjectId(employeeId),
+            course: new mongoose.Types.ObjectId(assignment.courseId),
+            companyId: new mongoose.Types.ObjectId(session.user.companyId),
+            interval: assignment.interval,
+          });
+        });
+
+      let createdAssignments: any[] = [];
+      if (newAssignmentDocs.length > 0) {
+        createdAssignments =
+          await CourseAssignment.insertMany(newAssignmentDocs);
+      }
+
+      const newAssignmentIds = createdAssignments.map((a) => a._id);
+      const courseIdsToIncrement = assignmentsToAdd.map((a) => a.courseId);
+
+      if (newAssignmentIds.length > 0) {
+        await User.findByIdAndUpdate(employeeId, {
+          $push: { courseAssignments: { $each: newAssignmentIds } },
+        });
+      }
+
+      if (courseIdsToIncrement.length > 0) {
+        await Course.updateMany(
+          { _id: { $in: courseIdsToIncrement } },
+          { $inc: { enrolledCount: 1 } }
+        );
+      }
     }
-
-    // Then, create the new assignments
-    const newAssignmentDocs = await Promise.all(
-      assignments.map(async (assignment) => {
-        const course = await Course.findById(assignment.courseId);
-        return {
-          employee: new mongoose.Types.ObjectId(employeeId),
-          course: new mongoose.Types.ObjectId(assignment.courseId),
-          assignmentType: assignment.type,
-          interval: assignment.interval,
-          endDate: assignment.endDate,
-          assignedAt: new Date(),
-          status: 'not-started',
-          companyId: new mongoose.Types.ObjectId(session.user.companyId),
-          lessonProgress:
-            course && course.lessons
-              ? course.lessons.map((lesson) => ({
-                  lessonId: lesson._id,
-                  status: 'not-started',
-                }))
-              : [],
-          // finalQuizResult is not set at creation
-        };
-      })
-    );
-
-    let createdAssignments: any[] = [];
-    if (newAssignmentDocs.length > 0) {
-      createdAssignments = await CourseAssignment.insertMany(newAssignmentDocs);
-    }
-
-    // Increment enrolledCount for newly assigned courses
-    const coursesToIncrement = newCourseIds.filter(
-      (courseId) => !existingCourseIds.includes(courseId)
-    );
-    if (coursesToIncrement.length > 0) {
-      await Course.updateMany(
-        { _id: { $in: coursesToIncrement } },
-        { $inc: { enrolledCount: 1 } }
-      );
-    }
-
-    // Update user's courseAssignments
-    const newAssignmentIds = createdAssignments.map((a) => a._id);
-
-    await User.findByIdAndUpdate(employeeId, {
-      $pull: { courseAssignments: { $in: existingAssignmentIds } },
-    });
-
-    await User.findByIdAndUpdate(employeeId, {
-      $push: { courseAssignments: { $each: newAssignmentIds } },
-    });
 
     return NextResponse.json(
       { message: 'Courses assigned successfully' },

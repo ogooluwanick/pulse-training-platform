@@ -6,6 +6,7 @@ import Course from '@/lib/models/Course';
 import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { scheduleIntervalAssignment } from '@/lib/cron-manager';
 
 export async function POST(request: Request) {
   await dbConnect();
@@ -53,32 +54,43 @@ export async function POST(request: Request) {
 
         // Only create assignment if it doesn't already exist
         if (!existingAssignment) {
-          // Get course details to initialize lesson progress
-          const course = await Course.findById(assignment.courseId);
+          if (assignment.type === 'one-time') {
+            // Get course details to initialize lesson progress
+            const course = await Course.findById(assignment.courseId);
 
-          assignmentDocuments.push({
-            employee: new mongoose.Types.ObjectId(employeeId),
-            course: new mongoose.Types.ObjectId(assignment.courseId),
-            assignmentType: assignment.type,
-            interval: assignment.interval,
-            endDate: assignment.endDate,
-            status: 'not-started',
-            companyId: new mongoose.Types.ObjectId(session.user.companyId),
-            lessonProgress:
-              course && course.lessons
-                ? course.lessons.map((lesson: any) => ({
-                    lessonId: lesson._id,
-                    status: 'not-started',
-                  }))
-                : [],
-          });
+            assignmentDocuments.push({
+              employee: new mongoose.Types.ObjectId(employeeId),
+              course: new mongoose.Types.ObjectId(assignment.courseId),
+              assignmentType: assignment.type,
+              interval: assignment.interval,
+              endDate: assignment.endDate,
+              status: 'not-started',
+              companyId: new mongoose.Types.ObjectId(session.user.companyId),
+              lessonProgress:
+                course && course.lessons
+                  ? course.lessons.map(
+                      (lesson: { _id: mongoose.Types.ObjectId }) => ({
+                        lessonId: lesson._id,
+                        status: 'not-started',
+                      })
+                    )
+                  : [],
+            });
 
-          // Count enrollments for each course
-          const courseId = assignment.courseId;
-          courseEnrollmentCounts.set(
-            courseId,
-            (courseEnrollmentCounts.get(courseId) || 0) + 1
-          );
+            // Count enrollments for each course
+            const courseId = assignment.courseId;
+            courseEnrollmentCounts.set(
+              courseId,
+              (courseEnrollmentCounts.get(courseId) || 0) + 1
+            );
+          } else if (assignment.type === 'interval') {
+            scheduleIntervalAssignment({
+              employee: new mongoose.Types.ObjectId(employeeId),
+              course: new mongoose.Types.ObjectId(assignment.courseId),
+              companyId: new mongoose.Types.ObjectId(session.user.companyId),
+              interval: assignment.interval,
+            });
+          }
         }
       }
     }
