@@ -53,7 +53,16 @@ const CourseSchema = new Schema(
     },
     category: {
       type: String,
-      enum: ['compliance', 'skills', 'culture', 'technical', 'General'],
+      enum: [
+        'compliance',
+        'skills',
+        'culture',
+        'technical',
+        'General',
+        'Onboarding',
+        'Product Training',
+        'Other',
+      ],
       required: true,
     },
     instructor: {
@@ -160,7 +169,15 @@ export interface Course {
   _id: string;
   title: string;
   description?: string;
-  category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
+  category:
+    | 'compliance'
+    | 'skills'
+    | 'culture'
+    | 'technical'
+    | 'General'
+    | 'Onboarding'
+    | 'Product Training'
+    | 'Other';
   instructor?: { name: string } | string;
   duration?: number;
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';

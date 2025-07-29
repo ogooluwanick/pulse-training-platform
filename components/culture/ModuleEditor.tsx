@@ -1,6 +1,6 @@
 'use client';
 
-import { Module } from '@/types/culture';
+import { Module, CultureModuleCategory } from '@/types/culture';
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import 'react-quill/dist/quill.snow.css';
@@ -79,6 +79,9 @@ export default function ModuleEditor({
   const [difficulty, setDifficulty] = useState<
     'Beginner' | 'Intermediate' | 'Advanced'
   >('Beginner');
+  const [category, setCategory] = useState<CultureModuleCategory>(
+    CultureModuleCategory.GENERAL
+  );
 
   // Lessons
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -102,6 +105,7 @@ export default function ModuleEditor({
       setTags(module.tags || []);
       setStatus(module.status || 'draft');
       setDifficulty(module.difficulty || 'Beginner');
+      setCategory(module.category || CultureModuleCategory.GENERAL);
 
       // Handle lessons
       if (module.lessons && module.lessons.length > 0) {
@@ -372,6 +376,7 @@ export default function ModuleEditor({
         tags,
         status,
         difficulty,
+        category,
         lessons: backendLessons.map((lesson, index) => {
           const mappedLesson = {
             _id: lesson.id,
@@ -618,6 +623,27 @@ export default function ModuleEditor({
                     placeholder="Describe what this culture module covers..."
                     rows={3}
                   />
+                </div>
+
+                <div>
+                  <Label htmlFor="category">Category</Label>
+                  <Select
+                    value={category}
+                    onValueChange={(value: CultureModuleCategory) =>
+                      setCategory(value)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(CultureModuleCategory).map((cat) => (
+                        <SelectItem key={cat} value={cat}>
+                          {cat}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>

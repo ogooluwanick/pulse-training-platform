@@ -24,21 +24,15 @@ export async function GET(req: NextRequest) {
   await dbConnect();
 
   try {
-    const companyId = token.companyId;
-
-    if (!companyId) {
-      return NextResponse.json(
-        { message: 'Company ID not found in token' },
-        { status: 400 }
-      );
-    }
+    const matchStage =
+      token.role === 'ADMIN'
+        ? {}
+        : { companyId: new mongoose.Types.ObjectId(token.companyId as string) };
 
     // Get all course assignments for the company with populated data
     const assignments = await CourseAssignment.aggregate([
       {
-        $match: {
-          companyId: new mongoose.Types.ObjectId(companyId as string),
-        },
+        $match: matchStage,
       },
       {
         $lookup: {

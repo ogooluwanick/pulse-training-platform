@@ -23,6 +23,7 @@ export interface Module {
   content: string;
   quiz: Question[];
   // Extended fields for full course support
+  category?: CultureModuleCategory;
   description?: string;
   tags?: string[];
   status?: 'draft' | 'published' | 'archived';
@@ -54,12 +55,21 @@ export interface CourseLesson {
 }
 
 // New Course-based Culture Module interface
+export enum CultureModuleCategory {
+  GENERAL = 'General',
+  ONBOARDING = 'Onboarding',
+  PRODUCT_TRAINING = 'Product Training',
+  COMPLIANCE = 'Compliance',
+  OTHER = 'Other',
+}
+
+// New Course-based Culture Module interface
 export interface CultureCourse {
   _id: string;
   title: string;
   description?: string;
   content?: string; // From the first lesson (for backward compatibility)
-  category: 'culture';
+  category: CultureModuleCategory;
   status: 'draft' | 'published' | 'archived';
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   tags: string[];
@@ -107,7 +117,7 @@ const validateAndFilterQuestions = (questions: Question[]) => {
       }
 
       // For true/false questions
-      if (q.type === 'True/False' || q.type === 'true-false') {
+      if (q.type === 'True/False') {
         const isValid =
           q.correctAnswerId &&
           (q.correctAnswerId === 'True' || q.correctAnswerId === 'False');
@@ -123,7 +133,7 @@ const validateAndFilterQuestions = (questions: Question[]) => {
       }
 
       // For multiple choice questions
-      if (q.type === 'Multiple Choice' || q.type === 'multiple-choice') {
+      if (q.type === 'Multiple Choice') {
         // Handle both array of objects and array of strings for options
         let validOptions;
         if (Array.isArray(q.options)) {
@@ -135,7 +145,8 @@ const validateAndFilterQuestions = (questions: Question[]) => {
           } else {
             // Array of strings: ['Option 1', 'Option 2', ...] (used in some contexts)
             validOptions = q.options.filter(
-              (opt) => opt && typeof opt === 'string' && opt.trim() !== ''
+              (opt) =>
+                opt && typeof opt === 'string' && (opt as string).trim() !== ''
             );
           }
         } else {
@@ -177,12 +188,9 @@ const validateAndFilterQuestions = (questions: Question[]) => {
       let answerText = q.answer;
 
       if (!answerText || answerText.trim() === '') {
-        if (q.type === 'True/False' || q.type === 'true-false') {
+        if (q.type === 'True/False') {
           answerText = q.correctAnswerId || 'True';
-        } else if (
-          q.type === 'Multiple Choice' ||
-          q.type === 'multiple-choice'
-        ) {
+        } else if (q.type === 'Multiple Choice') {
           if (Array.isArray(q.options) && q.options.length > 0) {
             if (typeof q.options[0] === 'object') {
               // Find the correct answer option
@@ -213,105 +221,74 @@ export function courseToCultureModule(course: CultureCourse): Module {
   // Get the primary lesson for backward compatibility
   const primaryLesson = course.lessons?.[0];
 
-  return {
+  const module: Module = {
     id: course._id,
     title: course.title,
     content: primaryLesson?.content || course.content || '',
     description: course.description,
+    category: course.category,
     tags: course.tags || [],
     status: course.status,
     difficulty: course.difficulty,
-    lessons:
-      course.lessons?.map((lesson) => ({
-        _id: lesson._id,
-        title: lesson.title,
-        type: lesson.type,
-        content: lesson.content,
-        duration: lesson.duration,
-        quiz: lesson.quiz
-          ? {
+    lessons: course.lessons
+      ? course.lessons.map((lesson) => {
+          const newLesson: CourseLesson = {
+            _id: lesson._id,
+            title: lesson.title,
+            type: lesson.type,
+            content: lesson.content,
+            duration: lesson.duration,
+          };
+          if (lesson.quiz) {
+            newLesson.quiz = {
               title: lesson.quiz.title,
-              questions: lesson.quiz.questions.map((q, index) => {
-                // Ensure answer field is set when converting from backend
-                let answerText = q.answer;
-                if (!answerText || answerText.trim() === '') {
-                  if (q.type === 'true-false') {
-                    answerText = q.correctAnswerId || 'True';
-                  } else {
-                    answerText = q.options?.[0] || 'Option 1';
-                  }
-                }
-
-                return {
-                  id: `q_${index}`,
-                  text: q.question,
-                  type:
-                    q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
-                  options: q.options.map((opt, i) => ({
-                    id: `opt_${i}`,
-                    text: opt,
-                  })),
-                  correctAnswerId: q.correctAnswerId || `opt_0`,
-                  answer: answerText, // Add the answer field
-                };
-              }),
-            }
-          : undefined,
-      })) || [],
-    finalQuiz: course.finalQuiz
-      ? {
-          title: course.finalQuiz.title,
-          questions: course.finalQuiz.questions.map((q, index) => {
-            // Ensure answer field is set when converting from backend
-            let answerText = q.answer;
-            if (!answerText || answerText.trim() === '') {
-              if (q.type === 'true-false') {
-                answerText = q.correctAnswerId || 'True';
-              } else {
-                answerText = q.options?.[0] || 'Option 1';
-              }
-            }
-
-            return {
-              id: `fq_${index}`,
-              text: q.question,
-              type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
-              options: q.options.map((opt, i) => ({
-                id: `fopt_${i}`,
-                text: opt,
+              questions: lesson.quiz.questions.map((q) => ({
+                question: q.question,
+                type: q.type,
+                options: q.options,
+                answer: q.answer,
+                correctAnswerId: q.correctAnswerId,
               })),
-              correctAnswerId: q.correctAnswerId || `fopt_0`,
-              answer: answerText, // Add the answer field
             };
-          }),
-        }
-      : undefined,
-    // For backward compatibility, include the primary lesson quiz as module quiz
-    quiz:
-      primaryLesson?.quiz?.questions?.map((q, index) => {
-        // Ensure answer field is set when converting from backend
-        let answerText = q.answer;
-        if (!answerText || answerText.trim() === '') {
-          if (q.type === 'true-false') {
-            answerText = q.correctAnswerId || 'True';
-          } else {
-            answerText = q.options?.[0] || 'Option 1';
           }
-        }
-
-        return {
-          id: `q_${index}`,
-          text: q.question,
-          type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
-          options: q.options.map((opt, i) => ({
-            id: `opt_${i}`,
-            text: opt,
-          })),
-          correctAnswerId: q.correctAnswerId || q.answer || 'opt_0',
-          answer: answerText, // Add the answer field
-        };
-      }) || [],
+          return newLesson;
+        })
+      : [],
+    quiz: [],
   };
+
+  if (primaryLesson?.quiz) {
+    module.quiz = primaryLesson.quiz.questions.map((q, index) => ({
+      id: `q_${index}`,
+      text: q.question,
+      type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
+      options: q.options.map((opt, i) => ({
+        id: `opt_${i}`,
+        text: opt,
+      })),
+      correctAnswerId: q.correctAnswerId || 'opt_0',
+      answer: q.answer,
+    }));
+  }
+
+  if (course.finalQuiz) {
+    module.finalQuiz = {
+      title: course.finalQuiz.title,
+      questions: course.finalQuiz.questions.map((q, index) => ({
+        id: `fq_${index}`,
+        text: q.question,
+        type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
+        options: q.options.map((opt, i) => ({
+          id: `fopt_${i}`,
+          text: opt,
+        })),
+        correctAnswerId: q.correctAnswerId || `fopt_0`,
+        answer: q.answer,
+      })),
+    };
+  }
+
+  return module;
 }
 
 // Convert culture module to course format for API
@@ -324,20 +301,10 @@ export function cultureModuleToCourse(
   debugLog('Input module:', module);
   debugLog('Module lessons:', module.lessons);
 
-  if (module.lessons) {
-    module.lessons.forEach((lesson, index) => {
-      debugLog(`Lesson ${index + 1} conversion:`, lesson);
-      if (lesson.quiz) {
-        debugLog(`Lesson ${index + 1} quiz:`, lesson.quiz);
-        debugLog(`Lesson ${index + 1} quiz questions:`, lesson.quiz.questions);
-      }
-    });
-  }
-
-  const convertedCourse = {
+  const convertedCourse: Partial<CultureCourse> = {
     title: module.title,
     description: module.description,
-    category: 'culture' as const,
+    category: module.category || CultureModuleCategory.GENERAL,
     status: module.status || 'draft',
     difficulty: module.difficulty,
     tags: module.tags || [],
@@ -345,171 +312,77 @@ export function cultureModuleToCourse(
     companyId,
     createdBy: userId,
     lastModifiedBy: userId,
-    lessons:
-      module.lessons && module.lessons.length > 0
-        ? module.lessons.map((lesson, lessonIndex) => {
-            debugLog(`=== CONVERTING LESSON ${lessonIndex + 1} ===`);
-            debugLog('Lesson input:', lesson);
-
-            const convertedLesson = {
-              title: lesson.title,
-              type: lesson.type,
-              content: lesson.content,
-              duration: lesson.duration,
-              quiz:
-                lesson.quiz && lesson.quiz.questions.length > 0
-                  ? (() => {
-                      debugLog(
-                        `Lesson ${lessonIndex + 1} has quiz, converting...`
-                      );
-                      debugLog(
-                        `Quiz questions before validation:`,
-                        lesson.quiz.questions
-                      );
-
-                      const validQuestions = validateAndFilterQuestions(
-                        lesson.quiz.questions
-                      );
-                      debugLog(
-                        `Quiz questions after validation:`,
-                        validQuestions
-                      );
-
-                      return validQuestions.length > 0
-                        ? {
-                            title: lesson.quiz.title,
-                            questions: validQuestions.map((q) => {
-                              // Ensure we have a proper answer field
-                              let answerText = q.answer;
-                              if (!answerText || answerText.trim() === '') {
-                                if (q.type === 'True/False') {
-                                  answerText = q.correctAnswerId || 'True';
-                                } else {
-                                  const selectedOption = q.options.find(
-                                    (opt) => opt.id === q.correctAnswerId
-                                  );
-                                  answerText =
-                                    selectedOption?.text ||
-                                    q.options[0]?.text ||
-                                    '';
-                                }
-                              }
-
-                              const convertedQuestion = {
-                                question: q.text,
-                                type:
-                                  q.type === 'True/False'
-                                    ? 'true-false'
-                                    : 'multiple-choice',
-                                options: q.options.map((opt) => opt.text),
-                                answer: answerText, // Use the ensured answer text
-                                correctAnswerId: q.correctAnswerId,
-                              };
-
-                              debugLog('Question conversion:', {
-                                input: q,
-                                output: convertedQuestion,
-                              });
-
-                              return convertedQuestion;
-                            }),
-                          }
-                        : undefined;
-                    })()
-                  : undefined,
-            };
-
-            debugLog(`Lesson ${lessonIndex + 1} converted:`, convertedLesson);
-            return convertedLesson;
-          })
-        : [
-            {
-              title: module.title,
-              type: 'text' as const,
-              content: module.content,
-              duration: 5,
-              quiz:
-                module.quiz.length > 0
-                  ? (() => {
-                      const validQuestions = validateAndFilterQuestions(
-                        module.quiz
-                      );
-                      return validQuestions.length > 0
-                        ? {
-                            title: 'Module Quiz',
-                            questions: validQuestions.map((q) => {
-                              // Ensure we have a proper answer field
-                              let answerText = q.answer;
-                              if (!answerText || answerText.trim() === '') {
-                                if (q.type === 'True/False') {
-                                  answerText = q.correctAnswerId || 'True';
-                                } else {
-                                  const selectedOption = q.options.find(
-                                    (opt) => opt.id === q.correctAnswerId
-                                  );
-                                  answerText =
-                                    selectedOption?.text ||
-                                    q.options[0]?.text ||
-                                    '';
-                                }
-                              }
-
-                              return {
-                                question: q.text,
-                                type:
-                                  q.type === 'True/False'
-                                    ? 'true-false'
-                                    : 'multiple-choice',
-                                options: q.options.map((opt) => opt.text),
-                                answer: answerText, // Use the ensured answer text
-                                correctAnswerId: q.correctAnswerId,
-                              };
-                            }),
-                          }
-                        : undefined;
-                    })()
-                  : undefined,
-            },
-          ],
-    finalQuiz: module.finalQuiz
-      ? (() => {
-          const validQuestions = validateAndFilterQuestions(
-            module.finalQuiz.questions
-          );
-          return validQuestions.length > 0
-            ? {
-                title: module.finalQuiz.title,
-                questions: validQuestions.map((q) => {
-                  // Ensure we have a proper answer field
-                  let answerText = q.answer;
-                  if (!answerText || answerText.trim() === '') {
-                    if (q.type === 'True/False') {
-                      answerText = q.correctAnswerId || 'True';
-                    } else {
-                      const selectedOption = q.options.find(
-                        (opt) => opt.id === q.correctAnswerId
-                      );
-                      answerText =
-                        selectedOption?.text || q.options[0]?.text || '';
-                    }
-                  }
-
-                  return {
-                    question: q.text,
-                    type:
-                      q.type === 'True/False'
-                        ? 'true-false'
-                        : 'multiple-choice',
-                    options: q.options.map((opt) => opt.text),
-                    answer: answerText, // Use the ensured answer text
-                    correctAnswerId: q.correctAnswerId,
-                  };
-                }),
-              }
-            : undefined;
-        })()
-      : undefined,
   };
+
+  if (module.lessons && module.lessons.length > 0) {
+    convertedCourse.lessons = module.lessons.map((lesson) => {
+      const newLesson: CourseLesson = {
+        ...lesson,
+      };
+      if (lesson.quiz) {
+        const validQuestions = validateAndFilterQuestions(
+          lesson.quiz.questions as any
+        );
+        if (validQuestions.length > 0) {
+          newLesson.quiz = {
+            title: lesson.quiz.title,
+            questions: validQuestions.map((q) => ({
+              question: q.text,
+              type: q.type === 'True/False' ? 'true-false' : 'multiple-choice',
+              options: q.options.map((opt) => opt.text),
+              answer: q.answer || '',
+              correctAnswerId: q.correctAnswerId,
+            })),
+          };
+        } else {
+          newLesson.quiz = undefined;
+        }
+      }
+      return newLesson;
+    });
+  } else {
+    convertedCourse.lessons = [
+      {
+        title: module.title,
+        type: 'text',
+        content: module.content,
+        duration: 5,
+        quiz: (() => {
+          const validQuestions = validateAndFilterQuestions(module.quiz);
+          if (validQuestions.length > 0) {
+            return {
+              title: 'Module Quiz',
+              questions: validQuestions.map((q) => ({
+                question: q.text,
+                type:
+                  q.type === 'True/False' ? 'true-false' : 'multiple-choice',
+                options: q.options.map((opt) => opt.text),
+                answer: q.answer || '',
+                correctAnswerId: q.correctAnswerId,
+              })),
+            };
+          }
+          return undefined;
+        })(),
+      },
+    ];
+  }
+
+  if (module.finalQuiz) {
+    const validQuestions = validateAndFilterQuestions(module.finalQuiz.questions);
+    if (validQuestions.length > 0) {
+      convertedCourse.finalQuiz = {
+        title: module.finalQuiz.title,
+        questions: validQuestions.map((q) => ({
+          question: q.text,
+          type: q.type === 'True/False' ? 'true-false' : 'multiple-choice',
+          options: q.options.map((opt) => opt.text),
+          answer: q.answer || '',
+          correctAnswerId: q.correctAnswerId,
+        })),
+      };
+    }
+  }
 
   debugLog('Final converted course:', convertedCourse);
   return convertedCourse;

@@ -72,6 +72,7 @@ export async function PUT(
       difficulty,
       lessons,
       finalQuiz,
+      category,
     } = body;
 
     await dbConnect();
@@ -107,6 +108,7 @@ export async function PUT(
     if (description !== undefined) updateData.description = description;
     if (tags !== undefined) updateData.tags = tags;
     if (status !== undefined) updateData.status = status;
+    if (category !== undefined) updateData.category = category;
     if (difficulty !== undefined) updateData.difficulty = difficulty;
 
     // Handle lessons array

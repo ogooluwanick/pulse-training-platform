@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react"
 import { EmployeeDashboard } from "@/components/dashboards/employee-dashboard"
 import { CompanyDashboard } from "@/components/dashboards/company-dashboard"
-import { AdminDashboard } from "@/components/dashboards/admin-dashboard"
+import AdminDashboard from "@/components/dashboards/admin-dashboard"
 import FullPageLoader from "@/components/full-page-loader"
 
 export default function Dashboard() {
@@ -24,7 +24,7 @@ export default function Dashboard() {
     case "COMPANY":
       return <CompanyDashboard user={user} />
     case "ADMIN":
-      return <AdminDashboard user={user} />
+      return <AdminDashboard />
     default:
       return <FullPageLoader />
   }

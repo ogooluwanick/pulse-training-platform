@@ -143,7 +143,7 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
         `Invitations sent! Successful: ${data.invitedUsers.length}, Failed: ${data.failedInvites.length}`
       )
       if (data.failedInvites.length > 0) {
-        toast.warning(
+        toast.error(
           `Failed invites: ${data.failedInvites
             .map((f: any) => f.email)
             .join(", ")}`
@@ -166,7 +166,7 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
       .filter((email) => email && emailRegex.test(email))
 
     if (emails.length === 0) {
-      toast.warning("No valid email addresses entered.")
+      toast.error("No valid email addresses entered.")
       return
     }
 

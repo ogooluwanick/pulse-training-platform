@@ -1,11 +1,27 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import {
+  Users,
+  Building,
+  Shield,
+  Clock,
+  UserPlus,
+  Mail,
+  AlertTriangle,
+} from 'lucide-react';
+import FullPageLoader from '@/components/full-page-loader';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -13,370 +29,415 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Building2, Users, TrendingUp, AlertTriangle, Search, Pause, Play, Trash2, Eye } from "lucide-react"
-import type { User } from "next-auth"
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 
-interface AdminDashboardProps {
-  user: User
+interface AdminDashboardMetrics {
+  totalCompanies: number;
+  totalEmployees: number;
+  overallCompliance: number;
+  avgCompletionTime: number;
+  platformRisk: {
+    companiesAtRisk: number;
+    employeesAtRisk: number;
+  };
+  recentActivity: RecentActivity[];
 }
 
-interface Company {
-  id: string
-  name: string
-  domain: string
-  totalUsers: number
-  activeUsers: number
-  overallCompliance: number
-  subscriptionPlan: string
-  status: "active" | "suspended" | "trial"
-  createdAt: string
-  lastActivity: string
+interface RecentActivity {
+  id: string;
+  user: string;
+  action: string;
+  course: string;
+  timestamp: string;
+  type: 'completion' | 'enrollment' | 'deadline';
 }
 
-const mockCompanies: Company[] = [
-  {
-    id: "1",
-    name: "TechCorp Solutions",
-    domain: "techcorp.com",
-    totalUsers: 150,
-    activeUsers: 142,
-    overallCompliance: 87,
-    subscriptionPlan: "Enterprise",
-    status: "active",
-    createdAt: "2023-06-15",
-    lastActivity: "2 hours ago",
-  },
-  {
-    id: "2",
-    name: "Global Finance Ltd",
-    domain: "globalfinance.com",
-    totalUsers: 89,
-    activeUsers: 76,
-    overallCompliance: 92,
-    subscriptionPlan: "Professional",
-    status: "active",
-    createdAt: "2023-08-22",
-    lastActivity: "1 day ago",
-  },
-  {
-    id: "3",
-    name: "StartupXYZ",
-    domain: "startupxyz.com",
-    totalUsers: 25,
-    activeUsers: 18,
-    overallCompliance: 45,
-    subscriptionPlan: "Starter",
-    status: "trial",
-    createdAt: "2024-01-10",
-    lastActivity: "3 days ago",
-  },
-  {
-    id: "4",
-    name: "MegaCorp Industries",
-    domain: "megacorp.com",
-    totalUsers: 500,
-    activeUsers: 0,
-    overallCompliance: 0,
-    subscriptionPlan: "Enterprise",
-    status: "suspended",
-    createdAt: "2023-03-08",
-    lastActivity: "2 weeks ago",
-  },
-]
+const fetchAdminDashboardMetrics = async (): Promise<AdminDashboardMetrics> => {
+  const res = await fetch('/api/admin/dashboard-metrics');
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+};
 
-export function AdminDashboard({ user }: AdminDashboardProps) {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
+export default function AdminDashboard() {
+  const queryClient = useQueryClient();
+  const [inviteEmails, setInviteEmails] = useState('');
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
 
-  const totalActiveCompanies = mockCompanies.filter((c) => c.status === "active").length
-  const totalActiveUsers = mockCompanies.reduce((acc, company) => acc + company.activeUsers, 0)
-  const platformWideCompletion = Math.round(
-    mockCompanies.reduce((acc, company) => acc + company.overallCompliance, 0) / mockCompanies.length,
-  )
+  const {
+    data: metrics,
+    isLoading,
+    error,
+  } = useQuery<AdminDashboardMetrics>({
+    queryKey: ['adminDashboardMetrics'],
+    queryFn: fetchAdminDashboardMetrics,
+  });
 
-  const getStatusColor = (status: Company["status"]) => {
-    switch (status) {
-      case "active":
-        return "bg-success-green text-alabaster"
-      case "trial":
-        return "bg-charcoal text-alabaster"
-      case "suspended":
-        return "bg-warning-ochre text-alabaster"
-      default:
-        return "bg-warm-gray text-alabaster"
+  const inviteMutation = useMutation({
+    mutationFn: (emails: string[]) =>
+      fetch('/api/admin/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ emails }),
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'Something went wrong');
+        }
+        return data;
+      }),
+    onSuccess: (data) => {
+      toast.success(
+        `Invitations sent! Successful: ${data.invitedUsers.length}, Failed: ${data.failedInvites.length}`
+      );
+      if (data.failedInvites.length > 0) {
+        toast.error(
+          `Failed invites: ${data.failedInvites
+            .map((f: any) => f.email)
+            .join(', ')}`
+        );
+      }
+      setIsInviteDialogOpen(false);
+      setInviteEmails('');
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to send invitations: ${error.message}`);
+    },
+  });
+
+  const handleInviteAdmins = () => {
+    const emailRegex = /\S+@\S+\.\S+/;
+    const emails = inviteEmails
+      .split(/[,\s\n]+/)
+      .map((email) => email.trim())
+      .filter((email) => email && emailRegex.test(email));
+
+    if (emails.length === 0) {
+      toast.error('No valid email addresses entered.');
+      return;
     }
+
+    inviteMutation.mutate(emails);
+  };
+
+  if (isLoading) {
+    return <FullPageLoader />;
   }
 
-  const handleCompanyAction = (company: Company, action: "suspend" | "reactivate" | "delete") => {
-    console.log(`${action} company:`, company.name)
-    // Handle company actions
+  if (error) {
+    return (
+      <div
+        className="flex-1 space-y-6 p-6 min-h-screen"
+        style={{ backgroundColor: '#f5f4ed' }}
+      >
+        <Card className="bg-card border-warm-gray/20">
+          <CardHeader>
+            <CardTitle className="text-charcoal">Admin Dashboard</CardTitle>
+            <CardDescription className="text-warm-gray">
+              Platform-wide overview
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-red-500">Could not load metrics.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
-
-  const filteredCompanies = mockCompanies.filter(
-    (company) =>
-      company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.domain.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
 
   return (
-    <div className="flex-1 space-y-6 p-6 min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
-      {/* Header */}
+    <div
+      className="flex-1 space-y-6 p-6 min-h-screen"
+      style={{ backgroundColor: '#f5f4ed' }}
+    >
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-charcoal">Platform Administration</h1>
-            <p className="text-warm-gray">Manage all client organizations and platform metrics</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold text-charcoal">Admin Dashboard</h1>
+          <p className="text-warm-gray">Platform-wide overview</p>
         </div>
+        <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite Admins
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="bg-parchment border-warm-gray/20">
+            <DialogHeader>
+              <DialogTitle className="text-charcoal">Invite Admins</DialogTitle>
+              <DialogDescription className="text-warm-gray">
+                Enter email addresses to invite admins to the platform
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="emails" className="text-charcoal">
+                  Email Addresses
+                </Label>
+                <Textarea
+                  id="emails"
+                  placeholder="Enter email addresses, one per line or separated by commas"
+                  value={inviteEmails}
+                  onChange={(e) => setInviteEmails(e.target.value)}
+                  className="bg-alabaster border-warm-gray/30 focus:border-charcoal"
+                  rows={4}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleInviteAdmins}
+                  disabled={inviteMutation.isPending}
+                  className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                >
+                  {inviteMutation.isPending ? (
+                    'Sending...'
+                  ) : (
+                    <>
+                      <Mail className="h-4 w-4 mr-2" />
+                      Send Invitations
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsInviteDialogOpen(false)}
+                  className="bg-transparent"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Platform Metrics */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-card border-warm-gray/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warm-gray">Active Companies</CardTitle>
-            <Building2 className="h-4 w-4 text-success-green" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-charcoal">{totalActiveCompanies}</div>
-            <p className="text-xs text-warm-gray">+2 this month</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-warm-gray/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warm-gray">Total Active Users</CardTitle>
-            <Users className="h-4 w-4 text-charcoal" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-charcoal">{totalActiveUsers.toLocaleString()}</div>
-            <p className="text-xs text-warm-gray">Across all organizations</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-warm-gray/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warm-gray">Platform Completion Rate</CardTitle>
-            <TrendingUp className="h-4 w-4 text-success-green" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-charcoal">{platformWideCompletion}%</div>
-            <p className="text-xs text-warm-gray">Average across all companies</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-warm-gray/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-warm-gray">Companies at Risk</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-warning-ochre" />
+            <CardTitle className="text-sm font-medium text-warm-gray">
+              Total Companies
+            </CardTitle>
+            <Building className="h-4 w-4 text-charcoal" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {mockCompanies.filter((c) => c.overallCompliance < 70).length}
+              {metrics?.totalCompanies}
             </div>
-            <p className="text-xs text-warm-gray">Below 70% compliance</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-warm-gray/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-warm-gray">
+              Total Employees
+            </CardTitle>
+            <Users className="h-4 w-4 text-charcoal" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-charcoal">
+              {metrics?.totalEmployees}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-warm-gray/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-warm-gray">
+              Overall Compliance
+            </CardTitle>
+            <Shield className="h-4 w-4 text-success-green" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-charcoal">
+              {metrics?.overallCompliance}%
+            </div>
+            <Progress value={metrics?.overallCompliance} className="mt-2 h-2" />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-warm-gray/20">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-warm-gray">
+              Avg. Completion Time
+            </CardTitle>
+            <Clock className="h-4 w-4 text-charcoal" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-charcoal">
+              {metrics?.avgCompletionTime}
+            </div>
+            <p className="text-xs text-warm-gray">Days per course</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Company Management */}
-      <Tabs defaultValue="companies" className="space-y-6">
-        <TabsList className="bg-parchment border border-warm-gray/20">
-          <TabsTrigger value="companies" className="data-[state=active]:bg-alabaster">
-            Company Management
-          </TabsTrigger>
-          <TabsTrigger value="analytics" className="data-[state=active]:bg-alabaster">
-            Platform Analytics
-          </TabsTrigger>
-          <TabsTrigger value="settings" className="data-[state=active]:bg-alabaster">
-            Platform Settings
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="companies" className="space-y-6">
-          <Card className="bg-card border-warm-gray/20">
+      {/* Compliance Overview Section */}
+      <div className="space-y-6">
+        <div className="grid gap-6">
+          <Card className="lg:col-span-2 bg-card border-warm-gray/20">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-charcoal">Client Organizations</CardTitle>
-                  <CardDescription className="text-warm-gray">Manage all registered client companies</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-gray" />
-                    <Input
-                      placeholder="Search companies..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 bg-alabaster border-warm-gray/30 focus:border-charcoal"
-                    />
+              <CardTitle className="text-charcoal">
+                Compliance Overview
+              </CardTitle>
+              <CardDescription className="text-warm-gray">
+                Platform-wide compliance and risk metrics
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-around items-center h-64">
+              {/* Overall Compliance Donut Chart */}
+              <div className="relative">
+                <svg className="w-48 h-48 transform -rotate-90">
+                  <circle
+                    cx="96"
+                    cy="96"
+                    r="80"
+                    stroke="#f5f4ed"
+                    strokeWidth="16"
+                    fill="transparent"
+                    className="opacity-20"
+                  />
+                  <circle
+                    cx="96"
+                    cy="96"
+                    r="80"
+                    stroke="#347458"
+                    strokeWidth="16"
+                    fill="transparent"
+                    strokeDasharray={`${((metrics?.overallCompliance || 0) / 100) * 502.4} 502.4`}
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-charcoal">
+                      {metrics?.overallCompliance}%
+                    </div>
+                    <div className="text-sm text-warm-gray">
+                      Platform Compliance
+                    </div>
                   </div>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {filteredCompanies.map((company) => (
-                  <div
-                    key={company.id}
-                    className="flex items-center gap-4 p-4 rounded-lg bg-alabaster border border-warm-gray/20"
-                  >
-                    <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
-                      <div>
-                        <p className="font-medium text-charcoal">{company.name}</p>
-                        <p className="text-sm text-warm-gray">{company.domain}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-warm-gray">Users</p>
-                        <p className="text-sm text-charcoal">
-                          {company.activeUsers} / {company.totalUsers}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-warm-gray">Compliance</p>
-                        <p className="text-sm text-charcoal">{company.overallCompliance}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-warm-gray">Plan</p>
-                        <p className="text-sm text-charcoal">{company.subscriptionPlan}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-warm-gray">Status</p>
-                        <Badge className={getStatusColor(company.status)} variant="secondary">
-                          {company.status.charAt(0).toUpperCase() + company.status.slice(1)}
-                        </Badge>
-                      </div>
+              {/* Companies at Risk Donut Chart */}
+              <div className="relative">
+                <svg className="w-48 h-48 transform -rotate-90">
+                  <circle
+                    cx="96"
+                    cy="96"
+                    r="80"
+                    stroke="#f5f4ed"
+                    strokeWidth="16"
+                    fill="transparent"
+                    className="opacity-20"
+                  />
+                  <circle
+                    cx="96"
+                    cy="96"
+                    r="80"
+                    stroke="#f59e0b"
+                    strokeWidth="16"
+                    fill="transparent"
+                    strokeDasharray={`${((metrics?.platformRisk.companiesAtRisk || 0) / (metrics?.totalCompanies || 1)) * 502.4} 502.4`}
+                    className="transition-all duration-1000 ease-out"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-charcoal">
+                      {metrics?.platformRisk.companiesAtRisk}
                     </div>
-                    <div className="flex gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="bg-transparent border-warm-gray/30"
-                            onClick={() => setSelectedCompany(company)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="bg-parchment border-warm-gray/20 max-w-2xl">
-                          <DialogHeader>
-                            <DialogTitle className="text-charcoal">{company.name} - Details</DialogTitle>
-                            <DialogDescription className="text-warm-gray">
-                              Detailed information and management options
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <p className="text-sm font-medium text-charcoal">Domain</p>
-                                <p className="text-sm text-warm-gray">{company.domain}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-charcoal">Created</p>
-                                <p className="text-sm text-warm-gray">{company.createdAt}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-charcoal">Last Activity</p>
-                                <p className="text-sm text-warm-gray">{company.lastActivity}</p>
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-charcoal">Subscription</p>
-                                <p className="text-sm text-warm-gray">{company.subscriptionPlan}</p>
-                              </div>
-                            </div>
-                            <div className="flex gap-2 pt-4 border-t border-warm-gray/20">
-                              {company.status === "active" ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="bg-transparent border-warning-ochre text-warning-ochre hover:bg-warning-ochre hover:text-alabaster"
-                                  onClick={() => handleCompanyAction(company, "suspend")}
-                                >
-                                  <Pause className="h-4 w-4 mr-2" />
-                                  Suspend
-                                </Button>
-                              ) : company.status === "suspended" ? (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="bg-transparent border-success-green text-success-green hover:bg-success-green hover:text-alabaster"
-                                  onClick={() => handleCompanyAction(company, "reactivate")}
-                                >
-                                  <Play className="h-4 w-4 mr-2" />
-                                  Reactivate
-                                </Button>
-                              ) : null}
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="bg-transparent border-red-500 text-red-500 hover:bg-red-500 hover:text-alabaster"
-                                onClick={() => handleCompanyAction(company, "delete")}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                    <div className="text-sm text-warm-gray">
+                      Companies at Risk
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      </div>
 
-        <TabsContent value="analytics" className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <Card className="bg-card border-warm-gray/20">
-              <CardHeader>
-                <CardTitle className="text-charcoal">Revenue by Plan</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-warm-gray">Enterprise</span>
-                    <span className="text-sm font-medium text-charcoal">$45,000/mo</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-warm-gray">Professional</span>
-                    <span className="text-sm font-medium text-charcoal">$12,500/mo</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-warm-gray">Starter</span>
-                    <span className="text-sm font-medium text-charcoal">$2,400/mo</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="bg-card border-warm-gray/20">
+          <CardHeader>
+            <CardTitle className="text-charcoal">Platform Risk</CardTitle>
+            <CardDescription className="text-warm-gray">
+              Companies and employees at risk
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning-ochre" />
+                <p className="text-sm font-medium text-charcoal">
+                  Companies at Risk
+                </p>
+              </div>
+              <p className="text-lg font-bold text-charcoal">
+                {metrics?.platformRisk.companiesAtRisk}
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning-ochre" />
+                <p className="text-sm font-medium text-charcoal">
+                  Employees at Risk
+                </p>
+              </div>
+              <p className="text-lg font-bold text-charcoal">
+                {metrics?.platformRisk.employeesAtRisk}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card className="bg-card border-warm-gray/20">
-              <CardHeader>
-                <CardTitle className="text-charcoal">Growth Metrics</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-warm-gray">New Companies (30d)</span>
-                    <span className="text-sm font-medium text-charcoal">+8</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-warm-gray">New Users (30d)</span>
-                    <span className="text-sm font-medium text-charcoal">+247</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-warm-gray">Churn Rate</span>
-                    <span className="text-sm font-medium text-charcoal">2.1%</span>
-                  </div>
+        <Card className="bg-card border-warm-gray/20">
+          <CardHeader>
+            <CardTitle className="text-charcoal">Recent Activity</CardTitle>
+            <CardDescription className="text-warm-gray">
+              Latest platform-wide activities
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {metrics?.recentActivity.map((activity) => (
+              <div
+                key={activity.id}
+                className="flex items-center gap-3 p-3 rounded-lg bg-alabaster"
+              >
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                    activity.type === 'completion'
+                      ? 'bg-success-green'
+                      : activity.type === 'enrollment'
+                        ? 'bg-charcoal'
+                        : 'bg-warning-ochre'
+                  } text-alabaster`}
+                >
+                  {activity.type === 'completion'
+                    ? '✓'
+                    : activity.type === 'enrollment'
+                      ? '📚'
+                      : '⚠'}
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+                <div className="flex-1">
+                  <p className="text-sm text-charcoal">
+                    <strong>{activity.user}</strong> {activity.action}{' '}
+                    <strong>{activity.course}</strong>
+                  </p>
+                  <p className="text-xs text-warm-gray">{activity.timestamp}</p>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  )
+  );
 }
+ 

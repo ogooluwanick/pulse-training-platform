@@ -171,7 +171,6 @@ export function useCultureModules() {
       delete courseUpdates.companyId;
       delete courseUpdates.createdBy;
       delete courseUpdates.isCompanySpecific;
-      delete courseUpdates.category;
 
       const response = await fetch(`/api/company/culture/${moduleId}`, {
         method: 'PUT',
