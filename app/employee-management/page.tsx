@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {  toast } from 'react-hot-toast';
 import {
   Card,
   CardContent,
@@ -137,6 +138,10 @@ export default function EmployeeManagementPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setIsEditModalOpen(false);
+      toast.success('Employee updated successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to update employee.');
     },
   });
 
@@ -145,6 +150,10 @@ export default function EmployeeManagementPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setIsAssignModalOpen(false);
+      toast.success('Courses assigned successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to assign courses.');
     },
   });
 
@@ -153,6 +162,10 @@ export default function EmployeeManagementPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setIsMassAssignModalOpen(false);
+      toast.success('Courses assigned successfully!');
+    },
+    onError: () => {
+      toast.error('Failed to assign courses.');
     },
   });
 

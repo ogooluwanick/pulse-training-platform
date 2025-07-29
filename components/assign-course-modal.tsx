@@ -11,6 +11,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import CourseCardSkeleton from './course-card-skeleton';
 import {
   Select,
   SelectContent,
@@ -223,6 +225,10 @@ export default function AssignCourseModal({
   };
 
   const handleAssign = () => {
+    if (selectedAssignments.length === 0) {
+      toast.error('Please select at least one course to assign.');
+      return;
+    }
     onAssign(selectedAssignments);
   };
 
@@ -255,7 +261,9 @@ export default function AssignCourseModal({
         <ScrollArea className="flex-grow w-full rounded-md border border-warm-gray/20 p-4 bg-alabaster overflow-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1 ">
             {isLoading ? (
-              <p>Loading courses...</p>
+              Array.from({ length: 6 }).map((_, index) => (
+                <CourseCardSkeleton key={index} />
+              ))
             ) : (
               filteredCourses?.map((course) => {
                 const assignment = selectedAssignments.find(
