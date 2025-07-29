@@ -70,11 +70,12 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await usersCollection.insertOne(newUser);
+    const userId = result.insertedId;
 
     if (companyId) {
       await companiesCollection.updateOne(
         { _id: companyId },
-        { $push: { employees: result.insertedId } }
+        { $set: { companyAccount: userId }, $push: { employees: userId } }
       );
     }
 

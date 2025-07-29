@@ -1,10 +1,15 @@
 import { Schema, model, models } from 'mongoose';
+import './User';
 
 const CompanySchema = new Schema(
   {
     name: {
       type: String,
       required: [true, 'Company name is required'],
+    },
+    companyAccount: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
     employees: [
       {

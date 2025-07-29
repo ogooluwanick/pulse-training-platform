@@ -21,12 +21,16 @@ export async function GET(req: NextRequest) {
   await dbConnect();
 
   try {
-    const companies = await Company.find({});
+    const companies = await Company.find({}).populate({
+      path: 'companyAccount',
+      select: 'firstName lastName email',
+      model: 'User',
+    });
     return NextResponse.json(companies, { status: 200 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to fetch companies:', error);
     return NextResponse.json(
-      { message: 'Failed to fetch companies' },
+      { message: 'Failed to fetch companies', error: error.message },
       { status: 500 }
     );
   }

@@ -131,6 +131,21 @@ const adminItems = [
     icon: Building2,
   },
   {
+    title: 'Employee Management',
+    url: '/admin/employees',
+    icon: Users,
+  },
+  {
+    title: 'Culture Builder',
+    url: '/admin/culture-builder',
+    icon: Building2,
+  },
+  {
+    title: 'Reports',
+    url: '/admin/reports',
+    icon: BarChart3,
+  },
+  {
     title: 'Platform Settings',
     url: '/admin/platform',
     icon: Settings,
