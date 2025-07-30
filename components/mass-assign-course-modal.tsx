@@ -40,6 +40,7 @@ import { format } from 'date-fns';
 import { Checkbox } from './ui/checkbox';
 import { formatDuration } from '@/lib/duration';
 import { Calendar } from '@/components/ui/calendar';
+import { Employee, AssignmentDetails } from '@/types/employee';
 
 interface Course {
   _id: string;
@@ -54,23 +55,6 @@ interface Course {
   totalRatings?: number;
   enrolledCount: number;
   tags: string[];
-}
-
-interface Employee {
-  email: string;
-  id: string;
-  name?: string;
-  // Handle raw user objects from database
-  _id?: string;
-  firstName?: string;
-  lastName?: string;
-}
-
-interface AssignmentDetails {
-  courseId: string;
-  type: 'one-time' | 'interval';
-  interval?: 'daily' | 'monthly' | 'yearly';
-  endDate?: Date;
 }
 
 interface MassAssignCourseModalProps {
@@ -149,7 +133,7 @@ export default function MassAssignCourseModal({
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedEmployeeIds(
-        safeEmployees.map((e) => e.id || e._id || '').filter(Boolean)
+        safeEmployees.map((e) => e.id || String(e._id) || '').filter(Boolean)
       );
     } else {
       setSelectedEmployeeIds([]);
@@ -253,7 +237,7 @@ export default function MassAssignCourseModal({
             <ScrollArea className="flex-grow rounded-md border border-warm-gray/20 p-4 bg-alabaster">
               <div className="space-y-2">
                 {safeEmployees.map((employee) => {
-                  const employeeId = employee.id || employee._id || '';
+                  const employeeId = String(employee.id || employee._id || '');
                   return (
                     <div
                       key={employeeId}

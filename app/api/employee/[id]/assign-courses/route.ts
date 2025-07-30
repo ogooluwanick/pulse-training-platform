@@ -4,6 +4,7 @@ import User from '@/lib/models/User';
 import Course from '@/lib/models/Course';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import { getToken } from 'next-auth/jwt';
+import mongoose from 'mongoose';
 
 export async function POST(
   req: NextRequest,
@@ -19,9 +20,9 @@ export async function POST(
 
   const token = await getToken({ req, secret });
 
-  if (!token || token.role !== 'ADMIN') {
+  if (!token || !['ADMIN', 'COMPANY'].includes(token.role as string)) {
     return NextResponse.json(
-      { message: 'Not authenticated or not an admin' },
+      { message: 'Not authenticated or not an admin/company' },
       { status: 401 }
     );
   }
@@ -29,10 +30,18 @@ export async function POST(
   await dbConnect();
 
   try {
+    const { id: employeeId } = params;
+    if (!employeeId || !mongoose.Types.ObjectId.isValid(employeeId)) {
+      return NextResponse.json(
+        { message: 'Invalid employeeId' },
+        { status: 400 }
+      );
+    }
+
     const body = await req.json();
     const { assignments } = body;
 
-    const employee = await User.findById(params.id);
+    const employee = await User.findById(employeeId);
 
     if (!employee) {
       return NextResponse.json(
@@ -41,18 +50,29 @@ export async function POST(
       );
     }
 
-    for (const assignment of assignments) {
-      const course = await Course.findById(assignment.courseId);
-      if (course) {
-        await CourseAssignment.create({
-          course: course._id,
-          employee: employee._id,
-          company: employee.companyId,
-          status: 'assigned',
-          assignmentType: assignment.type,
-          interval: assignment.interval,
-        });
-      }
+    const courseIds = assignments.map((a: any) => a.courseId);
+    const courses = await Course.find({ _id: { $in: courseIds } });
+    const courseMap = new Map(courses.map((c) => [c._id.toString(), c]));
+
+    const newAssignments = assignments
+      .map((assignment: any) => {
+        const course = courseMap.get(assignment.courseId);
+        if (course) {
+          return {
+            course: course._id,
+            employee: employee._id,
+            company: employee.companyId,
+            status: 'not-started',
+            assignmentType: assignment.type,
+            interval: assignment.interval,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean);
+
+    if (newAssignments.length > 0) {
+      await CourseAssignment.insertMany(newAssignments);
     }
 
     return NextResponse.json(

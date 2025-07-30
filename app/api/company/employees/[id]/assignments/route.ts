@@ -20,10 +20,15 @@ export async function GET(
     }
 
     // Ensure employeeId is a valid ObjectId
-    const employeeObjectId = new mongoose.Types.ObjectId(employeeId);
+    if (!mongoose.Types.ObjectId.isValid(employeeId)) {
+      return NextResponse.json(
+        { message: 'Invalid employeeId' },
+        { status: 400 }
+      );
+    }
 
     const assignments = await CourseAssignment.find({
-      employee: employeeObjectId,
+      employee: new mongoose.Types.ObjectId(employeeId),
     }).populate('course');
 
     return NextResponse.json(assignments);

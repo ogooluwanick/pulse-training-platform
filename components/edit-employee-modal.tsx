@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-
+import { Employee } from '@/types/employee';
 const departments = [
   "Human Resources",
   "Engineering",
@@ -34,19 +34,6 @@ const departments = [
   "Legal",
   "Administration",
 ];
-
-interface Employee {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  department: string;
-  overallProgress: number;
-  coursesAssigned: number;
-  coursesCompleted: number;
-  lastActivity: string;
-  status: 'on-track' | 'at-risk' | 'overdue';
-}
 
 interface EditEmployeeModalProps {
   employee: Employee | null;

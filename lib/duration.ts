@@ -11,8 +11,8 @@ export function formatDuration(minutes: number): string {
   for (const unit of units) {
     if (seconds >= unit.secs) {
       const value = Math.floor(seconds / unit.secs);
-      return `${value}${unit.label}`;
+      return `${value||0}${unit.label}`;
     }
   }
-  return `${seconds}s`;
+  return `${seconds||0}s`;
 }

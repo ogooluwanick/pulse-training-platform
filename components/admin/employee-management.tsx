@@ -17,31 +17,10 @@ import FullPageLoader from '@/components/full-page-loader';
 import EditEmployeeModal from '@/components/edit-employee-modal';
 import AssignCourseModal from '@/components/assign-course-modal';
 import MassAssignCourseModal from '@/components/mass-assign-course-modal';
-
-interface AssignmentDetails {
-  courseId: string;
-  type: 'one-time' | 'interval';
-  interval?: 'daily' | 'monthly' | 'yearly';
-}
-
-interface Employee {
-  lastName: string;
-  firstName: string;
-  _id: Key | null | undefined;
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  department: string;
-  overallProgress: number;
-  coursesAssigned: number;
-  coursesCompleted: number;
-  lastActivity: string;
-  status: 'on-track' | 'at-risk' | 'overdue';
-}
+import { Employee, AssignmentDetails } from '@/types/employee';
 
 const updateEmployee = async (employee: Employee): Promise<Employee> => {
-  const res = await fetch(`/api/employee/${employee.id}`, {
+  const res = await fetch(`/api/employee/${employee._id}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -61,16 +40,13 @@ const assignCourses = async ({
   employeeId: string;
   assignments: AssignmentDetails[];
 }) => {
-  const res = await fetch(
-    `/api/employee/${employeeId}/assign-courses`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ assignments }),
-    }
-  );
+  const res = await fetch(`/api/employee/${employeeId}/assign-courses`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ assignments }),
+  });
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
@@ -187,9 +163,9 @@ export default function EmployeeManagement() {
   };
 
   const handleAssign = (assignments: AssignmentDetails[]) => {
-    if (selectedEmployee) {
+    if (selectedEmployee?._id) {
       assignMutation.mutate({
-        employeeId: selectedEmployee.id,
+        employeeId: String(selectedEmployee._id),
         assignments,
       });
     }
@@ -281,17 +257,17 @@ export default function EmployeeManagement() {
                         className="flex-1 h-2"
                       />
                       <span className="text-sm text-charcoal">
-                        {employee.overallProgress}%
+                        {Math.round(employee.overallProgress || 0)}%
                       </span>
                     </div>
                   </div>
                   <div>
                     <p className="text-sm text-warm-gray">Status</p>
                     <Badge
-                      className={getStatusColor(employee.status)}
+                      className={`capitalize ${getStatusColor(employee.status)}`}
                       variant="secondary"
                     >
-                      {employee.status }
+                      {employee.status}
                     </Badge>
                   </div>
                 </div>

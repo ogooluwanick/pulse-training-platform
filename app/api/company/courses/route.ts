@@ -12,7 +12,11 @@ export async function GET() {
     await dbConnect();
 
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || session.user.role !== 'COMPANY') {
+    if (
+      !session ||
+      !session.user ||
+      !['COMPANY', 'ADMIN'].includes(session.user.role)
+    ) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 

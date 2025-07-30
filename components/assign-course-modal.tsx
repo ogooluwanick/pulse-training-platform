@@ -41,6 +41,7 @@ import {
 import { format } from 'date-fns';
 import { formatDuration } from '@/lib/duration';
 import { Calendar } from '@/components/ui/calendar';
+import { Employee, AssignmentDetails } from '@/types/employee';
 
 interface Course {
   _id: string;
@@ -55,19 +56,6 @@ interface Course {
   totalRatings?: number;
   enrolledCount: number;
   tags: string[];
-}
-
-interface Employee {
-  id: string;
-  name: string;
-}
-
-interface AssignmentDetails {
-  courseId: string;
-  type: 'one-time' | 'interval';
-  interval?: 'daily' | 'monthly' | 'yearly';
-  endDate?: Date;
-  status?: 'not-started' | 'in-progress' | 'completed';
 }
 
 interface AssignCourseModalProps {
@@ -159,7 +147,7 @@ export default function AssignCourseModal({
       const filteredAssignments = initialAssignments.filter((assignment) => {
         if (
           assignment.type === 'one-time' &&
-          assignment.status === 'completed'
+          (assignment as any).status === 'completed'
         ) {
           return false;
         }

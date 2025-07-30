@@ -96,7 +96,8 @@ export default function CourseCatalogPage() {
       if (!response.ok) {
         throw new Error('Failed to fetch courses');
       }
-      return response.json();
+      const data = await response.json();
+      return data.courses;
     },
   });
 

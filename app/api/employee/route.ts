@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/User';
+import CourseAssignment from '@/lib/models/CourseAssignment';
 import { getToken } from 'next-auth/jwt';
+import mongoose from 'mongoose';
 
 export async function GET(req: NextRequest) {
   const secret = process.env.NEXTAUTH_SECRET;
@@ -14,14 +16,61 @@ export async function GET(req: NextRequest) {
 
   const token = await getToken({ req, secret });
 
-  if (!token || token.role !== 'ADMIN') {
-    return NextResponse.json({ message: 'Not authenticated or not an admin' }, { status: 401 });
+  if (!token || !['ADMIN', 'COMPANY'].includes(token.role as string)) {
+    return NextResponse.json(
+      { message: 'Not authenticated or not an admin/company' },
+      { status: 401 }
+    );
   }
 
   await dbConnect();
 
   try {
-    const employees = await User.find({ role: 'EMPLOYEE' });
+    const companyId =
+      token.role === 'COMPANY'
+        ? new mongoose.Types.ObjectId(token.id as string)
+        : undefined;
+
+    const employees = await User.aggregate([
+      {
+        $match: {
+          role: 'EMPLOYEE',
+          ...(companyId ? { companyId } : {}),
+        },
+      },
+      {
+        $lookup: {
+          from: 'courseassignments',
+          localField: '_id',
+          foreignField: 'employee',
+          as: 'assignments',
+        },
+      },
+      {
+        $addFields: {
+          overallProgress: {
+            $cond: {
+              if: { $gt: [{ $size: '$assignments' }, 0] },
+              then: {
+                $round: [
+                  {
+                    $divide: [
+                      {
+                        $sum: '$assignments.progress',
+                      },
+                      { $size: '$assignments' },
+                    ],
+                  },
+                  2,
+                ],
+              },
+              else: 0,
+            },
+          },
+        },
+      },
+    ]);
+
     return NextResponse.json(employees, { status: 200 });
   } catch (error) {
     console.error('Failed to fetch employees:', error);
