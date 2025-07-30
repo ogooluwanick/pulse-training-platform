@@ -166,7 +166,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
     queryKey: ['learningBadge'],
     queryFn: fetchLearningData,
     enabled: !!user && user.role === 'EMPLOYEE',
-    refetchInterval: 30000, // Refetch every 30onds
+    refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const handleSignOut = () => {
@@ -191,10 +191,14 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
       {/* Toggle Button - Fixed position on left side, vertically centered */}
       <Button
         onClick={onToggle}
-        className="fixed left-4 top-1/2 transform -translate-y-1/2 z-50 bg-alabaster hover:bg-alabaster/90 text-charcoal shadow-soft-lg rounded-full p-3 transition-soft border border-warm-gray/20"
+        className="fixed left-2 sm:left-4 top-1/2 transform -translate-y-1/2 z-50 bg-alabaster hover:bg-alabaster/90 text-charcoal shadow-soft-lg rounded-full p-2 sm:p-3 transition-soft border border-warm-gray/20"
         size="icon"
       >
-        {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {isOpen ? (
+          <X className="h-4 w-4 sm:h-5 sm:w-5" />
+        ) : (
+          <Menu className="h-4 w-4 sm:h-5 sm:w-5" />
+        )}
       </Button>
 
       {/* Overlay */}
@@ -207,7 +211,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full w-80 z-50 transform transition-transform duration-300 ease-out ${
+        className={`fixed left-0 top-0 h-full w-72 sm:w-80 z-50 transform transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -215,14 +219,18 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
           className="border-r border-warm-gray/20 h-full"
           style={{ backgroundColor: '#f5f4ed' }}
         >
-          <SidebarHeader className="p-6">
+          <SidebarHeader className="p-4 sm:p-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-charcoal text-alabaster">
-                <span className="text-lg font-bold">P</span>
+              <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-charcoal text-alabaster">
+                <span className="text-sm sm:text-lg font-bold">P</span>
               </div>
               <div>
-                <h1 className="text-xl font-bold text-charcoal">Pulse</h1>
-                <p className="text-sm text-warm-gray">Intelligent Workspace</p>
+                <h1 className="text-lg sm:text-xl font-bold text-charcoal">
+                  Pulse
+                </h1>
+                <p className="text-xs sm:text-sm text-warm-gray">
+                  Intelligent Workspace
+                </p>
               </div>
             </div>
           </SidebarHeader>
@@ -230,7 +238,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
           <SidebarContent>
             {/* Main Navigation */}
             <SidebarGroup>
-              <SidebarGroupLabel className="text-warm-gray font-medium">
+              <SidebarGroupLabel className="text-warm-gray font-medium px-4 sm:px-6">
                 Menu
               </SidebarGroupLabel>
               <SidebarGroupContent>
@@ -278,7 +286,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                               >
                                 <div className="flex items-center gap-3">
                                   <item.icon className="h-4 w-4" />
-                                  <span>{item.title}</span>
+                                  <span className="text-sm sm:text-base">
+                                    {item.title}
+                                  </span>
                                 </div>
                                 {item.badge && item.badge !== '0' && (
                                   <Badge className="bg-charcoal text-alabaster text-xs">
@@ -300,7 +310,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                 className="flex items-center gap-3"
                               >
                                 <Award className="h-4 w-4" />
-                                <span>Course Catalog</span>
+                                <span className="text-sm sm:text-base">
+                                  Course Catalog
+                                </span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
@@ -317,7 +329,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                   className="flex items-center gap-3"
                                 >
                                   <companyItem.icon className="h-4 w-4" />
-                                  <span>{companyItem.title}</span>
+                                  <span className="text-sm sm:text-base">
+                                    {companyItem.title}
+                                  </span>
                                 </Link>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -338,7 +352,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                           >
                             <div className="flex items-center gap-3">
                               <item.icon className="h-4 w-4" />
-                              <span>{item.title}</span>
+                              <span className="text-sm sm:text-base">
+                                {item.title}
+                              </span>
                             </div>
                             {item.badge && item.badge !== '0' && (
                               <Badge className="bg-charcoal text-alabaster text-xs">
@@ -361,7 +377,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                     <>
                       <SidebarSeparator />
                       <SidebarGroup>
-                        <SidebarGroupLabel className="text-warm-gray font-medium">
+                        <SidebarGroupLabel className="text-warm-gray font-medium px-4 sm:px-6">
                           Admin
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
@@ -378,7 +394,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                   className="flex items-center gap-3"
                                 >
                                   <Award className="h-4 w-4" />
-                                  <span>Course Catalog</span>
+                                  <span className="text-sm sm:text-base">
+                                    Course Catalog
+                                  </span>
                                 </Link>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -394,7 +412,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                     className="flex items-center gap-3"
                                   >
                                     <item.icon className="h-4 w-4" />
-                                    <span>{item.title}</span>
+                                    <span className="text-sm sm:text-base">
+                                      {item.title}
+                                    </span>
                                   </Link>
                                 </SidebarMenuButton>
                               </SidebarMenuItem>
@@ -408,7 +428,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                   {/* Account items for all users */}
                   <SidebarSeparator />
                   <SidebarGroup>
-                    <SidebarGroupLabel className="text-warm-gray font-medium">
+                    <SidebarGroupLabel className="text-warm-gray font-medium px-4 sm:px-6">
                       Account
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
@@ -425,7 +445,9 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                                 className="flex items-center gap-3"
                               >
                                 <item.icon className="h-4 w-4" />
-                                <span>{item.title}</span>
+                                <span className="text-sm sm:text-base">
+                                  {item.title}
+                                </span>
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>

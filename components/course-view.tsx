@@ -76,14 +76,21 @@ interface CourseAssignment {
 interface CoursePageProps {
   mode: 'edit' | 'try-out' | 'view';
   assignment?: CourseAssignment | null;
+  course?: Course | null;
 }
 
-export default function CourseView({ mode, assignment: initialAssignment }: CoursePageProps) {
+export default function CourseView({
+  mode,
+  assignment: initialAssignment,
+  course: initialCourse,
+}: CoursePageProps) {
   const params = useParams();
   const router = useRouter();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [assignment, setAssignment] = useState<CourseAssignment | null>(initialAssignment || null);
-  const [loading, setLoading] = useState(true);
+  const [course, setCourse] = useState<Course | null>(initialCourse || null);
+  const [assignment, setAssignment] = useState<CourseAssignment | null>(
+    initialAssignment || null
+  );
+  const [loading, setLoading] = useState(!initialCourse && !initialAssignment);
   const [error, setError] = useState<string | null>(null);
   const [showFinalQuiz, setShowFinalQuiz] = useState(false);
   const [finalQuizPassed, setFinalQuizPassed] = useState(false);
@@ -111,10 +118,12 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
       type: 'lesson' | 'quiz' | 'finalQuiz';
       lessonIndex?: number;
     }> = [];
-    course.lessons.forEach((lesson, idx) => {
-      steps.push({ type: 'lesson', lessonIndex: idx });
-      if (lesson.quiz) steps.push({ type: 'quiz', lessonIndex: idx });
-    });
+    if (course.lessons) {
+      course.lessons.forEach((lesson, idx) => {
+        steps.push({ type: 'lesson', lessonIndex: idx });
+        if (lesson.quiz) steps.push({ type: 'quiz', lessonIndex: idx });
+      });
+    }
     if (course.finalQuiz) steps.push({ type: 'finalQuiz' });
     return steps;
   };
@@ -124,7 +133,7 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
 
   // Fetch course and assignment data
   const fetchCourseData = useCallback(async () => {
-    if (!params.id) return;
+    if (!params.id || initialCourse) return;
 
     setLoading(true);
     setError(null);
@@ -135,17 +144,7 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
         throw new Error('Failed to fetch course data');
       }
       const courseData = await courseRes.json();
-      setCourse(courseData);
-
-      if (mode === 'edit' && !initialAssignment) {
-        const assignmentRes = await fetch(
-          `/api/course-assignment/${params.id}`
-        );
-        if (assignmentRes.ok) {
-          const assignmentData = await assignmentRes.json();
-          setAssignment(assignmentData);
-        }
-      }
+      setCourse(courseData.module || courseData);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'An unknown error occurred'
@@ -154,22 +153,50 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
     } finally {
       setLoading(false);
     }
-  }, [params.id, mode, initialAssignment]);
+  }, [params.id, initialCourse]);
 
   useEffect(() => {
     fetchCourseData();
   }, [fetchCourseData]);
 
+  // Update course state when initialCourse prop changes
+  useEffect(() => {
+    if (initialCourse) {
+      setCourse(initialCourse);
+      setLoading(false);
+    }
+  }, [initialCourse]);
+
+  // Update assignment state when initialAssignment prop changes
+  useEffect(() => {
+    if (initialAssignment) {
+      setAssignment(initialAssignment);
+      // If assignment has populated course data, use it
+      if (
+        initialAssignment.course &&
+        typeof initialAssignment.course === 'object'
+      ) {
+        console.log(
+          'Using course data from assignment:',
+          initialAssignment.course
+        );
+        setCourse(initialAssignment.course);
+        setLoading(false);
+      }
+    }
+  }, [initialAssignment]);
+
   useEffect(() => {
     if (course && (mode === 'edit' || mode === 'view')) {
       if (assignment) {
+        console.log('Processing assignment data:', assignment);
         const completed =
           assignment.lessonProgress
             ?.filter((lp) => lp.status === 'completed')
             .map((lp) => lp.lessonId) || [];
         setCompletedLessons(completed);
 
-        const totalItems = course.lessons.length;
+        const totalItems = course.lessons?.length || 0;
         const completedCount = completed.length;
         setProgress(
           totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0
@@ -231,11 +258,13 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
   };
 
   const allLessonsCompleted =
-    course && course.lessons.every((l) => completedLessons.includes(l._id));
+    course &&
+    course.lessons &&
+    course.lessons.every((l) => completedLessons.includes(l._id));
 
   // Check if course is truly completed (all lessons + final quiz if exists)
   const isCourseCompleted = () => {
-    if (!course) return false;
+    if (!course || !course.lessons) return false;
 
     const allLessonsDone = course.lessons.every((l) =>
       completedLessons.includes(l._id)
@@ -246,7 +275,8 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
     if (course.finalQuiz) {
       if (mode === 'edit' || mode === 'view') {
         return assignment?.finalQuizResult?.passed === true;
-      } else { // 'try-out'
+      } else {
+        // 'try-out'
         return finalQuizPassed;
       }
     }
@@ -328,7 +358,11 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
         toast.success('Lesson completed successfully!');
         setCompletedLessons([...completedLessons, currentLesson._id]);
         const nextLessonIndex = currentLessonIndex + 1;
-        if (course && nextLessonIndex < course.lessons.length) {
+        if (
+          course &&
+          course.lessons &&
+          nextLessonIndex < course.lessons.length
+        ) {
           const nextLessonData = course.lessons[nextLessonIndex];
           setNextLesson(nextLessonData);
           setShowNextLesson(true);
@@ -379,14 +413,14 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
   };
 
   const handleLessonStart = (lessonId: string) => {
-    const lesson = course?.lessons.find((l) => l._id === lessonId);
+    const lesson = course?.lessons?.find((l) => l._id === lessonId);
     if (!lesson) {
       toast.error('Could not find lesson details. Please refresh.');
       return;
     }
 
     const lessonIndex =
-      course?.lessons.findIndex((l: any) => l._id === lesson._id) || 0;
+      course?.lessons?.findIndex((l: any) => l._id === lesson._id) || 0;
 
     if (isLessonLocked(lessonIndex)) {
       const previousLesson = course?.lessons[lessonIndex - 1];
@@ -399,7 +433,7 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
     }
 
     const nextLessonIndex = lessonIndex + 1;
-    if (course && nextLessonIndex < course.lessons.length) {
+    if (course && course.lessons && nextLessonIndex < course.lessons.length) {
       const nextLessonData = course.lessons[nextLessonIndex];
       setNextLesson(nextLessonData);
     } else {
@@ -436,7 +470,11 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
           setCompletedLessons([...completedLessons, currentLesson._id]);
         }
         const nextLessonIndex = currentLessonIndex + 1;
-        if (course && nextLessonIndex < course.lessons.length) {
+        if (
+          course &&
+          course.lessons &&
+          nextLessonIndex < course.lessons.length
+        ) {
           const nextLessonData = course.lessons[nextLessonIndex];
           setNextLesson(nextLessonData);
           setShowNextLesson(true);
@@ -546,11 +584,10 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
     // Check if lesson type is image or if content is an image URL
     const isImageLesson =
       lesson.type === 'image' ||
-      (lesson.content && (
-        lesson.content.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ||
-        lesson.content.includes('cloudinary.com') ||
-        lesson.content.includes('images.unsplash.com')
-      ));
+      (lesson.content &&
+        (lesson.content.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i) ||
+          lesson.content.includes('cloudinary.com') ||
+          lesson.content.includes('images.unsplash.com')));
 
     if (isVideoLesson) {
       return (
@@ -594,10 +631,22 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
               ) : (
                 <div className="w-full h-full bg-warm-gray/20 rounded-lg flex items-center justify-center text-warm-gray">
                   <div className="text-center">
-                    <svg className="w-16 h-16 mx-auto mb-4 text-warm-gray/50" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    <svg
+                      className="w-16 h-16 mx-auto mb-4 text-warm-gray/50"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                        clipRule="evenodd"
+                      />
                     </svg>
-                    <p className="text-sm">{imageError ? 'Image could not be loaded' : 'No image available'}</p>
+                    <p className="text-sm">
+                      {imageError
+                        ? 'Image could not be loaded'
+                        : 'No image available'}
+                    </p>
                   </div>
                 </div>
               )}
@@ -631,7 +680,7 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
   };
 
   const filteredLessons =
-    course?.lessons.filter((lesson) =>
+    course?.lessons?.filter((lesson) =>
       lesson.title.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
@@ -674,7 +723,7 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
     );
   }
 
-  const totalItems = course.lessons.length;
+  const totalItems = course.lessons?.length || 0;
   const completedCount = completedLessons.length;
   const progressPercent = Math.round((completedCount / totalItems) * 100);
 
@@ -684,15 +733,23 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
       style={{ backgroundColor: '#f5f4ed' }}
     >
       {mode === 'try-out' && (
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4" role="alert">
+        <div
+          className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4"
+          role="alert"
+        >
           <p className="font-bold">Try-Out Mode</p>
           <p>Your progress will not be saved.</p>
         </div>
       )}
       {mode === 'view' && (
-        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4" role="alert">
+        <div
+          className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4"
+          role="alert"
+        >
           <p className="font-bold">View Mode</p>
-          <p>You are viewing an employee's assignment. No changes can be made.</p>
+          <p>
+            You are viewing an employee's assignment. No changes can be made.
+          </p>
         </div>
       )}
       {/* Header */}
@@ -723,7 +780,7 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {course.lessons.length}
+              {course.lessons?.length || 0}
             </div>
           </CardContent>
         </Card>
@@ -737,7 +794,10 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {course.lessons.reduce((acc: number, lesson: Lesson) => acc + lesson.duration, 0)}{' '}
+              {course.lessons?.reduce(
+                (acc: number, lesson: Lesson) => acc + lesson.duration,
+                0
+              ) || 0}{' '}
               min
             </div>
           </CardContent>
@@ -798,8 +858,8 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
                 {completedCount} of {totalItems} lessons completed
               </span>
               <span>
-                {course.lessons.length - completedLessons.length} lessons
-                remaining
+                {(course.lessons?.length || 0) - completedLessons.length}{' '}
+                lessons remaining
               </span>
             </div>
           </div>
@@ -896,14 +956,16 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
                               Completed
                             </Badge>
                           )}
-                          {quizResult && typeof quizResult.score === 'number' && lesson.quiz && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs font-mono"
-                            >
-                              Score: {quizResult.score.toFixed(0)}%
-                            </Badge>
-                          )}
+                          {quizResult &&
+                            typeof quizResult.score === 'number' &&
+                            lesson.quiz && (
+                              <Badge
+                                variant="outline"
+                                className="text-xs font-mono"
+                              >
+                                Score: {quizResult.score.toFixed(0)}%
+                              </Badge>
+                            )}
                         </div>
                       </div>
                     </div>
@@ -932,7 +994,8 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
       {course.finalQuiz && (
         <Card
           className={`bg-card border-warm-gray/20 ${
-            (mode === 'try-out' && finalQuizPassed) || (assignment?.finalQuizResult?.passed)
+            (mode === 'try-out' && finalQuizPassed) ||
+            assignment?.finalQuizResult?.passed
               ? 'bg-success-green/10 border-success-green/30'
               : ''
           }`}
@@ -945,7 +1008,8 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
             <CardDescription className="text-warm-gray">
               {!allLessonsCompleted
                 ? 'Complete all lessons to unlock the final quiz'
-                : (mode === 'try-out' && finalQuizPassed) || (assignment?.finalQuizResult?.passed)
+                : (mode === 'try-out' && finalQuizPassed) ||
+                    assignment?.finalQuizResult?.passed
                   ? 'You have passed the final quiz. You can retake it if needed.'
                   : 'Complete the final quiz to finish the course'}
             </CardDescription>
@@ -966,17 +1030,19 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
                     <Lock className="h-3 w-3 mr-1" />
                     Locked
                   </Badge>
-                ) : (mode === 'try-out' && finalQuizPassed) || (assignment?.finalQuizResult?.passed) ? (
+                ) : (mode === 'try-out' && finalQuizPassed) ||
+                  assignment?.finalQuizResult?.passed ? (
                   <div className="flex items-center gap-2">
                     <Badge className="bg-success-green text-alabaster">
                       <CheckCircle className="h-3 w-3 mr-1" />
                       Passed
                     </Badge>
-                    {assignment?.finalQuizResult && typeof assignment.finalQuizResult.score === 'number' && (
-                       <Badge variant="outline" className="font-mono">
-                         Score: {assignment.finalQuizResult.score.toFixed(0)}%
-                       </Badge>
-                    )}
+                    {assignment?.finalQuizResult &&
+                      typeof assignment.finalQuizResult.score === 'number' && (
+                        <Badge variant="outline" className="font-mono">
+                          Score: {assignment.finalQuizResult.score.toFixed(0)}%
+                        </Badge>
+                      )}
                   </div>
                 ) : null}
               </div>
@@ -999,7 +1065,8 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
               >
                 {!allLessonsCompleted
                   ? 'Complete All Lessons First'
-                  : (mode === 'try-out' && finalQuizPassed) || (assignment?.finalQuizResult?.passed)
+                  : (mode === 'try-out' && finalQuizPassed) ||
+                      assignment?.finalQuizResult?.passed
                     ? 'Re-take Final Quiz'
                     : 'Take Final Quiz'}
               </Button>
@@ -1046,7 +1113,7 @@ export default function CourseView({ mode, assignment: initialAssignment }: Cour
             title: course.finalQuiz?.title || 'Final Quiz',
             description: 'Test your knowledge of the entire course',
             questions:
-              course.finalQuiz?.questions.map((q, i) => ({
+              (course.finalQuiz?.questions || []).map((q, i) => ({
                 id: String(i),
                 type: 'multiple-choice',
                 question: q.question,

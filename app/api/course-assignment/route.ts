@@ -24,6 +24,9 @@ export async function GET(req: NextRequest) {
   await dbConnect();
 
   try {
+    if (token.role !== 'ADMIN' && token.role !== 'COMPANY') {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
     const matchStage =
       token.role === 'ADMIN'
         ? {}
