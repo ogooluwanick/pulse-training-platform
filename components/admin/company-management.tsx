@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import ViewCompanyModal from './view-company-modal';
 import EditCompanyModal from './edit-company-modal';
-import DeactivateCompanyModal from './deactivate-company-modal';
+import DeactivateCompanyModal from './DeactivateCompanyModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -35,8 +35,8 @@ interface Company {
   _id: string;
   name: string;
   companyAccount: {
-    firstName: any;
-    lastName: any;
+    firstName: string;
+    lastName: string;
     name: string;
     email: string;
   };
@@ -108,7 +108,6 @@ export default function CompanyManagement() {
               Manage all companies on the platform
             </CardDescription>
           </div>
-          
         </CardHeader>
         <CardContent>
           <Table>

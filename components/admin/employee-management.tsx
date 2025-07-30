@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Key, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import {
@@ -25,6 +25,9 @@ interface AssignmentDetails {
 }
 
 interface Employee {
+  lastName: string;
+  firstName: string;
+  _id: Key | null | undefined;
   id: string;
   name: string;
   email: string;
@@ -248,13 +251,13 @@ export default function EmployeeManagement() {
           <div className="space-y-4">
             {employees?.map((employee) => (
               <div
-                key={employee.id}
+                key={employee._id}
                 className="flex items-center gap-4 p-4 rounded-lg bg-alabaster border border-warm-gray/20"
               >
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                     <p className="font-medium text-charcoal truncate capitalize">
-                      {employee.name || '-'}
+                      {`${employee.firstName || '-'} ${employee.lastName || '-'}`}
                     </p>
                     <p className="text-sm text-warm-gray truncate">
                       {employee.email}
@@ -288,9 +291,7 @@ export default function EmployeeManagement() {
                       className={getStatusColor(employee.status)}
                       variant="secondary"
                     >
-                      {employee.status === 'on-track' && 'On Track'}
-                      {employee.status === 'at-risk' && 'At Risk'}
-                      {employee.status === 'overdue' && 'Overdue'}
+                      {employee.status }
                     </Badge>
                   </div>
                 </div>

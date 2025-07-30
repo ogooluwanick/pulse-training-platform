@@ -84,10 +84,10 @@ export interface CultureCourse {
       correctAnswerId?: string;
     }>;
   };
-  companyId: string;
+  companyId?: string;
   createdBy?: string;
   lastModifiedBy?: string;
-  isCompanySpecific: boolean;
+  isCompanySpecific?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
   duration?: number;
@@ -294,7 +294,7 @@ export function courseToCultureModule(course: CultureCourse): Module {
 // Convert culture module to course format for API
 export function cultureModuleToCourse(
   module: Module,
-  companyId: string,
+  companyId: string | undefined,
   userId: string
 ): Partial<CultureCourse> {
   debugLog('=== CULTURE MODULE TO COURSE CONVERSION ===');
@@ -308,7 +308,6 @@ export function cultureModuleToCourse(
     status: module.status || 'draft',
     difficulty: module.difficulty,
     tags: module.tags || [],
-    isCompanySpecific: true,
     companyId,
     createdBy: userId,
     lastModifiedBy: userId,

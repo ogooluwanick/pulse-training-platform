@@ -10,10 +10,11 @@ import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { getHumanReadableError, debugLog } from '@/lib/error-utils';
 
-export function useCultureModules() {
+export function useCultureModules({ isAdmin = false } = {}) {
   const { data: session, status } = useSession();
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -31,7 +32,8 @@ export function useCultureModules() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/company/culture');
+      const url = isAdmin ? '/api/course' : '/api/company/culture';
+      const response = await fetch(url);
       const data: CultureModuleResponse = await response.json();
 
       if (!response.ok) {
@@ -58,8 +60,9 @@ export function useCultureModules() {
       setError(null);
     } finally {
       setLoading(false);
+      setIsLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, isAdmin]);
 
   // Load modules only when user changes or on first load
   useEffect(() => {
@@ -91,7 +94,8 @@ export function useCultureModules() {
       setIsCreating(true);
       setError(null);
 
-      const response = await fetch('/api/company/culture', {
+      const url = isAdmin ? '/api/course' : '/api/company/culture';
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -161,18 +165,20 @@ export function useCultureModules() {
 
       const courseUpdates = cultureModuleToCourse(
         fullModule,
-        session?.user?.companyId || session?.user?.id || '',
+        isAdmin ? undefined : session?.user?.companyId || session?.user?.id || '',
         session?.user?.id || ''
       );
 
       debugLog('Course updates after transformation:', courseUpdates);
 
       // Remove fields that shouldn't be updated
-      delete courseUpdates.companyId;
       delete courseUpdates.createdBy;
       delete courseUpdates.isCompanySpecific;
 
-      const response = await fetch(`/api/company/culture/${moduleId}`, {
+      const url = isAdmin
+        ? `/api/course/${moduleId}`
+        : `/api/company/culture/${moduleId}`;
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -221,7 +227,10 @@ export function useCultureModules() {
       setIsDeleting(true);
       setError(null);
 
-      const response = await fetch(`/api/company/culture/${moduleId}`, {
+      const url = isAdmin
+        ? `/api/course/${moduleId}`
+        : `/api/company/culture/${moduleId}`;
+      const response = await fetch(url, {
         method: 'DELETE',
       });
 
@@ -256,6 +265,7 @@ export function useCultureModules() {
   return {
     modules,
     loading,
+    isLoading,
     error,
     isCreating,
     isUpdating,

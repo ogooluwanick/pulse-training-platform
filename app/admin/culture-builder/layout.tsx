@@ -19,7 +19,7 @@ export default function CultureBuilderLayout({
   }
 
   return (
-    <AuthGuard allowedRoles={["ADMIN"]}>
+    <AuthGuard allowedRoles={["ADMIN", "COMPANY"]}>
       <div className="min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
         <TopMenu />
         <SidebarProvider>
