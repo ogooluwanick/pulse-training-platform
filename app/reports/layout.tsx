@@ -7,7 +7,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { TopMenu } from '@/components/top-menu';
 import { AuthGuard } from '@/components/auth-guard';
 
-export default function LearningLayout({
+export default function ReportsLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -24,7 +24,7 @@ export default function LearningLayout({
         <TopMenu />
         <SidebarProvider>
           <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 pl-12 sm:pl-16 lg:pl-0">{children}</main>
         </SidebarProvider>
       </div>
     </AuthGuard>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -90,8 +91,7 @@ export default function CourseView({
   const [assignment, setAssignment] = useState<CourseAssignment | null>(
     initialAssignment || null
   );
-  const [loading, setLoading] = useState(!initialCourse && !initialAssignment);
-  const [error, setError] = useState<string | null>(null);
+
   const [showFinalQuiz, setShowFinalQuiz] = useState(false);
   const [finalQuizPassed, setFinalQuizPassed] = useState(false);
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
@@ -111,6 +111,86 @@ export default function CourseView({
   const [showNextLesson, setShowNextLesson] = useState(false);
   const [nextLesson, setNextLesson] = useState<Lesson | null>(null);
   const [imageError, setImageError] = useState(false);
+  const [isNavigatingLesson, setIsNavigatingLesson] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  // Mutations
+  const lessonCompleteMutation = useMutation({
+    mutationFn: async ({
+      courseId,
+      lessonId,
+      quizResult,
+    }: {
+      courseId: string;
+      lessonId: string;
+      quizResult?: any;
+    }) => {
+      const response = await fetch(`/api/course/${courseId}/lesson-complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonId,
+          ...(quizResult && { quizResult }),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to mark lesson as completed');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch assignment data
+      queryClient.invalidateQueries({
+        queryKey: ['assignment', variables.courseId],
+      });
+      toast.success('Lesson completed successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to save lesson completion');
+      console.error('Error completing lesson:', error);
+    },
+  });
+
+  const finalQuizCompleteMutation = useMutation({
+    mutationFn: async ({
+      courseId,
+      finalQuizResult,
+    }: {
+      courseId: string;
+      finalQuizResult: any;
+    }) => {
+      const response = await fetch(
+        `/api/course/${courseId}/final-quiz-complete`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            finalQuizResult,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to complete course');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch assignment data
+      queryClient.invalidateQueries({
+        queryKey: ['assignment', variables.courseId],
+      });
+      toast.success('Congratulations! Course completed successfully!');
+    },
+    onError: (error) => {
+      toast.error('Failed to complete course');
+      console.error('Error completing course:', error);
+    },
+  });
 
   // Helper to build modal steps: [lesson0, quiz0, lesson1, quiz1, ..., finalQuiz]
   const buildModalSteps = (course: Course) => {
@@ -131,39 +211,10 @@ export default function CourseView({
   const modalSteps = course ? buildModalSteps(course) : [];
   const currentStep = modalSteps[modalStep];
 
-  // Fetch course and assignment data
-  const fetchCourseData = useCallback(async () => {
-    if (!params.id || initialCourse) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const courseRes = await fetch(`/api/course/${params.id}`);
-      if (!courseRes.ok) {
-        throw new Error('Failed to fetch course data');
-      }
-      const courseData = await courseRes.json();
-      setCourse(courseData.module || courseData);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'An unknown error occurred'
-      );
-      toast.error('Failed to load course data');
-    } finally {
-      setLoading(false);
-    }
-  }, [params.id, initialCourse]);
-
-  useEffect(() => {
-    fetchCourseData();
-  }, [fetchCourseData]);
-
   // Update course state when initialCourse prop changes
   useEffect(() => {
     if (initialCourse) {
       setCourse(initialCourse);
-      setLoading(false);
     }
   }, [initialCourse]);
 
@@ -176,20 +227,14 @@ export default function CourseView({
         initialAssignment.course &&
         typeof initialAssignment.course === 'object'
       ) {
-        console.log(
-          'Using course data from assignment:',
-          initialAssignment.course
-        );
         setCourse(initialAssignment.course);
-        setLoading(false);
       }
     }
   }, [initialAssignment]);
 
   useEffect(() => {
     if (course && (mode === 'edit' || mode === 'view')) {
-      if (assignment) {
-        console.log('Processing assignment data:', assignment);
+      if (assignment && assignment._id) {
         const completed =
           assignment.lessonProgress
             ?.filter((lp) => lp.status === 'completed')
@@ -198,9 +243,9 @@ export default function CourseView({
 
         const totalItems = course.lessons?.length || 0;
         const completedCount = completed.length;
-        setProgress(
-          totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0
-        );
+        const progressPercent =
+          totalItems > 0 ? Math.round((completedCount / totalItems) * 100) : 0;
+        setProgress(progressPercent);
 
         if (assignment.finalQuizResult?.passed) {
           setFinalQuizPassed(true);
@@ -262,6 +307,87 @@ export default function CourseView({
     course.lessons &&
     course.lessons.every((l) => completedLessons.includes(l._id));
 
+  // Helper functions for lesson sequence management
+  const getNextLessonAfter = (currentIndex: number) => {
+    if (!course?.lessons) return null;
+    const nextIndex = currentIndex + 1;
+    return nextIndex < course.lessons.length ? course.lessons[nextIndex] : null;
+  };
+
+  const hasMoreLessonsAfter = (currentIndex: number) => {
+    if (!course?.lessons) return false;
+    return currentIndex + 1 < course.lessons.length;
+  };
+
+  const hasFinalQuiz = () => {
+    return (
+      course?.finalQuiz &&
+      course.finalQuiz.questions &&
+      course.finalQuiz.questions.length > 0
+    );
+  };
+
+  const shouldShowFinalQuiz = () => {
+    return allLessonsCompleted && hasFinalQuiz();
+  };
+
+  const getLessonSequenceInfo = (currentIndex: number) => {
+    const nextLesson = getNextLessonAfter(currentIndex);
+    const hasMoreLessons = hasMoreLessonsAfter(currentIndex);
+    const hasQuiz = hasFinalQuiz();
+    const shouldShowQuiz = shouldShowFinalQuiz();
+
+    return {
+      isLastLesson: !hasMoreLessons && !hasQuiz,
+      hasNextLesson: hasMoreLessons,
+      hasFinalQuiz: hasQuiz,
+      shouldShowFinalQuiz: shouldShowQuiz,
+      nextLesson,
+      totalLessons: course?.lessons?.length || 0,
+      currentLessonNumber: currentIndex + 1,
+      remainingLessons: hasMoreLessons
+        ? (course?.lessons?.length || 0) - (currentIndex + 1)
+        : 0,
+    };
+  };
+
+  const getCompletionMessage = (currentIndex: number) => {
+    const sequenceInfo = getLessonSequenceInfo(currentIndex);
+
+    if (sequenceInfo.hasNextLesson) {
+      const remaining = sequenceInfo.remainingLessons;
+      if (remaining === 1) {
+        return {
+          title: 'Great job! Lesson completed.',
+          subtitle: `You've successfully completed this lesson and passed the quiz.`,
+          nextMessage: `Next: ${sequenceInfo.nextLesson?.title}`,
+          isLastLesson: false,
+        };
+      } else {
+        return {
+          title: 'Great job! Lesson completed.',
+          subtitle: `You've successfully completed this lesson and passed the quiz.`,
+          nextMessage: `Next: ${sequenceInfo.nextLesson?.title} (${remaining} lessons remaining)`,
+          isLastLesson: false,
+        };
+      }
+    } else if (sequenceInfo.shouldShowFinalQuiz) {
+      return {
+        title: 'Excellent! All lessons completed.',
+        subtitle: "You've successfully completed all lessons in this course.",
+        nextMessage: 'Ready for the final quiz!',
+        isLastLesson: true,
+      };
+    } else {
+      return {
+        title: 'Congratulations! Course completed.',
+        subtitle: "You've successfully completed all lessons in this course.",
+        nextMessage: 'You can now close this window.',
+        isLastLesson: true,
+      };
+    }
+  };
+
   // Check if course is truly completed (all lessons + final quiz if exists)
   const isCourseCompleted = () => {
     if (!course || !course.lessons) return false;
@@ -287,49 +413,35 @@ export default function CourseView({
 
   const handleFinalQuizComplete = async (result: any) => {
     setFinalQuizPassed(result.passed);
-    setShowFinalQuiz(false);
 
     if (result.passed) {
       if (mode === 'try-out') {
         toast.success('Congratulations! Course completed successfully!');
         setFinalQuizPassed(true);
+        // Don't close modal immediately - let user see results and close themselves
         return;
       }
-      try {
-        const response = await fetch(
-          `/api/course/${params.id}/final-quiz-complete`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              finalQuizResult: {
-                score: result.score,
-                passed: result.passed,
-                answers: result.answers,
-              },
-            }),
-          }
-        );
 
-        if (!response.ok) {
-          throw new Error('Failed to complete course');
+      finalQuizCompleteMutation.mutate(
+        {
+          courseId: params.id as string,
+          finalQuizResult: {
+            score: result.score,
+            passed: result.passed,
+            answers: result.answers,
+          },
+        },
+        {
+          onSuccess: (data) => {
+            setFinalQuizPassed(true);
+
+            // Show rating prompt if user hasn't rated yet
+            if (data.shouldPromptRating) {
+              setShowRatingPrompt(true);
+            }
+          },
         }
-
-        const responseData = await response.json();
-        setFinalQuizPassed(true);
-        toast.success('Congratulations! Course completed successfully!');
-
-        // Show rating prompt if user hasn't rated yet
-        if (responseData.shouldPromptRating) {
-          setShowRatingPrompt(true);
-        }
-
-        // Refresh data
-        await fetchCourseData();
-      } catch (error) {
-        toast.error('Failed to complete course');
-        console.error('Error completing course:', error);
-      }
+      );
     } else {
       // Don't show error toast here as the quiz modal will handle the failure display
     }
@@ -345,71 +457,53 @@ export default function CourseView({
   };
 
   const handleMarkAsComplete = async () => {
-    try {
-      if (!currentLesson?._id) {
-        console.error('ERROR: currentLesson._id is undefined!');
-        toast.error(
-          'Error: Lesson ID not found. Please refresh the page and try again.'
-        );
-        return;
-      }
-
-      if (mode === 'try-out') {
-        toast.success('Lesson completed successfully!');
-        setCompletedLessons([...completedLessons, currentLesson._id]);
-        const nextLessonIndex = currentLessonIndex + 1;
-        if (
-          course &&
-          course.lessons &&
-          nextLessonIndex < course.lessons.length
-        ) {
-          const nextLessonData = course.lessons[nextLessonIndex];
-          setNextLesson(nextLessonData);
-          setShowNextLesson(true);
-        } else {
-          setShowLessonModal(false);
-        }
-        return;
-      }
-
-      const requestBody = {
-        lessonId: currentLesson._id,
-      };
-
-      const response = await fetch(`/api/course/${params.id}/lesson-complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to mark lesson as completed');
-      }
-
-      toast.success('Lesson completed successfully!');
-
-      // Check if there's a next lesson
-      const nextLessonIndex = currentLessonIndex + 1;
-      if (course && nextLessonIndex < course.lessons.length) {
-        const nextLessonData = course.lessons[nextLessonIndex];
-        setNextLesson(nextLessonData);
-        setShowNextLesson(true);
-      } else {
-        // No next lesson, check if we should show final quiz
-        if (course?.finalQuiz && allLessonsCompleted) {
-          setShowLessonModal(false);
-          setShowFinalQuiz(true);
-        } else {
-          setShowLessonModal(false);
-        }
-      }
-
-      // Refresh course data
-      await fetchCourseData();
-    } catch (error) {
-      toast.error('Failed to save lesson completion');
-      console.error('Error completing lesson:', error);
+    if (!currentLesson?._id) {
+      console.error('ERROR: currentLesson._id is undefined!');
+      toast.error(
+        'Error: Lesson ID not found. Please refresh the page and try again.'
+      );
+      return;
     }
+
+    if (mode === 'try-out') {
+      toast.success('Lesson completed successfully!');
+      setCompletedLessons([...completedLessons, currentLesson._id]);
+
+      const sequenceInfo = getLessonSequenceInfo(currentLessonIndex);
+
+      if (sequenceInfo.hasNextLesson) {
+        setNextLesson(sequenceInfo.nextLesson);
+        setShowNextLesson(true);
+      } else if (sequenceInfo.shouldShowFinalQuiz) {
+        setShowLessonModal(false);
+        setShowFinalQuiz(true);
+      } else {
+        setShowLessonModal(false);
+      }
+      return;
+    }
+
+    lessonCompleteMutation.mutate(
+      {
+        courseId: params.id as string,
+        lessonId: currentLesson._id,
+      },
+      {
+        onSuccess: () => {
+          const sequenceInfo = getLessonSequenceInfo(currentLessonIndex);
+
+          if (sequenceInfo.hasNextLesson) {
+            setNextLesson(sequenceInfo.nextLesson);
+            setShowNextLesson(true);
+          } else if (sequenceInfo.shouldShowFinalQuiz) {
+            setShowLessonModal(false);
+            setShowFinalQuiz(true);
+          } else {
+            setShowLessonModal(false);
+          }
+        },
+      }
+    );
   };
 
   const handleLessonStart = (lessonId: string) => {
@@ -432,10 +526,9 @@ export default function CourseView({
       return;
     }
 
-    const nextLessonIndex = lessonIndex + 1;
-    if (course && course.lessons && nextLessonIndex < course.lessons.length) {
-      const nextLessonData = course.lessons[nextLessonIndex];
-      setNextLesson(nextLessonData);
+    const sequenceInfo = getLessonSequenceInfo(lessonIndex);
+    if (sequenceInfo.hasNextLesson) {
+      setNextLesson(sequenceInfo.nextLesson);
     } else {
       setNextLesson(null);
     }
@@ -469,31 +562,33 @@ export default function CourseView({
         if (currentLesson) {
           setCompletedLessons([...completedLessons, currentLesson._id]);
         }
-        const nextLessonIndex = currentLessonIndex + 1;
-        if (
-          course &&
-          course.lessons &&
-          nextLessonIndex < course.lessons.length
-        ) {
-          const nextLessonData = course.lessons[nextLessonIndex];
-          setNextLesson(nextLessonData);
+
+        const sequenceInfo = getLessonSequenceInfo(currentLessonIndex);
+
+        if (sequenceInfo.hasNextLesson) {
+          setNextLesson(sequenceInfo.nextLesson);
           setShowNextLesson(true);
+        } else if (sequenceInfo.shouldShowFinalQuiz) {
+          setShowLessonModal(false);
+          setShowFinalQuiz(true);
         } else {
           setShowLessonModal(false);
         }
         setShowLessonQuiz(false);
         return;
       }
-      try {
-        if (!currentLesson?._id) {
-          console.error('ERROR: currentLesson._id is undefined!');
-          toast.error(
-            'Error: Lesson ID not found. Please refresh the page and try again.'
-          );
-          return;
-        }
 
-        const requestBody = {
+      if (!currentLesson?._id) {
+        console.error('ERROR: currentLesson._id is undefined!');
+        toast.error(
+          'Error: Lesson ID not found. Please refresh the page and try again.'
+        );
+        return;
+      }
+
+      lessonCompleteMutation.mutate(
+        {
+          courseId: params.id as string,
           lessonId: currentLesson._id,
           quizResult: {
             score: result.score,
@@ -502,55 +597,36 @@ export default function CourseView({
             attemptCount: lessonAttemptCount + 1,
             completedAt: new Date().toISOString(),
           },
-        };
+        },
+        {
+          onSuccess: () => {
+            const sequenceInfo = getLessonSequenceInfo(currentLessonIndex);
 
-        const response = await fetch(
-          `/api/course/${params.id}/lesson-complete`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestBody),
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('Failed to mark lesson as completed');
+            if (sequenceInfo.hasNextLesson) {
+              setNextLesson(sequenceInfo.nextLesson);
+              setShowNextLesson(true);
+            } else if (sequenceInfo.shouldShowFinalQuiz) {
+              setShowLessonModal(false);
+              setShowFinalQuiz(true);
+            } else {
+              setShowLessonModal(false);
+            }
+          },
         }
-
-        toast.success('Lesson completed successfully!');
-
-        // Check if there's a next lesson
-        const nextLessonIndex = currentLessonIndex + 1;
-        if (course && nextLessonIndex < course.lessons.length) {
-          const nextLessonData = course.lessons[nextLessonIndex];
-          setNextLesson(nextLessonData);
-          setShowNextLesson(true);
-        } else {
-          // No next lesson, check if we should show final quiz
-          if (course?.finalQuiz && allLessonsCompleted) {
-            setShowLessonModal(false);
-            setShowFinalQuiz(true);
-          } else {
-            setShowLessonModal(false);
-          }
-        }
-
-        // Refresh course data
-        await fetchCourseData();
-      } catch (error) {
-        toast.error('Failed to save lesson completion');
-        console.error('Error completing lesson:', error);
-      }
+      );
     } else {
       setLessonAttemptCount((prev) => prev + 1);
       // Don't show error toast here as the quiz modal will handle the failure display
     }
 
-    setShowLessonQuiz(false);
+    // Don't automatically close the quiz modal - let user see results and close themselves
+    // setShowLessonQuiz(false);
   };
 
   const handleContinueToNextLesson = () => {
+    const nextLesson = getNextLessonAfter(currentLessonIndex);
     if (nextLesson) {
+      setIsNavigatingLesson(true);
       setCurrentLesson(nextLesson);
       setCurrentLessonIndex(currentLessonIndex + 1);
       setShowNextLesson(false);
@@ -558,11 +634,14 @@ export default function CourseView({
       setLessonQuizPassed(false);
       setLessonAttemptCount(0);
       setNextLesson(null);
+      setIsNavigatingLesson(false);
     }
   };
 
   const handleSkipToNextLesson = () => {
+    const nextLesson = getNextLessonAfter(currentLessonIndex);
     if (nextLesson) {
+      setIsNavigatingLesson(true);
       setCurrentLesson(nextLesson);
       setCurrentLessonIndex(currentLessonIndex + 1);
       setShowNextLesson(false);
@@ -570,7 +649,29 @@ export default function CourseView({
       setLessonQuizPassed(false);
       setLessonAttemptCount(0);
       setNextLesson(null);
+      setIsNavigatingLesson(false);
     }
+  };
+
+  const handleQuizNavigation = () => {
+    setShowLessonQuiz(false);
+    const sequenceInfo = getLessonSequenceInfo(currentLessonIndex);
+
+    if (sequenceInfo.hasNextLesson) {
+      setNextLesson(sequenceInfo.nextLesson);
+      setShowNextLesson(true);
+    } else if (sequenceInfo.shouldShowFinalQuiz) {
+      setShowLessonModal(false);
+      setShowFinalQuiz(true);
+    } else {
+      setShowLessonModal(false);
+    }
+  };
+
+  const handleFinalQuizNavigation = () => {
+    setShowFinalQuiz(false);
+    // For final quiz, just close the modal since course is completed
+    toast.success('Course completed successfully!');
   };
 
   const renderLessonContent = (lesson: any) => {
@@ -683,29 +784,6 @@ export default function CourseView({
     course?.lessons?.filter((lesson) =>
       lesson.title.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
-
-  if (loading) {
-    return <FullPageLoader />;
-  }
-
-  if (error) {
-    return (
-      <div
-        className="flex-1 flex items-center justify-center"
-        style={{ backgroundColor: '#f5f4ed' }}
-      >
-        <div className="text-center space-y-4">
-          <Alert className="max-w-md mx-auto">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-          <Button onClick={fetchCourseData} variant="outline">
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   if (!course) {
     return (
@@ -913,6 +991,7 @@ export default function CourseView({
                 (lp) => lp.lessonId === lesson._id
               );
               const quizResult = lessonProgress?.quizResult;
+              const sequenceInfo = getLessonSequenceInfo(index);
 
               // Skip completed lessons if hide option is enabled
               if (isCompleted && !showCompletedLessons) return null;
@@ -940,9 +1019,15 @@ export default function CourseView({
                         )}
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-lg font-medium text-charcoal">
-                          {lesson.title}
-                        </h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-medium text-charcoal">
+                            {lesson.title}
+                          </h3>
+                          <Badge variant="outline" className="text-xs">
+                            Lesson {sequenceInfo.currentLessonNumber} of{' '}
+                            {sequenceInfo.totalLessons}
+                          </Badge>
+                        </div>
                         <div className="flex items-center gap-4 text-sm text-warm-gray mt-1">
                           <span>{lesson.type}</span>
                           <span>{lesson.duration} min</span>
@@ -964,6 +1049,25 @@ export default function CourseView({
                                 className="text-xs font-mono"
                               >
                                 Score: {quizResult.score.toFixed(0)}%
+                              </Badge>
+                            )}
+                          {!isCompleted &&
+                            !isLocked &&
+                            sequenceInfo.remainingLessons > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {sequenceInfo.remainingLessons} lesson
+                                {sequenceInfo.remainingLessons !== 1
+                                  ? 's'
+                                  : ''}{' '}
+                                remaining
+                              </Badge>
+                            )}
+                          {!isCompleted &&
+                            !isLocked &&
+                            sequenceInfo.isLastLesson &&
+                            hasFinalQuiz() && (
+                              <Badge variant="secondary" className="text-xs">
+                                Final quiz next
                               </Badge>
                             )}
                         </div>
@@ -1131,6 +1235,7 @@ export default function CourseView({
           courseId={params.id as string}
           lessonId="final-quiz"
           isFinalQuiz={true}
+          onNavigateNext={handleFinalQuizNavigation}
         />
       )}
 
@@ -1201,9 +1306,9 @@ export default function CourseView({
                           <Button
                             onClick={handleContinueToNextLesson}
                             className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-                            disabled={mode === 'view'}
+                            disabled={mode === 'view' || isNavigatingLesson}
                           >
-                            Next Lesson
+                            {isNavigatingLesson ? 'Loading...' : 'Next Lesson'}
                           </Button>
                         )}
 
@@ -1222,7 +1327,11 @@ export default function CourseView({
                     !currentLesson.quiz.questions ||
                     currentLesson.quiz.questions.length === 0) &&
                   isLessonCompleted(currentLesson._id) &&
-                  nextLesson && (
+                  (() => {
+                    const sequenceInfo =
+                      getLessonSequenceInfo(currentLessonIndex);
+                    return sequenceInfo.hasNextLesson;
+                  })() && (
                     <div className="mt-8 p-4 bg-alabaster rounded-lg border border-warm-gray/20">
                       <div className="flex items-center justify-between">
                         <div>
@@ -1242,9 +1351,11 @@ export default function CourseView({
                         <Button
                           onClick={handleContinueToNextLesson}
                           className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-                          disabled={mode === 'view'}
+                          disabled={mode === 'view' || isNavigatingLesson}
                         >
-                          Continue to Next Lesson
+                          {isNavigatingLesson
+                            ? 'Loading...'
+                            : 'Continue to Next Lesson'}
                         </Button>
                       </div>
                     </div>
@@ -1256,7 +1367,11 @@ export default function CourseView({
                     !currentLesson.quiz.questions ||
                     currentLesson.quiz.questions.length === 0) &&
                   isLessonCompleted(currentLesson._id) &&
-                  !nextLesson && (
+                  (() => {
+                    const sequenceInfo =
+                      getLessonSequenceInfo(currentLessonIndex);
+                    return sequenceInfo.isLastLesson;
+                  })() && (
                     <div className="mt-8 p-4 bg-alabaster rounded-lg border border-warm-gray/20">
                       <div className="flex items-center justify-between">
                         <div>
@@ -1293,9 +1408,13 @@ export default function CourseView({
                       <Button
                         onClick={handleMarkAsComplete}
                         className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-                        disabled={mode === 'view'}
+                        disabled={
+                          mode === 'view' || lessonCompleteMutation.isPending
+                        }
                       >
-                        Mark as Complete
+                        {lessonCompleteMutation.isPending
+                          ? 'Marking Complete...'
+                          : 'Mark as Complete'}
                       </Button>
                     </div>
                   )}
@@ -1309,39 +1428,74 @@ export default function CourseView({
                   <CheckCircle className="h-16 w-16 text-success-green" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-bold text-charcoal mb-2">
-                    Great job! Lesson completed.
-                  </h3>
-                  <p className="text-warm-gray mb-6">
-                    You've successfully completed this lesson and passed the
-                    quiz.
-                  </p>
+                  {(() => {
+                    const completionMessage =
+                      getCompletionMessage(currentLessonIndex);
+                    return (
+                      <>
+                        <h3 className="text-2xl font-bold text-charcoal mb-2">
+                          {completionMessage.title}
+                        </h3>
+                        <p className="text-warm-gray mb-6">
+                          {completionMessage.subtitle}
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="p-4 bg-alabaster rounded-lg border border-warm-gray/20">
-                  <h4 className="font-semibold text-charcoal mb-2">
-                    Next Lesson: {nextLesson.title}
-                  </h4>
-                  <p className="text-sm text-warm-gray mb-4">
-                    {nextLesson.type} • {nextLesson.duration} min
-                  </p>
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={handleContinueToNextLesson}
-                      className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-                      disabled={mode === 'view'}
-                    >
-                      Continue to Next Lesson
-                    </Button>
-                    <Button
-                      onClick={handleSkipToNextLesson}
-                      variant="outline"
-                      className="px-4 py-2 rounded-md border-warm-gray/30 transition-colors"
-                      disabled={mode === 'view'}
-                    >
-                      Skip for Now
-                    </Button>
-                  </div>
+                  {(() => {
+                    const completionMessage =
+                      getCompletionMessage(currentLessonIndex);
+                    if (completionMessage.isLastLesson) {
+                      return (
+                        <div className="text-center">
+                          <h4 className="font-semibold text-charcoal mb-2">
+                            {completionMessage.nextMessage}
+                          </h4>
+                          <Button
+                            onClick={() => setShowLessonModal(false)}
+                            className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                          >
+                            Close
+                          </Button>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <h4 className="font-semibold text-charcoal mb-2">
+                            Next Lesson: {nextLesson.title}
+                          </h4>
+                          <p className="text-sm text-warm-gray mb-4">
+                            {nextLesson.type} • {nextLesson.duration} min
+                          </p>
+                          <div className="flex gap-3">
+                            <Button
+                              onClick={handleContinueToNextLesson}
+                              className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                              disabled={mode === 'view' || isNavigatingLesson}
+                            >
+                              {isNavigatingLesson
+                                ? 'Loading...'
+                                : 'Continue to Next Lesson'}
+                            </Button>
+                            <Button
+                              onClick={handleSkipToNextLesson}
+                              variant="outline"
+                              className="px-4 py-2 rounded-md border-warm-gray/30 transition-colors"
+                              disabled={mode === 'view' || isNavigatingLesson}
+                            >
+                              {isNavigatingLesson
+                                ? 'Loading...'
+                                : 'Skip for Now'}
+                            </Button>
+                          </div>
+                        </>
+                      );
+                    }
+                  })()}
                 </div>
               </div>
             )}
@@ -1375,6 +1529,7 @@ export default function CourseView({
                 courseId={params.id as string}
                 lessonId={currentLesson._id}
                 isFinalQuiz={false}
+                onNavigateNext={handleQuizNavigation}
               />
             )}
           </div>

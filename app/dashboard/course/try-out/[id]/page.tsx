@@ -25,8 +25,6 @@ export default function CourseTryOutPage({ params }: { params: { id: string } })
     queryFn: () => fetchCourse(params.id),
   });
 
-  console.log('Try-out page course data:', courseData);
-
   if (isLoading) {
     return <FullPageLoader />;
   }

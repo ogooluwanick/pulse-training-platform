@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { Star, Award, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,7 +58,6 @@ export default function CourseCompletionRatingModal({
 }: CourseCompletionRatingModalProps) {
   const [selectedRating, setSelectedRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleStarClick = (rating: number) => {
     setSelectedRating(rating);
@@ -71,20 +71,14 @@ export default function CourseCompletionRatingModal({
     setHoverRating(0);
   };
 
-  const handleSubmitRating = async () => {
-    if (selectedRating === 0) {
-      toast.error('Please select a rating');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
+  const ratingMutation = useMutation({
+    mutationFn: async (rating: number) => {
       const response = await fetch(`/api/course/${courseId}/rate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ rating: selectedRating }),
+        body: JSON.stringify({ rating }),
       });
 
       if (!response.ok) {
@@ -92,17 +86,28 @@ export default function CourseCompletionRatingModal({
         throw new Error(error.message || 'Failed to submit rating');
       }
 
+      return response.json();
+    },
+    onSuccess: () => {
       toast.success('Thank you for your feedback!');
       onRatingSubmit?.(selectedRating);
       onClose();
-    } catch (error) {
+    },
+    onError: (error) => {
       console.error('Error submitting rating:', error);
       toast.error(
         error instanceof Error ? error.message : 'Failed to submit rating'
       );
-    } finally {
-      setIsSubmitting(false);
+    },
+  });
+
+  const handleSubmitRating = async () => {
+    if (selectedRating === 0) {
+      toast.error('Please select a rating');
+      return;
     }
+
+    ratingMutation.mutate(selectedRating);
   };
 
   const handleSkip = () => {
@@ -168,7 +173,7 @@ export default function CourseCompletionRatingModal({
                     onMouseEnter={() => handleStarHover(star)}
                     onMouseLeave={handleStarLeave}
                     className="p-1 transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-success-green/20 rounded"
-                    disabled={isSubmitting}
+                    disabled={ratingMutation.isPending}
                   >
                     <Star
                       className={`w-8 h-8 transition-colors ${
@@ -208,17 +213,17 @@ export default function CourseCompletionRatingModal({
             <Button
               variant="outline"
               onClick={handleSkip}
-              disabled={isSubmitting}
+              disabled={ratingMutation.isPending}
               className="flex-1 border-warm-gray/30 bg-transparent hover:bg-warm-gray/5 text-warm-gray"
             >
               Skip
             </Button>
             <Button
               onClick={handleSubmitRating}
-              disabled={isSubmitting || selectedRating === 0}
+              disabled={ratingMutation.isPending || selectedRating === 0}
               className="flex-1 bg-charcoal hover:bg-charcoal/90 text-alabaster disabled:opacity-50"
             >
-              {isSubmitting ? 'Submitting...' : 'Submit Rating'}
+              {ratingMutation.isPending ? 'Submitting...' : 'Submit Rating'}
             </Button>
           </div>
 

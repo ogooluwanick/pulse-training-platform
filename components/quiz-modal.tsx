@@ -82,6 +82,7 @@ interface QuizModalProps {
   courseId: string;
   lessonId?: string;
   isFinalQuiz?: boolean;
+  onNavigateNext?: () => void; // New prop for navigation
 }
 
 export default function QuizModal({
@@ -92,6 +93,7 @@ export default function QuizModal({
   courseId,
   lessonId,
   isFinalQuiz = false,
+  onNavigateNext,
 }: QuizModalProps) {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -277,7 +279,9 @@ export default function QuizModal({
         // User passed - proceed normally
         setShowResults(true);
         onComplete(result);
-        toast.success('Quiz passed successfully! You can now proceed to the next lesson.');
+        toast.success(
+          'Quiz passed successfully! You can now proceed to the next lesson.'
+        );
 
         // Clear session data on successful completion
         if (lessonId) {
@@ -403,7 +407,7 @@ export default function QuizModal({
   };
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
-  
+
   // Debug logging
   console.log('=== QUIZ MODAL DEBUG ===');
   console.log('quiz:', quiz);
@@ -411,7 +415,7 @@ export default function QuizModal({
   console.log('quiz.questions.length:', quiz.questions?.length);
   console.log('currentQuestionIndex:', currentQuestionIndex);
   console.log('currentQuestion:', currentQuestion);
-  
+
   if (!currentQuestion) {
     console.error('ERROR: currentQuestion is undefined!');
     console.error('quiz.questions:', quiz.questions);
@@ -591,10 +595,13 @@ export default function QuizModal({
                   </Button>
                 )}
                 <Button 
-                  onClick={onClose} 
+                  onClick={quizResults.passed && onNavigateNext ? onNavigateNext : onClose} 
                   className="flex-1 bg-success-green hover:bg-success-green/90 text-alabaster"
                 >
-                  {quizResults.passed ? 'Continue to Next Lesson' : 'Continue Learning'}
+                  {quizResults.passed 
+                    ? (isFinalQuiz ? 'Course Completed' : 'Continue to Next Lesson')
+                    : 'Continue Learning'
+                  }
                 </Button>
               </div>
             </div>
@@ -654,7 +661,8 @@ export default function QuizModal({
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
-                  Error: Quiz question not found. Please refresh the page and try again.
+                  Error: Quiz question not found. Please refresh the page and
+                  try again.
                 </AlertDescription>
               </Alert>
             )}

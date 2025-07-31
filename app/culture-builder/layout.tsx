@@ -20,11 +20,11 @@ export default function CultureBuilderLayout({
 
   return (
     <AuthGuard>
-      <div className="min-h-screen" >
+      <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
         <TopMenu />
         <SidebarProvider>
           <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 pl-12 sm:pl-16 lg:pl-0">{children}</main>
         </SidebarProvider>
       </div>
     </AuthGuard>

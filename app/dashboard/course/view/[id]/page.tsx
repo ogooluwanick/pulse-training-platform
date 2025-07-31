@@ -32,8 +32,6 @@ export default function CourseViewPage({ params }: { params: { id: string } }) {
     enabled: !!assignmentId,
   });
 
-  console.log('View page assignment data:', assignment);
-
   if (!assignmentId) {
     return (
       <div
