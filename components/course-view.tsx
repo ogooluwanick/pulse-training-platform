@@ -222,15 +222,17 @@ export default function CourseView({
   useEffect(() => {
     if (initialAssignment) {
       setAssignment(initialAssignment);
-      // If assignment has populated course data, use it
+      // Only use assignment course data if we don't have direct course data
+      // This ensures we always use the complete course data from the direct API
       if (
+        !initialCourse &&
         initialAssignment.course &&
         typeof initialAssignment.course === 'object'
       ) {
         setCourse(initialAssignment.course);
       }
     }
-  }, [initialAssignment]);
+  }, [initialAssignment, initialCourse]);
 
   useEffect(() => {
     if (course && (mode === 'edit' || mode === 'view')) {
@@ -1095,7 +1097,9 @@ export default function CourseView({
       </Card>
 
       {/* Final Quiz Section */}
-      {course.finalQuiz && (
+      {(() => {
+        return course.finalQuiz;
+      })() && (
         <Card
           className={`bg-card border-warm-gray/20 ${
             (mode === 'try-out' && finalQuizPassed) ||
@@ -1416,6 +1420,41 @@ export default function CourseView({
                           ? 'Marking Complete...'
                           : 'Mark as Complete'}
                       </Button>
+
+                      {/* Info box for final lesson */}
+                      {(() => {
+                        const sequenceInfo =
+                          getLessonSequenceInfo(currentLessonIndex);
+                        if (sequenceInfo.isLastLesson) {
+                          return (
+                            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="flex items-start gap-3">
+                                <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <h4 className="font-semibold text-blue-800 mb-1">
+                                    Final Lesson
+                                  </h4>
+                                  <p className="text-sm text-blue-700 mb-3">
+                                    {hasFinalQuiz()
+                                      ? "This is the final lesson. After completing it, you'll be able to take the final quiz to finish the course."
+                                      : 'This is the final lesson. After completing it, the course will be finished.'}
+                                  </p>
+                                  {hasFinalQuiz() && (
+                                    <div className="flex items-center gap-2 text-xs text-blue-600">
+                                      <Award className="h-4 w-4" />
+                                      <span>
+                                        Final quiz will be unlocked after
+                                        completing this lesson
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   )}
               </div>
@@ -1454,12 +1493,50 @@ export default function CourseView({
                           <h4 className="font-semibold text-charcoal mb-2">
                             {completionMessage.nextMessage}
                           </h4>
-                          <Button
-                            onClick={() => setShowLessonModal(false)}
-                            className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-                          >
-                            Close
-                          </Button>
+                          <div className="space-y-3">
+                            {hasFinalQuiz() ? (
+                              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <div className="flex items-center gap-2 text-blue-700 mb-2">
+                                  <Award className="h-4 w-4" />
+                                  <span className="font-medium">
+                                    Final Quiz Available
+                                  </span>
+                                </div>
+                                <p className="text-sm text-blue-600 mb-3">
+                                  You can now take the final quiz to complete
+                                  the course.
+                                </p>
+                                <Button
+                                  onClick={() => {
+                                    setShowLessonModal(false);
+                                    setShowFinalQuiz(true);
+                                  }}
+                                  className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                                >
+                                  Take Final Quiz
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <div className="flex items-center gap-2 text-green-700 mb-2">
+                                  <CheckCircle className="h-4 w-4" />
+                                  <span className="font-medium">
+                                    Course Completed!
+                                  </span>
+                                </div>
+                                <p className="text-sm text-green-600 mb-3">
+                                  Congratulations! You have successfully
+                                  completed all lessons in this course.
+                                </p>
+                              </div>
+                            )}
+                            <Button
+                              onClick={() => setShowLessonModal(false)}
+                              className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                            >
+                              {hasFinalQuiz() ? 'Close' : 'Course Completed'}
+                            </Button>
+                          </div>
                         </div>
                       );
                     } else {

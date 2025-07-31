@@ -44,8 +44,34 @@ export async function GET() {
           : 0;
 
       let status = assignment.status;
+
+      // Check if all lessons are completed
+      const allLessonsCompleted =
+        totalLessons > 0 && completedLessons === totalLessons;
+
       if (assignment.status === 'not-started' && progress > 0) {
         status = 'in-progress';
+      }
+
+      // If all lessons are completed, check if course should be marked as completed
+      if (allLessonsCompleted) {
+        const hasFinalQuiz =
+          courseData.finalQuiz &&
+          courseData.finalQuiz.questions &&
+          courseData.finalQuiz.questions.length > 0;
+
+        if (hasFinalQuiz) {
+          // Course has final quiz - check if it's passed
+          if (
+            assignment.finalQuizResult &&
+            assignment.finalQuizResult.passed === true
+          ) {
+            status = 'completed';
+          }
+        } else {
+          // No final quiz - course is completed when all lessons are done
+          status = 'completed';
+        }
       }
 
       return {
@@ -53,7 +79,12 @@ export async function GET() {
         title: courseData.title,
         description: courseData.description,
         category: courseData.category,
-        duration: courseData.duration || 0,
+        duration: courseData.lessons
+          ? courseData.lessons.reduce(
+              (acc: number, lesson: any) => acc + lesson.duration,
+              0
+            )
+          : 0,
         progress: progress,
         status: status,
         totalLessons: totalLessons,
@@ -71,6 +102,7 @@ export async function GET() {
         tags: courseData.tags || [],
         rating: courseData.rating || [],
         enrolledCount: courseData.enrolledCount || 0,
+        finalQuiz: courseData.finalQuiz || null,
       };
     });
 
@@ -98,7 +130,7 @@ export async function GET() {
 
     const totalTimeInvested = completedCourses.reduce(
       (total: number, course: any) => {
-        return total + (course.duration || 0);
+        return total + course.duration;
       },
       0
     );

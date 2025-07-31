@@ -49,7 +49,17 @@ export async function PUT(
 
   try {
     const body = await req.json();
-    const { title, description, category, status, difficulty, tags, lessons, finalQuiz, companyId } = body;
+    const {
+      title,
+      description,
+      category,
+      status,
+      difficulty,
+      tags,
+      lessons,
+      finalQuiz,
+      companyId,
+    } = body;
 
     const updatedCourse = await Course.findByIdAndUpdate(
       params.id,

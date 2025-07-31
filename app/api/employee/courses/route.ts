@@ -24,7 +24,10 @@ export async function GET() {
     });
 
     if (!courseAssignments) {
-      return NextResponse.json({ message: 'No course assignments found' }, { status: 404 });
+      return NextResponse.json(
+        { message: 'No course assignments found' },
+        { status: 404 }
+      );
     }
 
     const completedCourses = courseAssignments.filter(
@@ -37,7 +40,14 @@ export async function GET() {
 
     const timeInvested = completedCourses.reduce(
       (total: number, assignment: any) => {
-        return total + (assignment.course?.duration || 0);
+        const courseData = assignment.course?.toObject() || {};
+        const courseDuration = courseData.lessons
+          ? courseData.lessons.reduce(
+              (acc: number, lesson: any) => acc + lesson.duration,
+              0
+            )
+          : 0;
+        return total + courseDuration;
       },
       0
     );
@@ -79,8 +89,34 @@ export async function GET() {
 
       // Determine status based on progress and assignment status
       let status = assignment.status;
+
+      // Check if all lessons are completed
+      const allLessonsCompleted =
+        totalLessons > 0 && completedLessons === totalLessons;
+
       if (assignment.status === 'not-started' && progress > 0) {
         status = 'in-progress';
+      }
+
+      // If all lessons are completed, check if course should be marked as completed
+      if (allLessonsCompleted) {
+        const hasFinalQuiz =
+          courseData.finalQuiz &&
+          courseData.finalQuiz.questions &&
+          courseData.finalQuiz.questions.length > 0;
+
+        if (hasFinalQuiz) {
+          // Course has final quiz - check if it's passed
+          if (
+            assignment.finalQuizResult &&
+            assignment.finalQuizResult.passed === true
+          ) {
+            status = 'completed';
+          }
+        } else {
+          // No final quiz - course is completed when all lessons are done
+          status = 'completed';
+        }
       }
 
       return {
@@ -88,20 +124,30 @@ export async function GET() {
         title: courseData.title,
         description: courseData.description,
         category: courseData.category,
-        duration: courseData.duration || 0,
+        duration: courseData.lessons
+          ? courseData.lessons.reduce(
+              (acc: number, lesson: any) => acc + lesson.duration,
+              0
+            )
+          : 0,
         progress: progress,
         status: status,
         totalLessons: totalLessons,
         completedLessons: completedLessons,
         difficulty: courseData.difficulty,
-        assignedAt: assignment.createdAt ? assignment.createdAt.toISOString() : null,
-        completedAt: assignment.completedAt ? assignment.completedAt.toISOString() : null,
+        assignedAt: assignment.createdAt
+          ? assignment.createdAt.toISOString()
+          : null,
+        completedAt: assignment.completedAt
+          ? assignment.completedAt.toISOString()
+          : null,
         assignmentType: assignment.assignmentType,
         interval: assignment.interval,
         endDate: assignment.endDate ? assignment.endDate.toISOString() : null,
         tags: courseData.tags || [],
         rating: courseData.rating || [],
         enrolledCount: courseData.enrolledCount || 0,
+        finalQuiz: courseData.finalQuiz || null,
       };
     });
 

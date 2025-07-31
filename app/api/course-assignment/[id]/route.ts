@@ -23,7 +23,7 @@ export async function GET(
     const assignment = await CourseAssignment.findOne({
       course: courseId,
       employee: userId,
-    }).populate('course', 'title description lessons');
+    }).populate('course', 'title description lessons finalQuiz');
 
     if (!assignment) {
       // Return empty assignment data if no assignment exists

@@ -125,6 +125,8 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     queryKey: ['learningData', user.id],
     queryFn: fetchLearningData,
     enabled: !!user.id,
+    staleTime: 0, // Force fresh data
+    cacheTime: 0, // Don't cache
   });
 
   // Fetch course assignments for basic course data
@@ -135,13 +137,15 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     queryKey: ['courseAssignments', user.id],
     queryFn: fetchCourseAssignments,
     enabled: !!user.id,
+    staleTime: 0, // Force fresh data
+    cacheTime: 0, // Don't cache
   });
 
   const isLoading = isLoadingLearning || isLoadingCourses;
   const error = learningData ? null : new Error('Failed to load data');
 
-  // Use learning data if available, fallback to courses data
-  const courseAssignments = learningData?.courses || coursesData?.courses || [];
+  // Use courses data if available, fallback to learning data
+  const courseAssignments = coursesData?.courses || learningData?.courses || [];
   const stats = learningData?.stats;
   const skillProgress = learningData?.skillProgress || {};
 
@@ -625,9 +629,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                       {assignment.duration > 0 && (
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          <span>
-                            {formatDuration(assignment.duration )}
-                          </span>
+                          <span>{formatDuration(assignment.duration)}</span>
                         </div>
                       )}
                       {assignment.assignedAt && (
@@ -656,29 +658,21 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                           }`}
                           disabled={assignment.status === 'completed'}
                         >
-                          {assignment.status === 'completed' ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 mr-2" />
-                              Completed
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4 mr-2" />
-                              Continue
-                            </>
-                          )}
+                          {(() => {
+                            return assignment.status === 'completed' ? (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Completed
+                              </>
+                            ) : (
+                              <>
+                                <Play className="h-4 w-4 mr-2" />
+                                Continue
+                              </>
+                            );
+                          })()}
                         </Button>
                       </Link>
-                      {assignment.status === 'completed' && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="bg-transparent border-warm-gray/30"
-                          title="Download Certificate"
-                        >
-                          <Award className="h-4 w-4" />
-                        </Button>
-                      )}
                     </div>
                   </CardContent>
                 </Card>

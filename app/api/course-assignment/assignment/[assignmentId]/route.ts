@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import mongoose from 'mongoose';
+import Course from '@/lib/models/Course';
 
 export async function GET(
   req: NextRequest,
@@ -26,13 +27,23 @@ export async function GET(
       );
     }
 
-    const assignment = await CourseAssignment.findById(assignmentId).populate('course');
+    const assignment = await CourseAssignment.findById(assignmentId);
 
     if (!assignment) {
       return NextResponse.json(
         { message: 'Assignment not found' },
         { status: 404 }
       );
+    }
+
+    // Manually populate the course to ensure all fields are included
+    const course = await Course.findById(assignment.course)
+      .select(
+        'title description category instructor duration difficulty rating enrolledCount tags lessons finalQuiz status isCompanySpecific companyId createdBy lastModifiedBy'
+      )
+      .lean();
+    if (course) {
+      assignment.course = course;
     }
 
     return NextResponse.json(assignment);
