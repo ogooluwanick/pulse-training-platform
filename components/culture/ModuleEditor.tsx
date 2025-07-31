@@ -170,7 +170,7 @@ export default function ModuleEditor({
     return (
       <div className="flex flex-col items-center justify-center h-full text-warm-gray p-8">
         <Settings className="h-16 w-16 mb-4 opacity-50" />
-        <p className="text-xl mb-2">Select a culture module to begin</p>
+        <p className="text-xl mb-2">Select a course module to begin</p>
         <p className="text-sm">or create a new one to get started</p>
       </div>
     );
@@ -364,7 +364,7 @@ export default function ModuleEditor({
       });
     } else {
       // Only show simple success if no questions were filtered
-      toast.success('Culture module saved successfully!');
+      toast.success('Course module saved successfully!');
     }
 
     if (module) {
@@ -522,7 +522,7 @@ export default function ModuleEditor({
           <div className="flex flex-wrap items-center justify-between mb-4">
             <div className="flex flex-wrap items-center gap-4">
               <h1 className="text-3xl font-bold text-charcoal">
-                Culture Module Editor
+                Course Module Editor
               </h1>
               <Badge variant={status === 'published' ? 'default' : 'secondary'}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -620,7 +620,7 @@ export default function ModuleEditor({
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe what this culture module covers..."
+                    placeholder="Describe what this course module covers..."
                     rows={3}
                   />
                 </div>

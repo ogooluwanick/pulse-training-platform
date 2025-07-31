@@ -31,9 +31,9 @@ export default function CultureBuilderPage() {
     const newModule = await createModule();
     if (newModule) {
       setSelectedModuleId(newModule.id);
-      toast.success('New culture module created');
+      toast.success('New course module created');
     } else {
-      toast.error('Failed to create culture module');
+      toast.error('Failed to create course module');
     }
   };
 
@@ -41,9 +41,9 @@ export default function CultureBuilderPage() {
     const success = await deleteModule(moduleId);
     if (success) {
       setSelectedModuleId(null);
-      toast.success('Culture module deleted');
+      toast.success('Course module deleted');
     } else {
-      toast.error('Failed to delete culture module');
+      toast.error('Failed to delete course module');
     }
   };
 
@@ -52,9 +52,9 @@ export default function CultureBuilderPage() {
     const { id, ...updates } = module;
     const updatedModule = await updateModule(id, updates);
     if (updatedModule) {
-      toast.success('Culture module updated');
+      toast.success('Course module updated');
     } else {
-      toast.error('Failed to update culture module');
+      toast.error('Failed to update course module');
     }
   };
 
@@ -64,7 +64,7 @@ export default function CultureBuilderPage() {
 
   // Show full page loader when fetching modules
   if (loading || isLoading) {
-    return <FullPageLoader placeholder="Loading culture modules..." />;
+    return <FullPageLoader placeholder="Loading course modules..." />;
   }
 
   return (
@@ -96,11 +96,11 @@ export default function CultureBuilderPage() {
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-charcoal mb-4">
-                Welcome to Culture Builder
+                Welcome to Course Builder
               </h2>
               <p className="text-warm-gray mb-6 max-w-md">
-                Create and manage culture modules for your organization. Select
-                a module from the left panel or create a new one to get started.
+                Create and manage course modules for your organization. Select a
+                module from the left panel or create a new one to get started.
               </p>
               <button
                 onClick={handleAddModule}

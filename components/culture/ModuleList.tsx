@@ -47,7 +47,7 @@ export default function ModuleList({
   return (
     <div className="p-4 h-full text-charcoal">
       <div className="flex flex-wrap justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-charcoal">Culture Modules</h2>
+        <h2 className="text-2xl font-bold text-charcoal">Course Modules</h2>
         <button
           onClick={onAddModule}
           disabled={isCreating || isDeleting}

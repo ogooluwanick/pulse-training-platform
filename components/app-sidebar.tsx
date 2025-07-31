@@ -100,7 +100,7 @@ const companyItems = [
     icon: BookOpen,
   },
   {
-    title: 'Culture Builder',
+    title: 'Course Builder',
     url: '/culture-builder',
     icon: Building2,
   },
@@ -136,7 +136,7 @@ const adminItems = [
     icon: Users,
   },
   {
-    title: 'Culture Builder',
+    title: 'Course Builder',
     url: '/admin/culture-builder',
     icon: Building2,
   },
