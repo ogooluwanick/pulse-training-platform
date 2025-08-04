@@ -1,11 +1,11 @@
-"use client"
+'use client';
 
-import { useState } from "react";
-import { Bell, User } from "lucide-react";
-import Link from "next/link";
-import { useSession, signOut } from "next-auth/react"; 
-import NotificationPanel from "@/components/notification-panel";
-import { useNotificationContext } from "@/app/contexts/NotificationContext";
+import { useState } from 'react';
+import { Bell, User } from 'lucide-react';
+import Link from 'next/link';
+import { useSession, signOut } from 'next-auth/react';
+import NotificationPanel from '@/components/notification-panel';
+import { useNotificationContext } from '@/app/contexts/NotificationContext';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,13 +13,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
 
 export function TopMenu() {
   const { data: session, status } = useSession();
-  const isAuthenticated = status === "authenticated";
-  const isLoading = status === "loading";
-  const user = session?.user; 
+  const isAuthenticated = status === 'authenticated';
+  const isLoading = status === 'loading';
+  const user = session?.user;
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const { unreadNotificationCount } = useNotificationContext();
 
@@ -98,34 +98,46 @@ export function TopMenu() {
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="bg-white">
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-charcoal">
+                    My Account
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href="/profile">Profile</Link>
+                    <Link href="/profile" className="cursor-pointer">
+                      Profile Settings
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings">Settings</Link>
+                    <Link href="/settings" className="cursor-pointer">
+                      Preferences
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => signOut()}>
-                    Sign out
+                  <DropdownMenuItem
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
           ) : (
-            <>
-              <Link href="/auth/signin">
-                <button className="px-4 py-2 rounded-md border border-charcoal text-charcoal hover:bg-charcoal hover:text-white transition-colors">
-                  Sign In
-                </button>
+            /* Unauthenticated State */
+            <div className="flex items-center space-x-4">
+              <Link
+                href="/auth/signin"
+                className="px-4 py-2 rounded-md border border-charcoal text-charcoal hover:bg-charcoal hover:text-white transition-colors"
+              >
+                Sign In
               </Link>
-              <Link href="/auth/signup">
-                <button className="px-4 py-2 rounded-md bg-charcoal text-white hover:bg-charcoal/90 transition-colors">
-                  Sign Up
-                </button>
+              <Link
+                href="/auth/signup"
+                className="px-4 py-2 rounded-md bg-charcoal text-white hover:bg-charcoal/90 transition-soft"
+              >
+                Get Started
               </Link>
-            </>
+            </div>
           )}
         </div>
       </div>
