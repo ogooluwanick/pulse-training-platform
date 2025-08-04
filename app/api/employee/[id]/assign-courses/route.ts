@@ -51,7 +51,10 @@ export async function POST(
     }
 
     const courseIds = assignments.map((a: any) => a.courseId);
-    const courses = await Course.find({ _id: { $in: courseIds } });
+    const courses = await Course.find({
+      _id: { $in: courseIds },
+      status: 'published',
+    });
     const courseMap = new Map(courses.map((c) => [c._id.toString(), c]));
 
     const newAssignments = assignments

@@ -16,7 +16,7 @@ export async function GET(
   await dbConnect();
 
   try {
-    const course = await Course.findById(params.id)
+    const course = await Course.findOne({ _id: params.id, status: 'published' })
       .populate('instructor')
       .lean();
     if (!course) {
@@ -26,7 +26,22 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, module: course });
+    // Calculate average rating and total ratings
+    const ratings = course.rating || [];
+    const totalRatings = ratings.length;
+    const averageRating =
+      totalRatings > 0
+        ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) /
+          totalRatings
+        : 0;
+
+    const courseWithRatings = {
+      ...course,
+      averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+      totalRatings,
+    };
+
+    return NextResponse.json({ success: true, module: courseWithRatings });
   } catch (error) {
     console.error('Error fetching course:', error);
     return NextResponse.json(

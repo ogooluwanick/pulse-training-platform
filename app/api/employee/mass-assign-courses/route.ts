@@ -31,8 +31,11 @@ export async function POST(req: NextRequest) {
 
     const employees = await User.find({ _id: { $in: employeeIds } });
     const courseIds = assignments.map((a: any) => a.courseId);
-    const courses = await Course.find({ _id: { $in: courseIds } });
-    const courseMap = new Map(courses.map(c => [c._id.toString(), c]));
+    const courses = await Course.find({
+      _id: { $in: courseIds },
+      status: 'published',
+    });
+    const courseMap = new Map(courses.map((c) => [c._id.toString(), c]));
 
     const newAssignments: any[] = [];
     for (const employee of employees) {

@@ -148,6 +148,18 @@ export async function GET() {
         rating: courseData.rating || [],
         enrolledCount: courseData.enrolledCount || 0,
         finalQuiz: courseData.finalQuiz || null,
+        // Calculate average rating and total ratings
+        averageRating: (() => {
+          const ratings = courseData.rating || [];
+          const totalRatings = ratings.length;
+          const averageRating =
+            totalRatings > 0
+              ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) /
+                totalRatings
+              : 0;
+          return Math.round(averageRating * 10) / 10; // Round to 1 decimal place
+        })(),
+        totalRatings: (courseData.rating || []).length,
       };
     });
 

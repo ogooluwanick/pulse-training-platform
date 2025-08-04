@@ -13,9 +13,28 @@ export async function GET() {
   }
 
   try {
-    const courses = await Course.find({}).populate('instructor').lean();
+    const courses = await Course.find({ status: 'published' })
+      .populate('instructor')
+      .lean();
 
-    return NextResponse.json({ success: true, courses: courses });
+    // Calculate average rating and total ratings for each course
+    const coursesWithRatings = courses.map((course) => {
+      const ratings = course.rating || [];
+      const totalRatings = ratings.length;
+      const averageRating =
+        totalRatings > 0
+          ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) /
+            totalRatings
+          : 0;
+
+      return {
+        ...course,
+        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+        totalRatings,
+      };
+    });
+
+    return NextResponse.json({ success: true, courses: coursesWithRatings });
   } catch (error) {
     console.error('Error fetching courses:', error);
     return NextResponse.json(
@@ -35,7 +54,17 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { title, description, category, status, difficulty, tags, lessons, finalQuiz, companyId } = body;
+    const {
+      title,
+      description,
+      category,
+      status,
+      difficulty,
+      tags,
+      lessons,
+      finalQuiz,
+      companyId,
+    } = body;
 
     const newCourse = new Course({
       title,
@@ -54,7 +83,10 @@ export async function POST(request: Request) {
 
     await newCourse.save();
 
-    return NextResponse.json({ success: true, course: newCourse }, { status: 201 });
+    return NextResponse.json(
+      { success: true, course: newCourse },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating course:', error);
     return NextResponse.json(

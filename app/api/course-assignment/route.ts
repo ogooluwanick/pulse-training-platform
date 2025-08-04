@@ -40,8 +40,15 @@ export async function GET(req: NextRequest) {
       {
         $lookup: {
           from: 'courses',
-          localField: 'course',
-          foreignField: '_id',
+          let: { courseId: '$course' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$_id', '$$courseId'] },
+                status: 'published',
+              },
+            },
+          ],
           as: 'courseDetails',
         },
       },
@@ -80,7 +87,9 @@ export async function GET(req: NextRequest) {
                       { $ne: ['$courseDetails', null] },
                       {
                         $gt: [
-                          { $size: { $ifNull: ['$courseDetails.lessons', []] } },
+                          {
+                            $size: { $ifNull: ['$courseDetails.lessons', []] },
+                          },
                           0,
                         ],
                       },
