@@ -1,202 +1,185 @@
-"use client"
+'use client';
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useState, useEffect } from 'react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   Building2,
   Users,
   TrendingUp,
   Search,
   Edit,
-  Trash2,
   Plus,
   Mail,
-  AlertTriangle,
   CheckCircle,
   Eye,
-  ClipboardList,
-} from "lucide-react"
-import { AuthGuard } from "@/components/auth-guard"
-import Link from "next/link"
+} from 'lucide-react';
+import { AuthGuard } from '@/components/auth-guard';
+import Link from 'next/link';
+import EditCompanyModal from '@/components/admin/edit-company-modal';
+import ViewCompanyModal from '@/components/admin/view-company-modal';
 
 interface Company {
-  id: string
-  name: string
-  domain: string
-  industry: string
-  size: string
-  plan: string
-  status: "active" | "inactive" | "trial" | "suspended"
-  employees: number
-  activeUsers: number
-  completionRate: number
-  joinDate: string
-  lastActivity: string
-  monthlyRevenue: number
-  contactEmail: string
-  contactName: string
-}
-
-interface Assignment {
   _id: string;
-  course: {
+  name: string;
+  status?: 'active' | 'deactivated';
+  companyAccount?: {
     _id: string;
-    title: string;
+    firstName: string;
+    lastName: string;
+    email: string;
   };
-  assignee: {
-    _id: string;
-    name: string;
-  };
-  status: string;
-  progress: number;
+  employees?: any[];
+  savedCourses?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface PlatformStats {
-  totalCompanies: number
-  activeCompanies: number
-  totalUsers: number
-  monthlyRevenue: number
-  averageCompletion: number
-  newSignups: number
+  totalCompanies: number;
+  activeCompanies: number;
+  totalUsers: number;
+  monthlyRevenue: number;
+  averageCompletion: number;
+  newSignups: number;
 }
 
 export default function CompanyManagementPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedIndustry, setSelectedIndustry] = useState("all")
-  const [selectedStatus, setSelectedStatus] = useState("all")
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false)
-  const [contactMessage, setContactMessage] = useState("")
-  const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [platformStats, setPlatformStats] = useState<PlatformStats | null>(null)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
+
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [platformStats, setPlatformStats] = useState<PlatformStats | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const response = await fetch("/api/company")
+        const response = await fetch('/api/company');
         if (response.ok) {
-          const data = await response.json()
-          setCompanies(data)
+          const data = await response.json();
+          setCompanies(data);
         } else {
-          console.error("Failed to fetch companies")
+          console.error('Failed to fetch companies');
         }
       } catch (error) {
-        console.error("Error fetching companies:", error)
+        console.error('Error fetching companies:', error);
       }
-    }
-
-    const fetchAssignments = async () => {
-      try {
-        const response = await fetch("/api/course-assignment")
-        if (response.ok) {
-          const data = await response.json()
-          setAssignments(data)
-        } else {
-          console.error("Failed to fetch assignments")
-        }
-      } catch (error) {
-        console.error("Error fetching assignments:", error)
-      }
-    }
+    };
 
     const fetchPlatformStats = async () => {
       try {
-        const response = await fetch("/api/company/dashboard-metrics")
+        const response = await fetch('/api/company/dashboard-metrics');
         if (response.ok) {
-          const data = await response.json()
-          setPlatformStats(data)
+          const data = await response.json();
+          setPlatformStats(data);
         } else {
-          console.error("Failed to fetch platform stats")
+          console.error('Failed to fetch platform stats');
         }
       } catch (error) {
-        console.error("Error fetching platform stats:", error)
+        console.error('Error fetching platform stats:', error);
       }
-    }
+    };
 
-    fetchCompanies()
-    fetchAssignments()
-    fetchPlatformStats()
-  }, [])
-
-  const getStatusColor = (status: Company["status"]) => {
-    switch (status) {
-      case "active":
-        return "bg-success-green text-alabaster"
-      case "trial":
-        return "bg-warning-ochre text-alabaster"
-      case "suspended":
-        return "bg-red-500 text-alabaster"
-      case "inactive":
-        return "bg-warm-gray text-alabaster"
-      default:
-        return "bg-warm-gray text-alabaster"
-    }
-  }
-
-  const getPlanColor = (plan: string) => {
-    switch (plan) {
-      case "Enterprise Plus":
-        return "bg-charcoal text-alabaster"
-      case "Enterprise":
-        return "bg-success-green text-alabaster"
-      case "Professional":
-        return "bg-warning-ochre text-alabaster"
-      default:
-        return "bg-warm-gray text-alabaster"
-    }
-  }
+    fetchCompanies();
+    fetchPlatformStats();
+  }, []);
 
   const handleEditCompany = (company: Company) => {
-    setSelectedCompany(company)
-    setIsEditDialogOpen(true)
-  }
+    setSelectedCompany(company);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleViewCompany = (company: Company) => {
+    setSelectedCompany(company);
+    setIsViewDialogOpen(true);
+  };
 
   const handleContactCompany = (company: Company) => {
-    setSelectedCompany(company)
-    setIsContactDialogOpen(true)
-  }
+    setSelectedCompany(company);
+    setIsContactDialogOpen(true);
+  };
 
-  const handleSuspendCompany = (company: Company) => {
-    console.log("Suspending company:", company.name)
-  }
+  const handleToggleCompanyStatus = async (company: Company) => {
+    try {
+      const response = await fetch(`/api/company/${company._id}`, {
+        method: 'DELETE',
+      });
 
-  const handleDeleteCompany = (company: Company) => {
-    console.log("Deleting company:", company.name)
-  }
+      if (response.ok) {
+        const data = await response.json();
+        // Refresh the companies list
+        const companiesResponse = await fetch('/api/company');
+        if (companiesResponse.ok) {
+          const updatedCompanies = await companiesResponse.json();
+          setCompanies(updatedCompanies);
+        }
+        console.log(data.message);
+      } else {
+        console.error('Failed to toggle company status');
+      }
+    } catch (error) {
+      console.error('Error toggling company status:', error);
+    }
+  };
 
   const handleSendMessage = () => {
-    console.log("Sending message to:", selectedCompany?.name, contactMessage)
-    setIsContactDialogOpen(false)
-    setContactMessage("")
-  }
+    console.log('Sending message to:', selectedCompany?.name, contactMessage);
+    setIsContactDialogOpen(false);
+    setContactMessage('');
+  };
 
   const filteredCompanies = companies.filter((company) => {
     const matchesSearch =
       company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      company.domain.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesIndustry = selectedIndustry === "all" || company.industry === selectedIndustry
-    const matchesStatus = selectedStatus === "all" || company.status === selectedStatus
-    return matchesSearch && matchesIndustry && matchesStatus
-  })
+      (company.companyAccount?.email &&
+        company.companyAccount.email
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase())) ||
+      (company.companyAccount &&
+        `${company.companyAccount.firstName} ${company.companyAccount.lastName}`
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()));
+    return matchesSearch;
+  });
 
   return (
-    <AuthGuard allowedRoles={["ADMIN"]}>
-      <div className="flex-1 space-y-6 p-6 min-h-screen" style={{ backgroundColor: "#f5f4ed" }}>
+    <AuthGuard allowedRoles={['ADMIN']}>
+      <div
+        className="flex-1 space-y-6 p-6 min-h-screen"
+        style={{ backgroundColor: '#f5f4ed' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-charcoal">Company Management</h1>
-            <p className="text-warm-gray">Manage all organizations on the platform</p>
+            <h1 className="text-3xl font-bold text-charcoal">
+              Company Management
+            </h1>
+            <p className="text-warm-gray">
+              Manage all organizations on the platform
+            </p>
           </div>
           <Button className="btn-primary">
             <Plus className="h-4 w-4 mr-2" />
@@ -208,42 +191,64 @@ export default function CompanyManagementPage() {
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-6">
           <Card className="bg-card border-warm-gray/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-warm-gray">Total Companies</CardTitle>
+              <CardTitle className="text-sm font-medium text-warm-gray">
+                Total Companies
+              </CardTitle>
               <Building2 className="h-4 w-4 text-charcoal" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{platformStats?.totalCompanies}</div>
-              <p className="text-xs text-success-green">+{platformStats?.newSignups} this month</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-warm-gray/20">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-warm-gray">Active Companies</CardTitle>
-              <CheckCircle className="h-4 w-4 text-success-green" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{platformStats?.activeCompanies}</div>
-              <p className="text-xs text-warm-gray">
-                {platformStats && Math.round((platformStats.activeCompanies / platformStats.totalCompanies) * 100)}% active
+              <div className="text-2xl font-bold text-charcoal">
+                {platformStats?.totalCompanies}
+              </div>
+              <p className="text-xs text-success-green">
+                +{platformStats?.newSignups} this month
               </p>
             </CardContent>
           </Card>
 
           <Card className="bg-card border-warm-gray/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-warm-gray">Total Users</CardTitle>
+              <CardTitle className="text-sm font-medium text-warm-gray">
+                Active Companies
+              </CardTitle>
+              <CheckCircle className="h-4 w-4 text-success-green" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-charcoal">
+                {platformStats?.activeCompanies}
+              </div>
+              <p className="text-xs text-warm-gray">
+                {platformStats &&
+                  Math.round(
+                    (platformStats.activeCompanies /
+                      platformStats.totalCompanies) *
+                      100
+                  )}
+                % active
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-warm-gray/20">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-warm-gray">
+                Total Users
+              </CardTitle>
               <Users className="h-4 w-4 text-charcoal" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{platformStats?.totalUsers.toLocaleString()}</div>
+              <div className="text-2xl font-bold text-charcoal">
+                {platformStats?.totalUsers.toLocaleString()}
+              </div>
               <p className="text-xs text-success-green">+12% from last month</p>
             </CardContent>
           </Card>
 
           <Card className="bg-card border-warm-gray/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-warm-gray">Monthly Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-warm-gray">
+                Monthly Revenue
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-success-green" />
             </CardHeader>
             <CardContent>
@@ -256,22 +261,30 @@ export default function CompanyManagementPage() {
 
           <Card className="bg-card border-warm-gray/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-warm-gray">Avg Completion</CardTitle>
+              <CardTitle className="text-sm font-medium text-warm-gray">
+                Avg Completion
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-success-green" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{platformStats?.averageCompletion}%</div>
+              <div className="text-2xl font-bold text-charcoal">
+                {platformStats?.averageCompletion}%
+              </div>
               <p className="text-xs text-success-green">+3% from last month</p>
             </CardContent>
           </Card>
 
           <Card className="bg-card border-warm-gray/20">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-warm-gray">New Signups</CardTitle>
+              <CardTitle className="text-sm font-medium text-warm-gray">
+                New Signups
+              </CardTitle>
               <Plus className="h-4 w-4 text-charcoal" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-charcoal">{platformStats?.newSignups}</div>
+              <div className="text-2xl font-bold text-charcoal">
+                {platformStats?.newSignups}
+              </div>
               <p className="text-xs text-warm-gray">This month</p>
             </CardContent>
           </Card>
@@ -282,7 +295,9 @@ export default function CompanyManagementPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-charcoal">Company Directory</CardTitle>
+                <CardTitle className="text-charcoal">
+                  Company Directory
+                </CardTitle>
                 <CardDescription className="text-warm-gray">
                   Manage all organizations and their subscriptions
                 </CardDescription>
@@ -297,30 +312,6 @@ export default function CompanyManagementPage() {
                     className="pl-10 bg-alabaster border-warm-gray/30 focus:border-charcoal"
                   />
                 </div>
-                <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
-                  <SelectTrigger className="w-32 bg-alabaster border-warm-gray/30">
-                    <SelectValue placeholder="Industry" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-parchment border-warm-gray/20">
-                    <SelectItem value="all">All Industries</SelectItem>
-                    <SelectItem value="Technology">Technology</SelectItem>
-                    <SelectItem value="Finance">Finance</SelectItem>
-                    <SelectItem value="Healthcare">Healthcare</SelectItem>
-                    <SelectItem value="Manufacturing">Manufacturing</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                  <SelectTrigger className="w-32 bg-alabaster border-warm-gray/30">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-parchment border-warm-gray/20">
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="trial">Trial</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </CardHeader>
@@ -328,65 +319,62 @@ export default function CompanyManagementPage() {
             <div className="space-y-4">
               {filteredCompanies.map((company) => (
                 <div
-                  key={company.id}
+                  key={company._id}
                   className="flex items-center gap-4 p-4 rounded-lg bg-alabaster border border-warm-gray/20"
                 >
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-7 gap-4">
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
                     <div>
-                      <p className="font-medium text-charcoal">{company.name}</p>
-                      <p className="text-sm text-warm-gray">{company.domain}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-warm-gray">Industry</p>
-                      <p className="text-sm text-charcoal">{company.industry}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-warm-gray">Plan</p>
-                      <Badge className={getPlanColor(company.plan)} variant="secondary">
-                        {company.plan}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-sm text-warm-gray">Users</p>
-                      <p className="text-sm text-charcoal">
-                        {company.activeUsers}/{company.employees}
+                      <p className="font-medium text-charcoal">
+                        {company.name}
+                      </p>
+                      <p className="text-sm text-warm-gray">
+                        {company.companyAccount
+                          ? `${company.companyAccount.firstName} ${company.companyAccount.lastName}`
+                          : 'No manager assigned'}
                       </p>
                     </div>
                     <div>
-                      <p className="text-sm text-warm-gray">Completion</p>
-                      <div className="flex items-center gap-2">
-                        <Progress value={company.completionRate} className="flex-1 h-2" />
-                        <span className="text-sm text-charcoal">{company.completionRate}%</span>
-                      </div>
+                      <p className="text-sm text-warm-gray">Manager Email</p>
+                      <p className="text-sm text-charcoal">
+                        {company.companyAccount?.email || 'Not specified'}
+                      </p>
                     </div>
                     <div>
-                      <p className="text-sm text-warm-gray">Revenue</p>
-                      <p className="text-sm text-charcoal">${company.monthlyRevenue}/mo</p>
+                      <p className="text-sm text-warm-gray">Employees</p>
+                      <p className="text-sm text-charcoal">
+                        {company.employees?.length || 0}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-warm-gray">Courses</p>
+                      <p className="text-sm text-charcoal">
+                        {company.savedCourses?.length || 0}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-warm-gray">Status</p>
-                      <Badge className={getStatusColor(company.status)} variant="secondary">
-                        {company.status.charAt(0).toUpperCase() + company.status.slice(1)}
+                      <Badge
+                        className={
+                          company.status === 'active'
+                            ? 'bg-success-green text-alabaster'
+                            : 'bg-red-500 text-alabaster'
+                        }
+                        variant="secondary"
+                      >
+                        {company.status === 'active' ? 'Active' : 'Deactivated'}
                       </Badge>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Link href={`/dashboard/course/try-out/60d5ec49f5a8a12a4c8a8a8a`} passHref>
-                      <Button variant="outline" size="sm" className="bg-alabaster border-warm-gray/30">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Try It
-                      </Button>
-                    </Link>
-                    <Link href={`/dashboard/course/view/${company.id}`} passHref>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-alabaster border-warm-gray/30"
-                      >
-                        <ClipboardList className="h-4 w-4 mr-2" />
-                        View Assignments
-                      </Button>
-                    </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-alabaster border-warm-gray/30"
+                      onClick={() => handleViewCompany(company)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
@@ -403,25 +391,18 @@ export default function CompanyManagementPage() {
                     >
                       <Mail className="h-4 w-4" />
                     </Button>
-                    {company.status === "active" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-alabaster border-warning-ochre text-warning-ochre hover:bg-warning-ochre hover:text-alabaster"
-                        onClick={() => handleSuspendCompany(company)}
-                      >
-                        <AlertTriangle className="h-4 w-4" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-alabaster border-red-500 text-red-500 hover:bg-red-500 hover:text-alabaster"
-                        onClick={() => handleDeleteCompany(company)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={
+                        company.status === 'active'
+                          ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-alabaster'
+                          : 'border-success-green text-success-green hover:bg-success-green hover:text-alabaster'
+                      }
+                      onClick={() => handleToggleCompanyStatus(company)}
+                    >
+                      {company.status === 'active' ? 'Deactivate' : 'Activate'}
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -429,11 +410,34 @@ export default function CompanyManagementPage() {
           </CardContent>
         </Card>
 
+        {/* Edit Company Modal */}
+        {selectedCompany && (
+          <EditCompanyModal
+            isOpen={isEditDialogOpen}
+            onClose={() => setIsEditDialogOpen(false)}
+            company={selectedCompany}
+          />
+        )}
+
+        {/* View Company Modal */}
+        {selectedCompany && (
+          <ViewCompanyModal
+            isOpen={isViewDialogOpen}
+            onClose={() => setIsViewDialogOpen(false)}
+            company={selectedCompany}
+          />
+        )}
+
         {/* Contact Company Dialog */}
-        <Dialog open={isContactDialogOpen} onOpenChange={setIsContactDialogOpen}>
+        <Dialog
+          open={isContactDialogOpen}
+          onOpenChange={setIsContactDialogOpen}
+        >
           <DialogContent className="bg-parchment border-warm-gray/20 shadow-xl">
             <DialogHeader>
-              <DialogTitle className="text-charcoal">Contact Company</DialogTitle>
+              <DialogTitle className="text-charcoal">
+                Contact Company
+              </DialogTitle>
               <DialogDescription className="text-warm-gray">
                 Send a message to {selectedCompany?.name}
               </DialogDescription>
@@ -457,7 +461,11 @@ export default function CompanyManagementPage() {
                   <Mail className="h-4 w-4 mr-2" />
                   Send Message
                 </Button>
-                <Button variant="outline" onClick={() => setIsContactDialogOpen(false)} className="bg-alabaster">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsContactDialogOpen(false)}
+                  className="bg-alabaster"
+                >
                   Cancel
                 </Button>
               </div>
@@ -466,5 +474,5 @@ export default function CompanyManagementPage() {
         </Dialog>
       </div>
     </AuthGuard>
-  )
+  );
 }

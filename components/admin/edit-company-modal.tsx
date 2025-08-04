@@ -18,6 +18,13 @@ import { Label } from '@/components/ui/label';
 interface Company {
   _id: string;
   name: string;
+  status?: 'active' | 'deactivated';
+  companyAccount?: {
+    _id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
 }
 
 interface EditCompanyModalProps {
@@ -47,9 +54,11 @@ export default function EditCompanyModal({
 }: EditCompanyModalProps) {
   const queryClient = useQueryClient();
   const [name, setName] = useState(company.name);
+  const [email, setEmail] = useState(company.companyAccount?.email || '');
 
   useEffect(() => {
     setName(company.name);
+    setEmail(company.companyAccount?.email || '');
   }, [company]);
 
   const mutation = useMutation({
@@ -65,32 +74,71 @@ export default function EditCompanyModal({
   });
 
   const handleSubmit = () => {
-    mutation.mutate({ ...company, name });
+    mutation.mutate({
+      ...company,
+      name,
+      companyAccount: {
+        _id: company.companyAccount?._id || '',
+        firstName: company.companyAccount?.firstName || '',
+        lastName: company.companyAccount?.lastName || '',
+        email,
+      },
+    });
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-parchment border-warm-gray/20 shadow-xl max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Company</DialogTitle>
-          <DialogDescription>
-            Update the details of the company.
+          <DialogTitle className="text-2xl text-charcoal">
+            Edit Company
+          </DialogTitle>
+          <DialogDescription className="text-warm-gray">
+            Update the details for{' '}
+            <span className="capitalize">{company.name}.</span>
           </DialogDescription>
         </DialogHeader>
-        <div>
-          <Label htmlFor="name">Company Name</Label>
-          <Input
-            id="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
+        <div className="space-y-6 py-2 px-1">
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-charcoal font-medium">
+              Company Name
+            </Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="bg-alabaster border-warm-gray/30 focus:border-charcoal"
+              placeholder="Enter company name"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-charcoal font-medium">
+              Company Email
+            </Label>
+            <Input
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="bg-alabaster border-warm-gray/30 focus:border-charcoal"
+              placeholder="Enter company email address"
+              type="email"
+            />
+          </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
+        <DialogFooter className="flex flex-row-reverse gap-2 pt-4">
+          <Button
+            onClick={handleSubmit}
+            disabled={mutation.isPending}
+            className="bg-charcoal text-alabaster hover:bg-charcoal/90 transition-soft"
+          >
+            {mutation.isPending ? 'Saving...' : 'Save Changes'}
           </Button>
-          <Button onClick={handleSubmit} disabled={mutation.isPending}>
-            {mutation.isPending ? 'Saving...' : 'Save'}
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="bg-alabaster border-warm-gray/30 hover:bg-warm-gray/10 transition-soft"
+          >
+            Cancel
           </Button>
         </DialogFooter>
       </DialogContent>

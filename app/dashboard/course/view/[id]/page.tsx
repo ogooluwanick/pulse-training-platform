@@ -76,7 +76,7 @@ export default function CourseViewPage({ params }: { params: { id: string } }) {
   if (assignmentError || courseError) {
     return (
       <div
-        className="flex-1 flex items-center justify-center"
+        className="flex-1 flex items-center justify-center min-h-[80vh]"
         style={{ backgroundColor: '#f5f4ed' }}
       >
         <Alert className="max-w-md mx-auto">

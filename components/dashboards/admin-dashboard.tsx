@@ -43,7 +43,22 @@ interface AdminDashboardMetrics {
     companiesAtRisk: number;
     employeesAtRisk: number;
   };
-  recentActivity: RecentActivity[];
+}
+
+interface CompanyAtRisk {
+  id: string;
+  name: string;
+  status: 'on-track' | 'at-risk' | 'overdue';
+  employeesAtRisk: number;
+  totalEmployees: number;
+  assignments?: Array<{
+    courseId: string;
+    status: string;
+    endDate: string;
+    isOverdue: boolean;
+    employeeId: string;
+    employeeName: string;
+  }>;
 }
 
 interface RecentActivity {
@@ -53,10 +68,27 @@ interface RecentActivity {
   course: string;
   timestamp: string;
   type: 'completion' | 'enrollment' | 'deadline';
+  companyId?: string;
 }
 
 const fetchAdminDashboardMetrics = async (): Promise<AdminDashboardMetrics> => {
   const res = await fetch('/api/admin/dashboard-metrics');
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+};
+
+const fetchCompaniesAtRisk = async (): Promise<CompanyAtRisk[]> => {
+  const res = await fetch('/api/admin/companies-at-risk');
+  if (!res.ok) {
+    throw new Error('Network response was not ok');
+  }
+  return res.json();
+};
+
+const fetchRecentActivity = async (): Promise<RecentActivity[]> => {
+  const res = await fetch('/api/admin/recent-activity');
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
@@ -70,11 +102,29 @@ export default function AdminDashboard() {
 
   const {
     data: metrics,
-    isLoading,
-    error,
+    isLoading: isLoadingMetrics,
+    error: errorMetrics,
   } = useQuery<AdminDashboardMetrics>({
     queryKey: ['adminDashboardMetrics'],
     queryFn: fetchAdminDashboardMetrics,
+  });
+
+  const {
+    data: companiesAtRisk,
+    isLoading: isLoadingCompaniesAtRisk,
+    error: errorCompaniesAtRisk,
+  } = useQuery<CompanyAtRisk[]>({
+    queryKey: ['companiesAtRisk'],
+    queryFn: fetchCompaniesAtRisk,
+  });
+
+  const {
+    data: recentActivity,
+    isLoading: isLoadingRecentActivity,
+    error: errorRecentActivity,
+  } = useQuery<RecentActivity[]>({
+    queryKey: ['adminRecentActivity'],
+    queryFn: fetchRecentActivity,
   });
 
   const inviteMutation = useMutation({
@@ -126,11 +176,46 @@ export default function AdminDashboard() {
     inviteMutation.mutate(emails);
   };
 
-  if (isLoading) {
+  const getStatusColor = (status: CompanyAtRisk['status']) => {
+    switch (status) {
+      case 'on-track':
+        return 'bg-success-green text-alabaster';
+      case 'at-risk':
+        return 'bg-warning-ochre text-alabaster';
+      case 'overdue':
+        return 'bg-red-500 text-alabaster';
+      default:
+        return 'bg-warm-gray text-alabaster';
+    }
+  };
+
+  const formatCompletionTime = (time: number) => {
+    if (time === 0) return 'N/A';
+    return `${time} days`;
+  };
+
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`;
+    } else if (diffInHours < 168) {
+      // 7 days
+      return `${Math.floor(diffInHours / 24)}d ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  if (isLoadingMetrics || isLoadingCompaniesAtRisk || isLoadingRecentActivity) {
     return <FullPageLoader />;
   }
 
-  if (error) {
+  if (errorMetrics) {
     return (
       <div
         className="flex-1 space-y-6 p-6 min-h-screen"
@@ -227,7 +312,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {metrics?.totalCompanies}
+              {metrics?.totalCompanies || 0}
             </div>
           </CardContent>
         </Card>
@@ -241,7 +326,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {metrics?.totalEmployees}
+              {metrics?.totalEmployees || 0}
             </div>
           </CardContent>
         </Card>
@@ -255,9 +340,12 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {metrics?.overallCompliance}%
+              {metrics?.overallCompliance || 0}%
             </div>
-            <Progress value={metrics?.overallCompliance} className="mt-2 h-2" />
+            <Progress
+              value={metrics?.overallCompliance || 0}
+              className="mt-2 h-2"
+            />
           </CardContent>
         </Card>
 
@@ -270,7 +358,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {metrics?.avgCompletionTime}
+              {formatCompletionTime(metrics?.avgCompletionTime || 0)}
             </div>
             <p className="text-xs text-warm-gray">Days per course</p>
           </CardContent>
@@ -316,7 +404,7 @@ export default function AdminDashboard() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="text-3xl font-bold text-charcoal">
-                      {metrics?.overallCompliance}%
+                      {metrics?.overallCompliance || 0}%
                     </div>
                     <div className="text-sm text-warm-gray">
                       Platform Compliance
@@ -350,7 +438,7 @@ export default function AdminDashboard() {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
                     <div className="text-3xl font-bold text-charcoal">
-                      {metrics?.platformRisk.companiesAtRisk}
+                      {metrics?.platformRisk.companiesAtRisk || 0}
                     </div>
                     <div className="text-sm text-warm-gray">
                       Companies at Risk
@@ -380,7 +468,7 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <p className="text-lg font-bold text-charcoal">
-                {metrics?.platformRisk.companiesAtRisk}
+                {metrics?.platformRisk.companiesAtRisk || 0}
               </p>
             </div>
             <div className="flex items-center justify-between">
@@ -391,7 +479,7 @@ export default function AdminDashboard() {
                 </p>
               </div>
               <p className="text-lg font-bold text-charcoal">
-                {metrics?.platformRisk.employeesAtRisk}
+                {metrics?.platformRisk.employeesAtRisk || 0}
               </p>
             </div>
           </CardContent>
@@ -405,39 +493,105 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {metrics?.recentActivity.map((activity) => (
-              <div
-                key={activity.id}
-                className="flex items-center gap-3 p-3 rounded-lg bg-alabaster"
-              >
+            {errorRecentActivity ? (
+              <p className="text-sm text-red-500">
+                Could not load recent activity.
+              </p>
+            ) : recentActivity?.length === 0 ? (
+              <p className="text-sm text-warm-gray">
+                No recent activity to display.
+              </p>
+            ) : (
+              recentActivity?.map((activity) => (
                 <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-full ${
-                    activity.type === 'completion'
-                      ? 'bg-success-green'
-                      : activity.type === 'enrollment'
-                        ? 'bg-charcoal'
-                        : 'bg-warning-ochre'
-                  } text-alabaster`}
+                  key={activity.id}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-alabaster"
                 >
-                  {activity.type === 'completion'
-                    ? '✓'
-                    : activity.type === 'enrollment'
-                      ? '📚'
-                      : '⚠'}
+                  <div
+                    className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                      activity.type === 'completion'
+                        ? 'bg-success-green'
+                        : activity.type === 'enrollment'
+                          ? 'bg-charcoal'
+                          : 'bg-warning-ochre'
+                    } text-alabaster`}
+                  >
+                    {activity.type === 'completion'
+                      ? '✓'
+                      : activity.type === 'enrollment'
+                        ? '📚'
+                        : '⚠'}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-charcoal">
+                      <strong>{activity.user}</strong> {activity.action}{' '}
+                      <strong>{activity.course}</strong>
+                    </p>
+                    <p className="text-xs text-warm-gray">
+                      {formatTimestamp(activity.timestamp)}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-sm text-charcoal">
-                    <strong>{activity.user}</strong> {activity.action}{' '}
-                    <strong>{activity.course}</strong>
-                  </p>
-                  <p className="text-xs text-warm-gray">{activity.timestamp}</p>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Companies at Risk List */}
+      <Card className="bg-card border-warm-gray/20">
+        <CardHeader>
+          <CardTitle className="text-charcoal">Companies at Risk</CardTitle>
+          <CardDescription className="text-warm-gray">
+            Require immediate attention
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {errorCompaniesAtRisk ? (
+            <p className="text-sm text-red-500">
+              Could not load companies at risk.
+            </p>
+          ) : companiesAtRisk?.length === 0 ? (
+            <p className="text-sm text-warm-gray">
+              No companies are currently at risk.
+            </p>
+          ) : (
+            companiesAtRisk?.map((company) => (
+              <div
+                key={company.id}
+                className="flex items-center gap-3 p-3 rounded-lg bg-alabaster"
+              >
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-charcoal truncate">
+                    {company.name}
+                  </p>
+                  <p className="text-xs text-warm-gray">
+                    {company.employeesAtRisk} of {company.totalEmployees}{' '}
+                    employees at risk
+                  </p>
+                  {company.assignments && company.assignments.length > 0 && (
+                    <p className="text-xs text-warm-gray mt-1">
+                      {company.assignments.length} assignment
+                      {company.assignments.length > 1 ? 's' : ''}{' '}
+                      {company.status === 'overdue' ? 'overdue' : 'at risk'}
+                    </p>
+                  )}
+                </div>
+                <Badge
+                  className={getStatusColor(company.status)}
+                  variant="secondary"
+                >
+                  {company.status === 'at-risk'
+                    ? 'At Risk'
+                    : company.status === 'overdue'
+                      ? 'Overdue'
+                      : 'On Track'}
+                </Badge>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
- 

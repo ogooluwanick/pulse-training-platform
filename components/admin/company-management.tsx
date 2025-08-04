@@ -20,13 +20,17 @@ import { Badge } from '@/components/ui/badge';
 interface Company {
   _id: string;
   name: string;
-  status: 'active' | 'inactive';
-  companyAccount: {
+  status?: 'active' | 'deactivated';
+  companyAccount?: {
+    _id: string;
     firstName: string;
     lastName: string;
-    name: string;
     email: string;
   };
+  employees?: any[];
+  savedCourses?: any[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface CompanyManagementProps {
@@ -39,17 +43,6 @@ const fetchCompanies = async (): Promise<Company[]> => {
     throw new Error('Network response was not ok');
   }
   return res.json();
-};
-
-const getStatusColor = (status: Company['status']) => {
-  switch (status) {
-    case 'active':
-      return 'bg-success-green text-alabaster hover:bg-success-green/90';
-    case 'inactive':
-      return 'bg-red-500 text-alabaster hover:bg-red-500/90';
-    default:
-      return 'bg-warm-gray text-alabaster hover:bg-warm-gray/90';
-  }
 };
 
 export default function CompanyManagement() {
@@ -134,12 +127,22 @@ export default function CompanyManagement() {
                     <p className="text-sm text-charcoal">Pending</p>
                   </div>
                   <div>
+                    <p className="text-sm text-warm-gray">Employees</p>
+                    <p className="text-sm text-charcoal">
+                      {company.employees?.length || 0}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-sm text-warm-gray">Status</p>
                     <Badge
-                      className={`capitalize ${getStatusColor(company.status)}`}
+                      className={
+                        company.status === 'active'
+                          ? 'bg-success-green text-alabaster'
+                          : 'bg-red-500 text-alabaster'
+                      }
                       variant="secondary"
                     >
-                      {company.status}
+                      {company.status === 'active' ? 'Active' : 'Deactivated'}
                     </Badge>
                   </div>
                 </div>
@@ -167,15 +170,19 @@ export default function CompanyManagement() {
                     View
                   </Button>
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     size="sm"
-                    className="px-4 py-2 rounded-md"
+                    className={
+                      company.status === 'active'
+                        ? 'border-red-500 text-red-500 hover:bg-red-500 hover:text-alabaster'
+                        : 'border-success-green text-success-green hover:bg-success-green hover:text-alabaster'
+                    }
                     onClick={() => {
                       setSelectedCompany(company);
                       setDeactivateModalOpen(true);
                     }}
                   >
-                    Deactivate
+                    {company.status === 'active' ? 'Deactivate' : 'Activate'}
                   </Button>
                 </div>
               </div>
@@ -199,6 +206,7 @@ export default function CompanyManagement() {
             isOpen={isDeactivateModalOpen}
             onClose={() => setDeactivateModalOpen(false)}
             companyId={selectedCompany._id}
+            companyStatus={selectedCompany.status}
           />
         </>
       )}

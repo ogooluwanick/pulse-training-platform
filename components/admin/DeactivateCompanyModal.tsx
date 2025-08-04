@@ -16,9 +16,10 @@ interface DeactivateCompanyModalProps {
   isOpen: boolean;
   onClose: () => void;
   companyId: string;
+  companyStatus?: 'active' | 'deactivated';
 }
 
-const deactivateCompany = async (companyId: string) => {
+const toggleCompanyStatus = async (companyId: string) => {
   const res = await fetch(`/api/company/${companyId}`, {
     method: 'DELETE',
   });
@@ -32,18 +33,21 @@ export default function DeactivateCompanyModal({
   isOpen,
   onClose,
   companyId,
+  companyStatus = 'active',
 }: DeactivateCompanyModalProps) {
   const queryClient = useQueryClient();
+  const isActive = companyStatus === 'active';
+  const action = isActive ? 'Deactivate' : 'Activate';
 
   const mutation = useMutation({
-    mutationFn: deactivateCompany,
-    onSuccess: () => {
-      toast.success('Company deactivated successfully');
+    mutationFn: toggleCompanyStatus,
+    onSuccess: (data) => {
+      toast.success(`Company ${data.message}`);
       queryClient.invalidateQueries({ queryKey: ['companies'] });
       onClose();
     },
     onError: () => {
-      toast.error('Failed to deactivate company');
+      toast.error(`Failed to ${action} company`);
     },
   });
 
@@ -55,21 +59,36 @@ export default function DeactivateCompanyModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-parchment border-warm-gray/20 shadow-xl max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Deactivate Company</DialogTitle>
-          <DialogDescription>
-            Are you sure you want to deactivate this company? This action cannot be undone.
+          <DialogTitle className="text-2xl text-charcoal">
+            {isActive ? 'Deactivate' : 'Activate'} Company
+          </DialogTitle>
+          <DialogDescription className="text-warm-gray">
+            {isActive
+              ? 'Are you sure you want to deactivate this company? Deactivated companies cannot perform actions but their data will be preserved.'
+              : 'Are you sure you want to activate this company? Activated companies can perform all actions normally.'}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
+        <DialogFooter className="flex flex-row-reverse gap-2 pt-4">
           <Button
-            variant="destructive"
+            variant={isActive ? 'destructive' : 'default'}
             onClick={handleSubmit}
             disabled={mutation.isPending}
+            className={
+              isActive
+                ? 'bg-red-500 text-alabaster hover:bg-red-600'
+                : 'bg-success-green text-alabaster hover:bg-success-green/90'
+            }
           >
-            {mutation.isPending ? 'Deactivating...' : 'Deactivate'}
+            {mutation.isPending
+              ? `${isActive ? 'Deactivating' : 'Activating'}...`
+              : action}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="bg-alabaster border-warm-gray/30 hover:bg-warm-gray/10 transition-soft"
+          >
+            Cancel
           </Button>
         </DialogFooter>
       </DialogContent>

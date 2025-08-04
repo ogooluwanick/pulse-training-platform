@@ -3,9 +3,12 @@ import dbConnect from '@/lib/dbConnect';
 import Company from '@/lib/models/Company';
 import User from '@/lib/models/User';
 import Course from '@/lib/models/Course';
+import CourseAssignment from '@/lib/models/CourseAssignment';
+import Activity from '@/lib/models/Activity';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../../auth/[...nextauth]/route';
 
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -17,55 +20,131 @@ export async function GET() {
   await dbConnect();
 
   try {
+    // Get total companies and employees
     const totalCompanies = await Company.countDocuments();
     const totalEmployees = await User.countDocuments({ role: 'EMPLOYEE' });
 
-    // This is a simplified calculation for overall compliance and average completion time.
-    // A more complex aggregation would be needed for accurate metrics.
-    const courses = await Course.find({});
-    const overallCompliance = courses.length > 0 ? 75 : 0; // Placeholder
-    const avgCompletionTime = courses.length > 0 ? 14 : 0; // Placeholder
+    // Get all course assignments across all companies
+    const allAssignments = await CourseAssignment.find({}).populate('employee');
 
-    // Placeholder data for platform risk and recent activity
+    // Calculate overall compliance across all companies
+    const totalAssignments = allAssignments.length;
+    const completedAssignments = allAssignments.filter(
+      (a) => a.status === 'completed'
+    ).length;
+
+    const overallCompliance =
+      totalAssignments > 0
+        ? Math.min((completedAssignments / totalAssignments) * 100, 100)
+        : 0;
+
+    // Calculate average completion time across all companies
+    let totalCompletionTime = 0;
+    let completedAssignmentsWithTime = 0;
+
+    allAssignments.forEach((assignment) => {
+      if (
+        assignment.status === 'completed' &&
+        assignment.completedAt &&
+        assignment.createdAt
+      ) {
+        const completionTime =
+          (new Date(assignment.completedAt).getTime() -
+            new Date(assignment.createdAt).getTime()) /
+          (1000 * 60 * 60 * 24); // Convert to days
+        totalCompletionTime += completionTime;
+        completedAssignmentsWithTime++;
+      }
+    });
+
+    const avgCompletionTime =
+      completedAssignmentsWithTime > 0
+        ? Math.round(totalCompletionTime / completedAssignmentsWithTime)
+        : 0;
+
+    // Calculate companies at risk using similar criteria to employees at risk
+    const companiesAtRisk = new Set();
+    const employeesAtRisk = new Set();
+    const now = new Date();
+
+    // Group assignments by company
+    const companyAssignments = new Map();
+
+    allAssignments.forEach((assignment) => {
+      const employee = assignment.employee as any;
+      if (!employee || !employee.companyId) return;
+
+      const companyId = employee.companyId.toString();
+      if (!companyAssignments.has(companyId)) {
+        companyAssignments.set(companyId, []);
+      }
+      companyAssignments.get(companyId).push(assignment);
+    });
+
+    // Check each company for risk criteria
+    companyAssignments.forEach((assignments, companyId) => {
+      let companyHasRisk = false;
+      let companyEmployeesAtRisk = 0;
+
+      assignments.forEach((assignment: any) => {
+        // Skip completed assignments
+        if (assignment.status === 'completed') return;
+
+        const assignedDate = assignment.createdAt
+          ? new Date(assignment.createdAt)
+          : null;
+        if (!assignedDate) return;
+
+        const diffDays =
+          (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+
+        // Check for overdue: more than 14 days old and not completed
+        if (diffDays > 14) {
+          companyHasRisk = true;
+          companyEmployeesAtRisk++;
+          employeesAtRisk.add(assignment.employee.toString());
+          return;
+        }
+
+        // Check for at-risk: less than 50% progress after 5 days
+        if (diffDays > 5) {
+          const courseData = assignment.course;
+          if (courseData && courseData.lessons) {
+            const courseLessons = courseData.lessons.length;
+            const completedLessons = assignment.lessonProgress
+              ? assignment.lessonProgress.filter(
+                  (lesson: any) => lesson.status === 'completed'
+                ).length
+              : 0;
+
+            const assignmentProgress =
+              courseLessons > 0 ? (completedLessons / courseLessons) * 100 : 0;
+
+            if (assignmentProgress < 50) {
+              companyHasRisk = true;
+              companyEmployeesAtRisk++;
+              employeesAtRisk.add(assignment.employee.toString());
+            }
+          }
+        }
+      });
+
+      if (companyHasRisk) {
+        companiesAtRisk.add(companyId);
+      }
+    });
+
     const platformRisk = {
-      companiesAtRisk: 5,
-      employeesAtRisk: 25,
+      companiesAtRisk: companiesAtRisk.size,
+      employeesAtRisk: employeesAtRisk.size,
     };
-
-    const recentActivity = [
-      {
-        id: '1',
-        user: 'John Doe',
-        action: 'completed',
-        course: 'Introduction to TypeScript',
-        timestamp: '2 hours ago',
-        type: 'completion',
-      },
-      {
-        id: '2',
-        user: 'Jane Smith',
-        action: 'enrolled in',
-        course: 'Advanced React Patterns',
-        timestamp: '1 day ago',
-        type: 'enrollment',
-      },
-      {
-        id: '3',
-        user: 'Peter Jones',
-        action: 'is overdue for',
-        course: 'Cybersecurity Essentials',
-        timestamp: '3 days ago',
-        type: 'deadline',
-      },
-    ];
 
     return NextResponse.json({
       totalCompanies,
       totalEmployees,
-      overallCompliance,
+      overallCompliance: Math.round(overallCompliance),
       avgCompletionTime,
       platformRisk,
-      recentActivity,
     });
   } catch (error) {
     console.error('Error fetching admin dashboard metrics:', error);

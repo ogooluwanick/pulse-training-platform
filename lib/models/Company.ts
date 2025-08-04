@@ -23,6 +23,11 @@ const CompanySchema = new Schema(
         ref: 'Course',
       },
     ],
+    status: {
+      type: String,
+      enum: ['active', 'deactivated'],
+      default: 'active',
+    },
   },
   { timestamps: true }
 );

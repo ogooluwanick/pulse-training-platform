@@ -15,7 +15,10 @@ export async function GET(req: NextRequest) {
   const token = await getToken({ req, secret });
 
   if (!token || token.role !== 'ADMIN') {
-    return NextResponse.json({ message: 'Not authenticated or not an admin' }, { status: 401 });
+    return NextResponse.json(
+      { message: 'Not authenticated or not an admin' },
+      { status: 401 }
+    );
   }
 
   await dbConnect();
