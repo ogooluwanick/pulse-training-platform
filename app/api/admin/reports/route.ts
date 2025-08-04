@@ -25,8 +25,10 @@ export async function GET(request: Request) {
 
   try {
     const match: any = {};
-    if (startDate) match.createdAt = { ...match.createdAt, $gte: new Date(startDate) };
-    if (endDate) match.createdAt = { ...match.createdAt, $lte: new Date(endDate) };
+    if (startDate)
+      match.createdAt = { ...match.createdAt, $gte: new Date(startDate) };
+    if (endDate)
+      match.createdAt = { ...match.createdAt, $lte: new Date(endDate) };
     if (companyId) match.company = new mongoose.Types.ObjectId(companyId);
     if (courseId) match.course = new mongoose.Types.ObjectId(courseId);
 
@@ -44,10 +46,21 @@ export async function GET(request: Request) {
     let totalCompletion = 0;
     let coursesInProgress = 0;
     let overdueEmployeesCount = 0;
-    const courseCompletionStats: { [key: string]: { total: number; completed: number } } = {};
-    const employeeProgress: { [key: string]: { completed: number; total: number; name: string; email: string; companyName: string; status: string } } = {};
+    const courseCompletionStats: {
+      [key: string]: { total: number; completed: number };
+    } = {};
+    const employeeProgress: {
+      [key: string]: {
+        completed: number;
+        total: number;
+        name: string;
+        email: string;
+        companyName: string;
+        status: string;
+      };
+    } = {};
 
-    assignments.forEach(assignment => {
+    assignments.forEach((assignment) => {
       if (!employeeProgress[assignment.employee._id]) {
         employeeProgress[assignment.employee._id] = {
           completed: 0,
@@ -68,13 +81,24 @@ export async function GET(request: Request) {
         coursesInProgress++;
       }
 
-      if (new Date(assignment.dueDate) < new Date() && assignment.status !== 'completed') {
-        overdueEmployeesCount++;
-        employeeProgress[assignment.employee._id].status = 'Overdue';
+      // Check for overdue using standardized rules: courses assigned more than 14 days ago that aren't completed
+      const now = new Date();
+      if (assignment.status !== 'completed' && assignment.createdAt) {
+        const assignedDate = new Date(assignment.createdAt);
+        const diffDays =
+          (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+
+        if (diffDays > 14) {
+          overdueEmployeesCount++;
+          employeeProgress[assignment.employee._id].status = 'Overdue';
+        }
       }
 
       if (!courseCompletionStats[assignment.course.title]) {
-        courseCompletionStats[assignment.course.title] = { total: 0, completed: 0 };
+        courseCompletionStats[assignment.course.title] = {
+          total: 0,
+          completed: 0,
+        };
       }
       courseCompletionStats[assignment.course.title].total++;
       if (assignment.status === 'completed') {
@@ -82,33 +106,43 @@ export async function GET(request: Request) {
       }
     });
 
-    const employeeProgressList = Object.entries(employeeProgress).map(([id, data]) => {
-      const completionPercentage = data.total > 0 ? (data.completed / data.total) * 100 : 0;
-      let status = 'Not Started';
-      if (completionPercentage === 100) {
-        status = 'Completed';
-      } else if (completionPercentage > 0) {
-        status = 'In Progress';
+    const employeeProgressList = Object.entries(employeeProgress).map(
+      ([id, data]) => {
+        const completionPercentage =
+          data.total > 0 ? (data.completed / data.total) * 100 : 0;
+        let status = 'Not Started';
+        if (completionPercentage === 100) {
+          status = 'Completed';
+        } else if (completionPercentage > 0) {
+          status = 'In Progress';
+        }
+        if (data.status === 'Overdue') {
+          status = 'Overdue';
+        }
+        return {
+          id,
+          name: data.name,
+          email: data.email,
+          companyName: data.companyName,
+          completionPercentage,
+          status,
+        };
       }
-      if (data.status === 'Overdue') {
-        status = 'Overdue';
-      }
-      return {
-        id,
-        name: data.name,
-        email: data.email,
-        companyName: data.companyName,
-        completionPercentage,
-        status,
-      };
-    });
+    );
 
-    const overallCompletion = assignments.length > 0 ? (assignments.filter(a => a.status === 'completed').length / assignments.length) * 100 : 0;
+    const overallCompletion =
+      assignments.length > 0
+        ? (assignments.filter((a) => a.status === 'completed').length /
+            assignments.length) *
+          100
+        : 0;
 
-    const courseCompletionStatsList = Object.entries(courseCompletionStats).map(([courseName, data]) => ({
-      courseName,
-      completion: data.total > 0 ? (data.completed / data.total) * 100 : 0,
-    }));
+    const courseCompletionStatsList = Object.entries(courseCompletionStats).map(
+      ([courseName, data]) => ({
+        courseName,
+        completion: data.total > 0 ? (data.completed / data.total) * 100 : 0,
+      })
+    );
 
     return NextResponse.json({
       overallCompletion,
@@ -119,6 +153,9 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Error fetching admin report data:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

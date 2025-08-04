@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Module,
-  CultureCourse,
-  CultureModuleResponse,
-  courseToCultureModule,
-  cultureModuleToCourse,
-} from '@/types/culture';
+  CourseModule,
+  CourseModuleResponse,
+  courseToCourseModule,
+  courseModuleToCourse,
+} from '@/types/course';
 import { useSession } from 'next-auth/react';
 import toast from 'react-hot-toast';
 import { getHumanReadableError, debugLog } from '@/lib/error-utils';
 
-export function useCultureModules({ isAdmin = false } = {}) {
+export function useCourseModules({ isAdmin = false } = {}) {
   const { data: session, status } = useSession();
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,30 +32,30 @@ export function useCultureModules({ isAdmin = false } = {}) {
       setLoading(true);
       setError(null);
 
-      const url = isAdmin ? '/api/course' : '/api/company/culture';
+      const url = isAdmin ? '/api/course' : '/api/company/course';
       const response = await fetch(url);
-      const data: CultureModuleResponse = await response.json();
+      const data: CourseModuleResponse = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch culture modules');
+        throw new Error(data.error || 'Failed to fetch course modules');
       }
 
       // Convert Course objects to Module format for component compatibility
-      const convertedModules = data.modules?.map(courseToCultureModule) || [];
+      const convertedModules = data.modules?.map(courseToCourseModule) || [];
       setModules(convertedModules);
 
       // Mark as fetched for this user
       lastFetchedUserId.current = session.user.id;
       hasFetched.current = true;
     } catch (error: any) {
-      console.error('Error fetching culture modules:', error);
+      console.error('Error fetching course modules:', error);
       const errorMessage =
         error.response?.data?.details ||
         error.response?.data?.error ||
         error.message ||
         'Unknown error';
       const humanError = getHumanReadableError(errorMessage);
-      toast.error(`Failed to load culture modules: ${humanError}`);
+      toast.error(`Failed to load course modules: ${humanError}`);
       // Clear error state so it doesn't block UI
       setError(null);
     } finally {
@@ -88,13 +88,13 @@ export function useCultureModules({ isAdmin = false } = {}) {
     await fetchModules();
   }, [fetchModules]);
 
-  // Create a new culture module
+  // Create a new course module
   const createModule = async (): Promise<Module | null> => {
     try {
       setIsCreating(true);
       setError(null);
 
-      const url = isAdmin ? '/api/course' : '/api/company/culture';
+      const url = isAdmin ? '/api/course' : '/api/company/course';
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -102,16 +102,16 @@ export function useCultureModules({ isAdmin = false } = {}) {
         },
         body: JSON.stringify({
           title: 'Untitled Module',
-          content: 'Start writing your culture module content here...',
+          content: 'Start writing your course module content here...',
           quiz: null,
         }),
       });
 
-      const data: CultureModuleResponse = await response.json();
+      const data: CourseModuleResponse = await response.json();
 
       if (!response.ok) {
         const errorMessage =
-          data.details || data.error || 'Failed to create culture module';
+          data.details || data.error || 'Failed to create course module';
         console.error('API Error:', data);
         const humanError = getHumanReadableError(errorMessage);
         toast.error(`Failed to create module: ${humanError}`);
@@ -119,7 +119,7 @@ export function useCultureModules({ isAdmin = false } = {}) {
       }
 
       if (data.module) {
-        const newModule = courseToCultureModule(data.module);
+        const newModule = courseToCourseModule(data.module);
         setModules((prev) => [...prev, newModule]);
         return newModule;
       }
@@ -140,7 +140,7 @@ export function useCultureModules({ isAdmin = false } = {}) {
     }
   };
 
-  // Update a culture module
+  // Update a course module
   const updateModule = async (
     moduleId: string,
     updates: Partial<Module>
@@ -163,9 +163,11 @@ export function useCultureModules({ isAdmin = false } = {}) {
 
       debugLog('Full Module before transformation:', fullModule);
 
-      const courseUpdates = cultureModuleToCourse(
+      const courseUpdates = courseModuleToCourse(
         fullModule,
-        isAdmin ? undefined : session?.user?.companyId || session?.user?.id || '',
+        isAdmin
+          ? undefined
+          : session?.user?.companyId || session?.user?.id || '',
         session?.user?.id || ''
       );
 
@@ -177,7 +179,7 @@ export function useCultureModules({ isAdmin = false } = {}) {
 
       const url = isAdmin
         ? `/api/course/${moduleId}`
-        : `/api/company/culture/${moduleId}`;
+        : `/api/company/course/${moduleId}`;
       const response = await fetch(url, {
         method: 'PUT',
         headers: {
@@ -186,11 +188,11 @@ export function useCultureModules({ isAdmin = false } = {}) {
         body: JSON.stringify(courseUpdates),
       });
 
-      const data: CultureModuleResponse = await response.json();
+      const data: CourseModuleResponse = await response.json();
 
       if (!response.ok) {
         const errorMessage =
-          data.details || data.error || 'Failed to update culture module';
+          data.details || data.error || 'Failed to update course module';
         console.error('API Error:', data);
         const humanError = getHumanReadableError(errorMessage);
         toast.error(`Failed to update module: ${humanError}`);
@@ -198,7 +200,7 @@ export function useCultureModules({ isAdmin = false } = {}) {
       }
 
       if (data.module) {
-        const updatedModule = courseToCultureModule(data.module);
+        const updatedModule = courseToCourseModule(data.module);
         setModules((prev) =>
           prev.map((m) => (m.id === moduleId ? updatedModule : m))
         );
@@ -221,7 +223,7 @@ export function useCultureModules({ isAdmin = false } = {}) {
     }
   };
 
-  // Delete a culture module
+  // Delete a course module
   const deleteModule = async (moduleId: string): Promise<boolean> => {
     try {
       setIsDeleting(true);
@@ -229,16 +231,16 @@ export function useCultureModules({ isAdmin = false } = {}) {
 
       const url = isAdmin
         ? `/api/course/${moduleId}`
-        : `/api/company/culture/${moduleId}`;
+        : `/api/company/course/${moduleId}`;
       const response = await fetch(url, {
         method: 'DELETE',
       });
 
-      const data: CultureModuleResponse = await response.json();
+      const data: CourseModuleResponse = await response.json();
 
       if (!response.ok) {
         const errorMessage =
-          data.details || data.error || 'Failed to delete culture module';
+          data.details || data.error || 'Failed to delete course module';
         console.error('API Error:', data);
         const humanError = getHumanReadableError(errorMessage);
         toast.error(`Failed to delete module: ${humanError}`);

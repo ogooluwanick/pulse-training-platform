@@ -1,6 +1,6 @@
 'use client';
 
-import { Module } from '@/types/culture';
+import { Module } from '@/types/course';
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import DeleteConfirmationModal from './DeleteConfirmationModal';

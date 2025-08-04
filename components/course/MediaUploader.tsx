@@ -21,10 +21,9 @@ import toast from 'react-hot-toast';
 import { getHumanReadableError } from '@/lib/error-utils';
 import dynamic from 'next/dynamic';
 
-const UniversalVideoPlayer = dynamic(
-  () => import('./UniversalVideoPlayer'),
-  { ssr: false }
-);
+const UniversalVideoPlayer = dynamic(() => import('./UniversalVideoPlayer'), {
+  ssr: false,
+});
 
 interface MediaUploaderProps {
   lessonType: 'video' | 'image';
@@ -99,7 +98,7 @@ export default function MediaUploader({
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
 
-      const response = await fetch('/api/company/culture/upload-media', {
+      const response = await fetch('/api/company/course/upload-media', {
         method: 'POST',
         body: formData,
       });

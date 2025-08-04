@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-import UniversalVideoPlayer from '@/components/culture/UniversalVideoPlayer';
+import UniversalVideoPlayer from '@/components/course/UniversalVideoPlayer';
 import WYSIWYGContentRenderer from '@/components/wysiwyg-content-renderer';
 import FullPageLoader from '@/components/full-page-loader';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -337,8 +337,16 @@ export default function LessonPage() {
               ) : (
                 <div className="w-full h-full bg-warm-gray/20 rounded-lg flex items-center justify-center text-warm-gray">
                   <div className="text-center">
-                    <svg className="w-16 h-16 mx-auto mb-4 text-warm-gray/50" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    <svg
+                      className="w-16 h-16 mx-auto mb-4 text-warm-gray/50"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     <p className="text-sm">No image available</p>
                   </div>

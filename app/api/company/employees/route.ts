@@ -57,7 +57,7 @@ export async function GET() {
                   (lesson: any) => lesson.status === 'completed'
                 ).length
               : 0;
-            
+
             totalLessons += courseLessons;
             totalProgress += completedLessons;
           }
@@ -66,21 +66,59 @@ export async function GET() {
         const overallProgress =
           totalLessons > 0 ? (totalProgress / totalLessons) * 100 : 0;
 
-        // Calculate overdue courses
+        // Determine status based on standardized rules
+        let status: 'on-track' | 'at-risk' | 'overdue' = 'on-track';
+
+        // Check for overdue: courses assigned more than 14 days ago that aren't completed
         const now = new Date();
-        const overdueCourses = assignments.filter((assignment: any) => {
-          if (!assignment.createdAt || assignment.status === 'completed') return false;
+        const overdueAssignments = assignments.filter((assignment: any) => {
+          if (assignment.status === 'completed') return false;
+          if (!assignment.createdAt) return false;
+
           const assignedDate = new Date(assignment.createdAt);
-          const diffDays = (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
-          return diffDays > 14 && assignment.status !== 'completed';
+          const diffDays =
+            (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+          return diffDays > 14;
         });
 
-        // Determine status based on progress and overdue courses
-        let status: 'on-track' | 'at-risk' | 'overdue' = 'on-track';
-        if (overdueCourses.length > 0) {
+        // Check for at-risk: overall progress less than 50% after 5 days
+        const atRiskAssignments = assignments.filter((assignment: any) => {
+          if (assignment.status === 'completed') return false;
+          if (!assignment.createdAt) return false;
+
+          const assignedDate = new Date(assignment.createdAt);
+          const diffDays =
+            (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+
+          // Only consider at-risk if assignment is older than 5 days
+          if (diffDays <= 5) return false;
+
+          // Calculate progress for this assignment
+          const courseData = assignment.course;
+          if (!courseData || !courseData.lessons) return false;
+
+          const courseLessons = courseData.lessons.length;
+          const completedLessons = assignment.lessonProgress
+            ? assignment.lessonProgress.filter(
+                (lesson: any) => lesson.status === 'completed'
+              ).length
+            : 0;
+
+          const assignmentProgress =
+            courseLessons > 0 ? (completedLessons / courseLessons) * 100 : 0;
+          return assignmentProgress < 50;
+        });
+
+        // Determine status
+        if (overdueAssignments.length > 0) {
           status = 'overdue';
-        } else if (overallProgress < 50) {
+        } else if (atRiskAssignments.length > 0) {
           status = 'at-risk';
+        } else if (
+          assignments.length > 0 &&
+          assignments.every((a: any) => a.status === 'completed')
+        ) {
+          status = 'on-track';
         }
 
         // Calculate time invested (for completed courses)
@@ -92,16 +130,20 @@ export async function GET() {
 
         return {
           id: employee._id,
-          name: `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unknown Employee',
+          name:
+            `${employee.firstName || ''} ${employee.lastName || ''}`.trim() ||
+            'Unknown Employee',
           email: employee.email,
           role: employee.role,
           department: employee.department || 'N/A',
           overallProgress: Math.round(overallProgress),
           coursesAssigned: assignments.length,
           coursesCompleted: coursesCompleted,
-          overdueCourses: overdueCourses.length,
+          overdueCourses: 0, // Removed old calculation, keeping for backward compatibility
           timeInvested: timeInvested,
-          lastActivity: employee.updatedAt ? new Date(employee.updatedAt).toISOString() : 'N/A',
+          lastActivity: employee.updatedAt
+            ? new Date(employee.updatedAt).toISOString()
+            : 'N/A',
           status: status,
           profileImageUrl: employee.profileImageUrl,
         };

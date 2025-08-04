@@ -317,7 +317,7 @@ export default function CourseCatalogPage() {
                 <SelectItem value="all">All Categories</SelectItem>
                 <SelectItem value="compliance">Compliance</SelectItem>
                 <SelectItem value="skills">Skills</SelectItem>
-                <SelectItem value="culture">Course</SelectItem>
+                <SelectItem value="culture">Culture</SelectItem>
                 <SelectItem value="technical">Technical</SelectItem>
               </SelectContent>
             </Select>

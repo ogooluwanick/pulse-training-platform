@@ -131,30 +131,64 @@ export async function POST(request: Request) {
               )
             : 0;
 
-        // Determine status
+        // Determine status using standardized rules
         let status: 'Completed' | 'In Progress' | 'Overdue' | 'Not Started' =
           'Not Started';
 
-        const hasOverdueAssignments = employeeData.assignments.some(
-          (assignment: any) =>
-            assignment.endDate &&
-            new Date(assignment.endDate) < currentDate &&
-            assignment.status !== 'completed'
+        const now = new Date();
+
+        // Check for overdue: courses assigned more than 14 days ago that aren't completed
+        const overdueAssignments = employeeData.assignments.filter(
+          (assignment: any) => {
+            if (assignment.status === 'completed') return false;
+            if (!assignment.createdAt) return false;
+
+            const assignedDate = new Date(assignment.createdAt);
+            const diffDays =
+              (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+            return diffDays > 14;
+          }
         );
 
-        const hasCompletedAssignments = employeeData.assignments.some(
-          (assignment: any) => assignment.status === 'completed'
+        // Check for at-risk: overall progress less than 50% after 5 days
+        const atRiskAssignments = employeeData.assignments.filter(
+          (assignment: any) => {
+            if (assignment.status === 'completed') return false;
+            if (!assignment.createdAt) return false;
+
+            const assignedDate = new Date(assignment.createdAt);
+            const diffDays =
+              (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+
+            // Only consider at-risk if assignment is older than 5 days
+            if (diffDays <= 5) return false;
+
+            // Calculate progress for this assignment
+            const courseData = assignment.course;
+            if (!courseData || !courseData.lessons) return false;
+
+            const courseLessons = courseData.lessons.length;
+            const completedLessons = assignment.lessonProgress
+              ? assignment.lessonProgress.filter(
+                  (lesson: any) => lesson.status === 'completed'
+                ).length
+              : 0;
+
+            const assignmentProgress =
+              courseLessons > 0 ? (completedLessons / courseLessons) * 100 : 0;
+            return assignmentProgress < 50;
+          }
         );
 
-        const hasInProgressAssignments = employeeData.assignments.some(
-          (assignment: any) => assignment.status === 'in-progress'
-        );
-
-        if (hasOverdueAssignments) {
+        // Determine status
+        if (overdueAssignments.length > 0) {
           status = 'Overdue';
-        } else if (completionPercentage === 100 && hasCompletedAssignments) {
+        } else if (
+          completionPercentage === 100 &&
+          employeeData.assignments.some((a: any) => a.status === 'completed')
+        ) {
           status = 'Completed';
-        } else if (hasInProgressAssignments || completionPercentage > 0) {
+        } else if (atRiskAssignments.length > 0 || completionPercentage > 0) {
           status = 'In Progress';
         }
 

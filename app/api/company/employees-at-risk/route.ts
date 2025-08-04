@@ -32,20 +32,88 @@ export async function GET(request: Request) {
 
     const assignments = await CourseAssignment.find({
       employee: { $in: company.employees },
-          }).populate({
-        path: 'employee',
-        model: User,
-      });
+    }).populate({
+      path: 'employee',
+      model: User,
+    });
 
-          const employeesAtRisk = assignments
-        .filter((a) => {
-          const employee = a.employee as any;
-          return (
-            employee &&
-            (employee.status === 'at-risk' || employee.status === 'overdue')
-          );
-        })
-        .map((a) => a.employee);
+    // Group assignments by employee to identify employees at risk using standardized rules
+    const employeeRiskMap = new Map();
+    const now = new Date();
+
+    assignments.forEach((assignment) => {
+      const employee = assignment.employee as any;
+      if (!employee) return;
+
+      const employeeId = employee._id.toString();
+
+      // Skip completed assignments
+      if (assignment.status === 'completed') return;
+
+      const assignedDate = assignment.createdAt
+        ? new Date(assignment.createdAt)
+        : null;
+      if (!assignedDate) return;
+
+      const diffDays =
+        (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+
+      let assignmentStatus = null;
+      let isOverdue = false;
+
+      // Check for overdue: more than 14 days old and not completed
+      if (diffDays > 14) {
+        assignmentStatus = 'overdue';
+        isOverdue = true;
+      }
+      // Check for at-risk: less than 50% progress after 5 days
+      else if (diffDays > 5) {
+        // Calculate progress for this assignment
+        const courseData = assignment.course;
+        if (courseData && courseData.lessons) {
+          const courseLessons = courseData.lessons.length;
+          const completedLessons = assignment.lessonProgress
+            ? assignment.lessonProgress.filter(
+                (lesson: any) => lesson.status === 'completed'
+              ).length
+            : 0;
+
+          const assignmentProgress =
+            courseLessons > 0 ? (completedLessons / courseLessons) * 100 : 0;
+
+          if (assignmentProgress < 50) {
+            assignmentStatus = 'at-risk';
+          }
+        }
+      }
+
+      if (assignmentStatus) {
+        if (!employeeRiskMap.has(employeeId)) {
+          employeeRiskMap.set(employeeId, {
+            id: employeeId,
+            name: `${employee.firstName} ${employee.lastName}`,
+            department: employee.department || 'Unknown',
+            status: assignmentStatus,
+            assignments: [],
+          });
+        }
+
+        const employeeRisk = employeeRiskMap.get(employeeId);
+        employeeRisk.assignments.push({
+          courseId: assignment.course,
+          status: assignment.status,
+          endDate: assignment.endDate,
+          isOverdue,
+        });
+
+        // Update status to 'overdue' if any assignment is overdue
+        if (isOverdue) {
+          employeeRisk.status = 'overdue';
+        }
+      }
+    });
+
+    const employeesAtRisk = Array.from(employeeRiskMap.values());
 
     return NextResponse.json(employeesAtRisk);
   } catch (error) {

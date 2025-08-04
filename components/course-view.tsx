@@ -38,7 +38,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 import QuizModal from '@/components/quiz-modal';
-import UniversalVideoPlayer from '@/components/culture/UniversalVideoPlayer';
+import UniversalVideoPlayer from '@/components/course/UniversalVideoPlayer';
 import WYSIWYGContentRenderer from '@/components/wysiwyg-content-renderer';
 import FullPageLoader from '@/components/full-page-loader';
 import { Alert, AlertDescription } from '@/components/ui/alert';

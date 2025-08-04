@@ -17,12 +17,15 @@ export async function POST(request: Request) {
 
   await dbConnect();
 
-  const { startDate, endDate, companyId, courseId, format } = await request.json();
+  const { startDate, endDate, companyId, courseId, format } =
+    await request.json();
 
   try {
     const match: any = {};
-    if (startDate) match.createdAt = { ...match.createdAt, $gte: new Date(startDate) };
-    if (endDate) match.createdAt = { ...match.createdAt, $lte: new Date(endDate) };
+    if (startDate)
+      match.createdAt = { ...match.createdAt, $gte: new Date(startDate) };
+    if (endDate)
+      match.createdAt = { ...match.createdAt, $lte: new Date(endDate) };
     if (companyId) match.company = new mongoose.Types.ObjectId(companyId);
     if (courseId) match.course = new mongoose.Types.ObjectId(courseId);
 
@@ -37,9 +40,18 @@ export async function POST(request: Request) {
       })
       .populate('course', 'title');
 
-    const employeeProgress: { [key: string]: { completed: number; total: number; name: string; email: string; companyName: string; status: string } } = {};
+    const employeeProgress: {
+      [key: string]: {
+        completed: number;
+        total: number;
+        name: string;
+        email: string;
+        companyName: string;
+        status: string;
+      };
+    } = {};
 
-    assignments.forEach(assignment => {
+    assignments.forEach((assignment) => {
       if (!employeeProgress[assignment.employee._id]) {
         employeeProgress[assignment.employee._id] = {
           completed: 0,
@@ -56,13 +68,29 @@ export async function POST(request: Request) {
         employeeProgress[assignment.employee._id].completed++;
       }
 
-      if (new Date(assignment.dueDate) < new Date() && assignment.status !== 'completed') {
+      if (
+        new Date(assignment.dueDate) < new Date() &&
+        assignment.status !== 'completed'
+      ) {
         employeeProgress[assignment.employee._id].status = 'Overdue';
+      }
+
+      // Check for overdue using standardized rules: courses assigned more than 14 days ago that aren't completed
+      const now = new Date();
+      if (assignment.status !== 'completed' && assignment.createdAt) {
+        const assignedDate = new Date(assignment.createdAt);
+        const diffDays =
+          (now.getTime() - assignedDate.getTime()) / (1000 * 60 * 60 * 24);
+
+        if (diffDays > 14) {
+          employeeProgress[assignment.employee._id].status = 'Overdue';
+        }
       }
     });
 
-    const exportData = Object.values(employeeProgress).map(data => {
-      const completionPercentage = data.total > 0 ? (data.completed / data.total) * 100 : 0;
+    const exportData = Object.values(employeeProgress).map((data) => {
+      const completionPercentage =
+        data.total > 0 ? (data.completed / data.total) * 100 : 0;
       let status = 'Not Started';
       if (completionPercentage === 100) {
         status = 'Completed';
@@ -73,12 +101,12 @@ export async function POST(request: Request) {
         status = 'Overdue';
       }
       return {
-        'Name': data.name,
-        'Email': data.email,
-        'Company': data.companyName,
+        Name: data.name,
+        Email: data.email,
+        Company: data.companyName,
         'Courses Assigned': data.total,
         'Progress (%)': completionPercentage.toFixed(2),
-        'Status': status,
+        Status: status,
       };
     });
 
@@ -99,6 +127,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: 'Invalid format' }, { status: 400 });
   } catch (error) {
     console.error('Error exporting admin report data:', error);
-    return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

@@ -248,184 +248,188 @@ export default function AssignCourseModal({
         </div>
         <ScrollArea className="flex-grow w-full rounded-md border border-warm-gray/20 p-4 bg-alabaster overflow-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-1 ">
-            {isLoading ? (
-              Array.from({ length: 6 }).map((_, index) => (
-                <CourseCardSkeleton key={index} />
-              ))
-            ) : (
-              filteredCourses?.map((course) => {
-                const assignment = selectedAssignments.find(
-                  (a) => a.courseId === course._id
-                );
-                const isSelected = !!assignment;
+            {isLoading
+              ? Array.from({ length: 6 }).map((_, index) => (
+                  <CourseCardSkeleton key={index} />
+                ))
+              : filteredCourses?.map((course) => {
+                  const assignment = selectedAssignments.find(
+                    (a) => a.courseId === course._id
+                  );
+                  const isSelected = !!assignment;
 
-                return (
-                  <motion.div
-                    key={course._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Card
-                      onClick={() => handleSelectCourse(course._id)}
-                      className={`cursor-pointer transition-all duration-300 flex flex-col h-full ${
-                        isSelected
-                          ? 'ring-2 ring-charcoal bg-charcoal/10'
-                          : 'bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft'
-                      }`}
+                  return (
+                    <motion.div
+                      key={course._id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
                     >
-                      <CardHeader className="space-y-4">
-                        <div className="flex items-start justify-between">
-                          <Badge
-                            className={getCategoryColor(course.category)}
-                            variant="outline"
-                          >
-                            {course.category.charAt(0).toUpperCase() +
-                              course.category.slice(1)}
-                          </Badge>
-                          <Badge
-                            className={getDifficultyColor(course.difficulty)}
-                            variant="secondary"
-                          >
-                            {course.difficulty}
-                          </Badge>
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg text-charcoal">
-                            {course.title}
-                          </CardTitle>
-                          <CardDescription className="text-warm-gray mt-2 text-sm">
-                            {course.description}
-                          </CardDescription>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center justify-between text-sm text-warm-gray">
-                            <span>
-                              By{' '}
-                              {typeof course.instructor === 'object'
-                                ? course.instructor?.firstName ||
-                                  'Pulse Platform'
-                                : course.instructor || 'Pulse Platform'}
-                            </span>
-                            <div className="flex items-center gap-1">
-                              <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
-                              <span>
-                                {course.averageRating
-                                  ? course.averageRating.toFixed(1)
-                                  : '0.0'}
-                              </span>
-                              <span className="text-xs">
-                                ({course.totalRatings || 0})
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-warm-gray mt-2">
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              <span>{formatDuration(course.duration)}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              <span>
-                                {(course.enrolledCount || 0).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="flex flex-wrap gap-1 mt-4">
-                            {(course.tags || []).map((tag) => (
-                              <Badge
-                                key={tag}
-                                variant="outline"
-                                className="text-xs bg-alabaster border-warm-gray/30"
-                              >
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                        {isSelected && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            className="space-y-2 mt-4"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <Select
-                              onValueChange={(value: 'one-time' | 'interval') =>
-                                handleAssignmentTypeChange(course._id, value)
-                              }
-                              defaultValue={assignment.type}
+                      <Card
+                        onClick={() => handleSelectCourse(course._id)}
+                        className={`cursor-pointer transition-all duration-300 flex flex-col h-full ${
+                          isSelected
+                            ? 'ring-2 ring-charcoal bg-charcoal/10'
+                            : 'bg-card border-warm-gray/20 shadow-soft hover:shadow-soft-lg transition-soft'
+                        }`}
+                      >
+                        <CardHeader className="space-y-4">
+                          <div className="flex items-start justify-between">
+                            <Badge
+                              className={getCategoryColor(course.category)}
+                              variant="outline"
                             >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Assignment Type" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="one-time">
-                                  One-time
-                                </SelectItem>
-                                <SelectItem value="interval">
-                                  Interval
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {assignment.type === 'interval' && (
-                              <>
-                                <Select
-                                  onValueChange={(
-                                    value: 'daily' | 'monthly' | 'yearly'
-                                  ) => handleIntervalChange(course._id, value)}
-                                  defaultValue={assignment.interval}
+                              {course.category.charAt(0).toUpperCase() +
+                                course.category.slice(1)}
+                            </Badge>
+                            <Badge
+                              className={getDifficultyColor(course.difficulty)}
+                              variant="secondary"
+                            >
+                              {course.difficulty}
+                            </Badge>
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg text-charcoal">
+                              {course.title}
+                            </CardTitle>
+                            <CardDescription className="text-warm-gray mt-2 text-sm">
+                              {course.description}
+                            </CardDescription>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between text-sm text-warm-gray">
+                              <span>
+                                By{' '}
+                                {typeof course.instructor === 'object'
+                                  ? course.instructor?.firstName ||
+                                    'Pulse Platform'
+                                  : course.instructor || 'Pulse Platform'}
+                              </span>
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
+                                <span>
+                                  {course.averageRating
+                                    ? course.averageRating.toFixed(1)
+                                    : '0.0'}
+                                </span>
+                                <span className="text-xs">
+                                  ({course.totalRatings || 0})
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-warm-gray mt-2">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                <span>{formatDuration(course.duration)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Users className="h-3 w-3" />
+                                <span>
+                                  {(course.enrolledCount || 0).toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-4">
+                              {(course.tags || []).map((tag) => (
+                                <Badge
+                                  key={tag}
+                                  variant="outline"
+                                  className="text-xs bg-alabaster border-warm-gray/30"
                                 >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Select Interval" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="daily">Daily</SelectItem>
-                                    <SelectItem value="monthly">
-                                      Monthly
-                                    </SelectItem>
-                                    <SelectItem value="yearly">
-                                      Yearly
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button
-                                      variant={'outline'}
-                                      className="w-full justify-start text-left font-normal"
-                                    >
-                                      {assignment.endDate ? (
-                                        format(assignment.endDate, 'PPP')
-                                      ) : (
-                                        <span>Pick an end date</span>
-                                      )}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0">
-                                    <Calendar
-                                      mode="single"
-                                      captionLayout="dropdown-buttons"
-                                      selected={assignment.endDate}
-                                      onSelect={(date: Date | undefined) =>
-                                        handleEndDateChange(course._id, date)
-                                      }
-                                      initialFocus
-                                    />
-                                  </PopoverContent>
-                                </Popover>
-                              </>
-                            )}
-                          </motion.div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                );
-              })
-            )}
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                          {isSelected && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className="space-y-2 mt-4"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Select
+                                onValueChange={(
+                                  value: 'one-time' | 'interval'
+                                ) =>
+                                  handleAssignmentTypeChange(course._id, value)
+                                }
+                                defaultValue={assignment.type}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Assignment Type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="one-time">
+                                    One-time
+                                  </SelectItem>
+                                  <SelectItem value="interval">
+                                    Interval
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                              {assignment.type === 'interval' && (
+                                <>
+                                  <Select
+                                    onValueChange={(
+                                      value: 'daily' | 'monthly' | 'yearly'
+                                    ) =>
+                                      handleIntervalChange(course._id, value)
+                                    }
+                                    defaultValue={assignment.interval}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Select Interval" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="daily">
+                                        Daily
+                                      </SelectItem>
+                                      <SelectItem value="monthly">
+                                        Monthly
+                                      </SelectItem>
+                                      <SelectItem value="yearly">
+                                        Yearly
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <Button
+                                        variant={'outline'}
+                                        className="w-full justify-start text-left font-normal"
+                                      >
+                                        {assignment.endDate ? (
+                                          format(assignment.endDate, 'PPP')
+                                        ) : (
+                                          <span>Pick an end date</span>
+                                        )}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-auto p-0">
+                                      <Calendar
+                                        mode="single"
+                                        captionLayout="dropdown-buttons"
+                                        selected={assignment.endDate}
+                                        onSelect={(date: Date | undefined) =>
+                                          handleEndDateChange(course._id, date)
+                                        }
+                                        initialFocus
+                                      />
+                                    </PopoverContent>
+                                  </Popover>
+                                </>
+                              )}
+                            </motion.div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
           </div>
         </ScrollArea>
         <DialogFooter className="flex flex-row-reverse gap-2 pt-4">

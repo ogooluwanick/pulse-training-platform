@@ -1,6 +1,6 @@
 'use client';
 
-import { Question, AnswerOption } from '@/types/culture';
+import { Question, AnswerOption } from '@/types/course';
 import { Plus, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,7 @@ export default function QuizBuilder({ quiz, onUpdateQuiz }: QuizBuilderProps) {
       { id: '1', text: 'Option 1' },
       { id: '2', text: 'Option 2' },
     ];
-    
+
     const newQuestion: Question = {
       id: new Date().toISOString(),
       text: '',
@@ -32,10 +32,10 @@ export default function QuizBuilder({ quiz, onUpdateQuiz }: QuizBuilderProps) {
       correctAnswerId: '1',
       answer: 'Option 1', // ALWAYS set to first option by default
     };
-    
+
     console.log('=== NEW QUESTION CREATED ===');
     console.log('New question:', newQuestion);
-    
+
     onUpdateQuiz([...quiz, newQuestion]);
   };
 
@@ -83,13 +83,14 @@ interface QuestionEditorProps {
 }
 
 function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
-  
   // Helper function to get the answer text for current correct answer
   const getCurrentAnswerText = (question: Question): string => {
     if (question.type === 'True/False') {
       return question.correctAnswerId || 'True';
     } else if (question.type === 'Multiple Choice') {
-      const selectedOption = question.options.find(opt => opt.id === question.correctAnswerId);
+      const selectedOption = question.options.find(
+        (opt) => opt.id === question.correctAnswerId
+      );
       return selectedOption?.text || question.options[0]?.text || '';
     }
     return '';
@@ -100,14 +101,14 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
     const answerText = getCurrentAnswerText(question);
     return {
       ...question,
-      answer: answerText
+      answer: answerText,
     };
   };
 
   const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const updatedQuestion = ensureAnswerField({
-      ...question, 
-      text: e.target.value
+      ...question,
+      text: e.target.value,
     });
     onUpdate(updatedQuestion);
   };
@@ -135,16 +136,16 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
         question.options.length >= 2
           ? question.options.map((opt, index) => ({
               ...opt,
-              text: opt.text || `Option ${index + 1}` // Ensure options have default text
+              text: opt.text || `Option ${index + 1}`, // Ensure options have default text
             }))
           : [
               { id: '1', text: 'Option 1' },
               { id: '2', text: 'Option 2' },
             ];
-      
+
       const firstOptionId = newOptions[0]?.id || '1';
       const firstOptionText = newOptions[0]?.text || 'Option 1';
-      
+
       const updatedQuestion = {
         ...question,
         type: newType,
@@ -161,39 +162,44 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
     const newOptions = question.options.map((opt) =>
       opt.id === optionId ? { ...opt, text } : opt
     );
-    
+
     // If this is the currently selected correct answer, update the answer field too
     // OR if no correct answer is selected yet, default to first option
     let updatedAnswer = question.answer;
     if (question.correctAnswerId === optionId) {
       updatedAnswer = text;
-    } else if (!question.correctAnswerId || question.correctAnswerId === newOptions[0]?.id) {
+    } else if (
+      !question.correctAnswerId ||
+      question.correctAnswerId === newOptions[0]?.id
+    ) {
       updatedAnswer = newOptions[0]?.text || '';
     }
-    
+
     console.log('=== OPTION TEXT CHANGE ===');
     console.log('Changed option ID:', optionId);
     console.log('New text:', text);
     console.log('Is correct answer:', question.correctAnswerId === optionId);
     console.log('Updated answer field:', updatedAnswer);
-    
-    const updatedQuestion = ensureAnswerField({ 
-      ...question, 
+
+    const updatedQuestion = ensureAnswerField({
+      ...question,
       options: newOptions,
-      answer: updatedAnswer
+      answer: updatedAnswer,
     });
     onUpdate(updatedQuestion);
   };
 
   const handleCorrectAnswerChange = (answerId: string) => {
     let answerText = '';
-    
+
     if (question.type === 'True/False') {
       // For true/false, the answer is the answerId itself
       answerText = answerId;
     } else if (question.type === 'Multiple Choice') {
       // For multiple choice, find the selected option's text
-      const selectedOption = question.options.find(opt => opt.id === answerId);
+      const selectedOption = question.options.find(
+        (opt) => opt.id === answerId
+      );
       answerText = selectedOption?.text || question.options[0]?.text || '';
     }
 
@@ -202,12 +208,12 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
       correctAnswerId: answerId,
       answer: answerText, // Always set the answer field to the correct text
     };
-    
+
     console.log('=== CORRECT ANSWER CHANGE ===');
     console.log('Selected answer ID:', answerId);
     console.log('Answer text:', answerText);
     console.log('Updated question:', updatedQuestion);
-    
+
     onUpdate(updatedQuestion);
   };
 
@@ -215,11 +221,14 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
     if (question.options.length >= 6) return; // Max 6 options
 
     const newOptionId = (question.options.length + 1).toString();
-    const newOptions = [...question.options, { id: newOptionId, text: `Option ${question.options.length + 1}` }];
-    
+    const newOptions = [
+      ...question.options,
+      { id: newOptionId, text: `Option ${question.options.length + 1}` },
+    ];
+
     const updatedQuestion = ensureAnswerField({
-      ...question, 
-      options: newOptions
+      ...question,
+      options: newOptions,
     });
     onUpdate(updatedQuestion);
   };
@@ -232,7 +241,7 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
     // If we're removing the currently selected correct answer, select the first option
     let newCorrectAnswerId = question.correctAnswerId;
     let newAnswer = question.answer;
-    
+
     if (question.correctAnswerId === optionId) {
       newCorrectAnswerId = newOptions[0]?.id || '1';
       newAnswer = newOptions[0]?.text || '';
@@ -244,12 +253,12 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
       correctAnswerId: newCorrectAnswerId,
       answer: newAnswer,
     };
-    
+
     console.log('=== OPTION REMOVED ===');
     console.log('Removed option ID:', optionId);
     console.log('New correct answer ID:', newCorrectAnswerId);
     console.log('New answer text:', newAnswer);
-    
+
     onUpdate(updatedQuestion);
   };
 
@@ -287,29 +296,33 @@ function QuestionEditor({ question, onUpdate, onDelete }: QuestionEditorProps) {
       </div>
 
       {/* Correct Answer Dropdown for Multiple Choice */}
-      {currentQuestion.type === 'Multiple Choice' && currentQuestion.options.length > 0 && (
-        <div className="mt-4 flex items-center gap-4">
-          <Label className="text-sm text-warm-gray">Correct Answer:</Label>
-          <Select
-            value={currentQuestion.correctAnswerId || currentQuestion.options[0]?.id}
-            onValueChange={handleCorrectAnswerChange}
-          >
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Select correct answer" />
-            </SelectTrigger>
-            <SelectContent>
-              {currentQuestion.options.map((option) => (
-                <SelectItem key={option.id} value={option.id}>
-                  {option.text || `Option ${option.id}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
-            Answer: "{currentQuestion.answer || 'Not set'}"
-          </span>
-        </div>
-      )}
+      {currentQuestion.type === 'Multiple Choice' &&
+        currentQuestion.options.length > 0 && (
+          <div className="mt-4 flex items-center gap-4">
+            <Label className="text-sm text-warm-gray">Correct Answer:</Label>
+            <Select
+              value={
+                currentQuestion.correctAnswerId ||
+                currentQuestion.options[0]?.id
+              }
+              onValueChange={handleCorrectAnswerChange}
+            >
+              <SelectTrigger className="w-64">
+                <SelectValue placeholder="Select correct answer" />
+              </SelectTrigger>
+              <SelectContent>
+                {currentQuestion.options.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.text || `Option ${option.id}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+              Answer: "{currentQuestion.answer || 'Not set'}"
+            </span>
+          </div>
+        )}
 
       {/* Correct Answer Selection for True/False */}
       {currentQuestion.type === 'True/False' && (

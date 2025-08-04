@@ -43,7 +43,7 @@ export async function middleware(req: NextRequest) {
         '/organization',
         '/employee-management',
         '/course-assignment',
-        '/culture-builder',
+        '/course-builder',
         '/reports',
         '/profile',
         '/settings',

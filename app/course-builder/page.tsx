@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
-import { Module } from '@/types/culture';
-import ModuleList from '@/components/culture/ModuleList';
-import ModuleEditor from '@/components/culture/ModuleEditor';
+import { Module } from '@/types/course';
+import ModuleList from '@/components/course/ModuleList';
+import ModuleEditor from '@/components/course/ModuleEditor';
 import FullPageLoader from '@/components/full-page-loader';
-import { useCultureModules } from '@/hooks/use-culture-modules';
+import { useCourseModules } from '@/hooks/use-course-modules';
 import toast from 'react-hot-toast';
 
-export default function CultureBuilderPage() {
+export default function CourseBuilderPage() {
   const { data: session, status } = useSession();
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
 
@@ -23,7 +23,7 @@ export default function CultureBuilderPage() {
     createModule,
     updateModule,
     deleteModule,
-  } = useCultureModules();
+  } = useCourseModules();
 
   const selectedModule = modules.find((m) => m.id === selectedModuleId) || null;
 

@@ -7,7 +7,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { TopMenu } from '@/components/top-menu';
 import { AuthGuard } from '@/components/auth-guard';
 
-export default function CultureBuilderLayout({
+export default function AdminCourseBuilderLayout({
   children,
 }: {
   children: React.ReactNode;

@@ -1,4 +1,4 @@
-// Updated culture types to work with Course model
+// Updated course types to work with Course model
 
 import { debugLog } from '@/lib/error-utils';
 
@@ -23,7 +23,7 @@ export interface Module {
   content: string;
   quiz: Question[];
   // Extended fields for full course support
-  category?: CultureModuleCategory;
+  category?: CourseModuleCategory;
   description?: string;
   tags?: string[];
   status?: 'draft' | 'published' | 'archived';
@@ -54,8 +54,8 @@ export interface CourseLesson {
   };
 }
 
-// New Course-based Culture Module interface
-export enum CultureModuleCategory {
+// New Course-based Course Module interface
+export enum CourseModuleCategory {
   GENERAL = 'General',
   ONBOARDING = 'Onboarding',
   PRODUCT_TRAINING = 'Product Training',
@@ -63,13 +63,13 @@ export enum CultureModuleCategory {
   OTHER = 'Other',
 }
 
-// New Course-based Culture Module interface
-export interface CultureCourse {
+// New Course-based Course Module interface
+export interface CourseModule {
   _id: string;
   title: string;
   description?: string;
   content?: string; // From the first lesson (for backward compatibility)
-  category: CultureModuleCategory;
+  category: CourseModuleCategory;
   status: 'draft' | 'published' | 'archived';
   difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   tags: string[];
@@ -217,7 +217,7 @@ const validateAndFilterQuestions = (questions: Question[]) => {
 };
 
 // Utility functions to convert between formats
-export function courseToCultureModule(course: CultureCourse): Module {
+export function courseToCourseModule(course: CourseModule): Module {
   // Get the primary lesson for backward compatibility
   const primaryLesson = course.lessons?.[0];
 
@@ -291,20 +291,20 @@ export function courseToCultureModule(course: CultureCourse): Module {
   return module;
 }
 
-// Convert culture module to course format for API
-export function cultureModuleToCourse(
+// Convert course module to course format for API
+export function courseModuleToCourse(
   module: Module,
   companyId: string | undefined,
   userId: string
-): Partial<CultureCourse> {
-  debugLog('=== CULTURE MODULE TO COURSE CONVERSION ===');
+): Partial<CourseModule> {
+  debugLog('=== COURSE MODULE TO COURSE CONVERSION ===');
   debugLog('Input module:', module);
   debugLog('Module lessons:', module.lessons);
 
-  const convertedCourse: Partial<CultureCourse> = {
+  const convertedCourse: Partial<CourseModule> = {
     title: module.title,
     description: module.description,
-    category: module.category || CultureModuleCategory.GENERAL,
+    category: module.category || CourseModuleCategory.GENERAL,
     status: module.status || 'draft',
     difficulty: module.difficulty,
     tags: module.tags || [],
@@ -368,7 +368,9 @@ export function cultureModuleToCourse(
   }
 
   if (module.finalQuiz) {
-    const validQuestions = validateAndFilterQuestions(module.finalQuiz.questions);
+    const validQuestions = validateAndFilterQuestions(
+      module.finalQuiz.questions
+    );
     if (validQuestions.length > 0) {
       convertedCourse.finalQuiz = {
         title: module.finalQuiz.title,
@@ -388,10 +390,10 @@ export function cultureModuleToCourse(
 }
 
 // API response types
-export interface CultureModuleResponse {
+export interface CourseModuleResponse {
   success: boolean;
-  module?: CultureCourse;
-  modules?: CultureCourse[];
+  module?: CourseModule;
+  modules?: CourseModule[];
   message?: string;
   error?: string;
   details?: string; // Additional error details

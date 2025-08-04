@@ -101,7 +101,7 @@ const companyItems = [
   },
   {
     title: 'Course Builder',
-    url: '/culture-builder',
+    url: '/course-builder',
     icon: Building2,
   },
   {
@@ -137,7 +137,7 @@ const adminItems = [
   },
   {
     title: 'Course Builder',
-    url: '/admin/culture-builder',
+    url: '/admin/course-builder',
     icon: Building2,
   },
   {

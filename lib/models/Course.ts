@@ -54,10 +54,10 @@ const CourseSchema = new Schema(
     category: {
       type: String,
       enum: [
-        'compliance',
-        'skills',
-        'culture',
-        'technical',
+        'Compliance',
+        'Skills',
+        'Culture',
+        'Technical',
         'General',
         'Onboarding',
         'Product Training',
