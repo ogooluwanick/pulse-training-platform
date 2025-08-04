@@ -63,11 +63,11 @@ const navigationItems = [
     url: '/catalog',
     icon: Award,
   },
-  {
-    title: 'Discussions',
-    url: '/discussions',
-    icon: MessageSquare,
-  },
+  // {
+  //   title: 'Discussions',
+  //   url: '/discussions',
+  //   icon: MessageSquare,
+  // },
 ];
 
 const managementItems = [
