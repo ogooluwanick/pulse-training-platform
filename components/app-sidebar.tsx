@@ -158,8 +158,9 @@ interface AppSidebarProps {
 }
 
 export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const user = session?.user;
+  const isLoading = status === 'loading';
 
   // Fetch uncompleted courses count for badge
   const { data: uncompletedCount } = useQuery({
@@ -172,8 +173,6 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
   const handleSignOut = () => {
     signOut({ callbackUrl: '/' });
   };
-
-  if (!user) return null;
 
   // Update navigation items with real badge count
   const updatedNavigationItems = navigationItems.map((item) => {
@@ -191,7 +190,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
       {/* Toggle Button - Fixed position on left side, vertically centered */}
       <Button
         onClick={onToggle}
-        className="fixed left-2 sm:left-4 top-1/2 transform -translate-y-1/2 z-50 bg-alabaster hover:bg-alabaster/90 text-charcoal shadow-soft-lg rounded-full p-2 sm:p-3 transition-soft border border-warm-gray/20"
+        className="fixed left-2 sm:left-4 top-1/2 transform -translate-y-1/2 z-[60] bg-alabaster hover:bg-alabaster/90 text-charcoal shadow-soft-lg rounded-full p-2 sm:p-3 transition-soft border border-warm-gray/20"
         size="icon"
       >
         {isOpen ? (
@@ -204,14 +203,14 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-charcoal/20 backdrop-blur-sm z-40 transition-opacity duration-300"
+          className="fixed inset-0 bg-charcoal/20 backdrop-blur-sm z-[55] transition-opacity duration-300"
           onClick={onToggle}
         />
       )}
 
       {/* Sidebar */}
       <div
-        className={`fixed left-0 top-0 h-full w-72 sm:w-80 z-50 transform transition-transform duration-300 ease-out ${
+        className={`fixed left-0 top-0 h-full w-72 sm:w-80 z-[60] transform transition-transform duration-300 ease-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -236,44 +235,136 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
           </SidebarHeader>
 
           <SidebarContent>
-            {/* Main Navigation */}
-            <SidebarGroup>
-              <SidebarGroupLabel className="text-warm-gray font-medium px-4 sm:px-6">
-                Menu
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {/* Dashboard and Employee items */}
-                  {updatedNavigationItems.map((item) => {
-                    const employeeOnlyItems = ['My Learning', 'Discussions']; // Removed 'Calendar' from here
-                    // Show employee items only to employees
-                    if (
-                      employeeOnlyItems.includes(item.title) &&
-                      user?.role !== 'EMPLOYEE'
-                    ) {
-                      return null;
-                    }
-                    // Show Course Catalog for COMPANY and ADMIN in their sections
-                    if (
-                      item.title === 'Course Catalog' &&
-                      user?.role !== 'EMPLOYEE'
-                    ) {
-                      return null; // Will be rendered in company/admin section below
-                    }
-                    // Hide Course Catalog for EMPLOYEE users
-                    if (
-                      item.title === 'Course Catalog' &&
-                      user?.role === 'EMPLOYEE'
-                    ) {
-                      return null;
-                    }
-                    // For COMPANY users, add companyItems directly to Menu
-                    if (
-                      user?.role === 'COMPANY' &&
-                      item.title === 'Dashboard'
-                    ) {
-                      return (
-                        <>
+            {isLoading ? (
+              // Loading state for sidebar content
+              <div className="p-4 space-y-4">
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                </div>
+              </div>
+            ) : !user ? (
+              // No user state - show basic navigation
+              <div className="p-4">
+                <p className="text-sm text-gray-500">
+                  Please sign in to access navigation.
+                </p>
+              </div>
+            ) : (
+              // User is loaded - show full navigation
+              <>
+                {/* Main Navigation */}
+                <SidebarGroup>
+                  <SidebarGroupLabel className="text-warm-gray font-medium px-4 sm:px-6">
+                    Menu
+                  </SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {/* Dashboard and Employee items */}
+                      {updatedNavigationItems.map((item) => {
+                        const employeeOnlyItems = [
+                          'My Learning',
+                          'Discussions',
+                        ]; // Removed 'Calendar' from here
+                        // Show employee items only to employees
+                        if (
+                          employeeOnlyItems.includes(item.title) &&
+                          user?.role !== 'EMPLOYEE'
+                        ) {
+                          return null;
+                        }
+                        // Show Course Catalog for COMPANY and ADMIN in their sections
+                        if (
+                          item.title === 'Course Catalog' &&
+                          user?.role !== 'EMPLOYEE'
+                        ) {
+                          return null; // Will be rendered in company/admin section below
+                        }
+                        // Hide Course Catalog for EMPLOYEE users
+                        if (
+                          item.title === 'Course Catalog' &&
+                          user?.role === 'EMPLOYEE'
+                        ) {
+                          return null;
+                        }
+                        // For COMPANY users, add companyItems directly to Menu
+                        if (
+                          user?.role === 'COMPANY' &&
+                          item.title === 'Dashboard'
+                        ) {
+                          return (
+                            <>
+                              <SidebarMenuItem key={item.title}>
+                                <SidebarMenuButton
+                                  asChild
+                                  className="hover:bg-alabaster"
+                                  onClick={onToggle}
+                                >
+                                  <Link
+                                    href={item.url}
+                                    className="flex items-center justify-between"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <item.icon className="h-4 w-4" />
+                                      <span className="text-sm sm:text-base">
+                                        {item.title}
+                                      </span>
+                                    </div>
+                                    {item.badge && item.badge !== '0' && (
+                                      <Badge className="bg-charcoal text-alabaster text-xs">
+                                        {item.badge}
+                                      </Badge>
+                                    )}
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                              {/* Add Course Catalog for company */}
+                              <SidebarMenuItem key="Course Catalog">
+                                <SidebarMenuButton
+                                  asChild
+                                  className="hover:bg-alabaster"
+                                  onClick={onToggle}
+                                >
+                                  <Link
+                                    href="/catalog"
+                                    className="flex items-center gap-3"
+                                  >
+                                    <Award className="h-4 w-4" />
+                                    <span className="text-sm sm:text-base">
+                                      Course Catalog
+                                    </span>
+                                  </Link>
+                                </SidebarMenuButton>
+                              </SidebarMenuItem>
+                              {/* Add companyItems directly under Menu for COMPANY users */}
+                              {companyItems.map((companyItem) => (
+                                <SidebarMenuItem key={companyItem.title}>
+                                  <SidebarMenuButton
+                                    asChild
+                                    className="hover:bg-alabaster"
+                                    onClick={onToggle}
+                                  >
+                                    <Link
+                                      href={companyItem.url}
+                                      className="flex items-center gap-3"
+                                    >
+                                      <companyItem.icon className="h-4 w-4" />
+                                      <span className="text-sm sm:text-base">
+                                        {companyItem.title}
+                                      </span>
+                                    </Link>
+                                  </SidebarMenuButton>
+                                </SidebarMenuItem>
+                              ))}
+                            </>
+                          );
+                        }
+                        return (
                           <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
                               asChild
@@ -298,109 +389,76 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>
-                          {/* Add Course Catalog for company */}
-                          <SidebarMenuItem key="Course Catalog">
-                            <SidebarMenuButton
-                              asChild
-                              className="hover:bg-alabaster"
-                              onClick={onToggle}
-                            >
-                              <Link
-                                href="/catalog"
-                                className="flex items-center gap-3"
-                              >
-                                <Award className="h-4 w-4" />
-                                <span className="text-sm sm:text-base">
-                                  Course Catalog
-                                </span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                          {/* Add companyItems directly under Menu for COMPANY users */}
-                          {companyItems.map((companyItem) => (
-                            <SidebarMenuItem key={companyItem.title}>
-                              <SidebarMenuButton
-                                asChild
-                                className="hover:bg-alabaster"
-                                onClick={onToggle}
-                              >
-                                <Link
-                                  href={companyItem.url}
-                                  className="flex items-center gap-3"
-                                >
-                                  <companyItem.icon className="h-4 w-4" />
-                                  <span className="text-sm sm:text-base">
-                                    {companyItem.title}
-                                  </span>
-                                </Link>
-                              </SidebarMenuButton>
-                            </SidebarMenuItem>
-                          ))}
-                        </>
-                      );
-                    }
-                    return (
-                      <SidebarMenuItem key={item.title}>
-                        <SidebarMenuButton
-                          asChild
-                          className="hover:bg-alabaster"
-                          onClick={onToggle}
-                        >
-                          <Link
-                            href={item.url}
-                            className="flex items-center justify-between"
-                          >
-                            <div className="flex items-center gap-3">
-                              <item.icon className="h-4 w-4" />
-                              <span className="text-sm sm:text-base">
-                                {item.title}
-                              </span>
-                            </div>
-                            {item.badge && item.badge !== '0' && (
-                              <Badge className="bg-charcoal text-alabaster text-xs">
-                                {item.badge}
-                              </Badge>
-                            )}
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                  {/* Management items for COMPANY users */}
-                  {
-                    user?.role === 'COMPANY' &&
-                      false /* Remove Company section group */
-                  }
+                        );
+                      })}
+                      {/* Management items for COMPANY users */}
+                      {
+                        user?.role === 'COMPANY' &&
+                          false /* Remove Company section group */
+                      }
 
-                  {/* Admin items for ADMIN users */}
-                  {user?.role === 'ADMIN' && (
-                    <>
+                      {/* Admin items for ADMIN users */}
+                      {user?.role === 'ADMIN' && (
+                        <>
+                          <SidebarSeparator />
+                          <SidebarGroup>
+                            <SidebarGroupLabel className="text-warm-gray font-medium px-4 sm:px-6">
+                              Admin
+                            </SidebarGroupLabel>
+                            <SidebarGroupContent>
+                              <SidebarMenu>
+                                {/* Add Course Catalog for admin */}
+                                <SidebarMenuItem key="Course Catalog">
+                                  <SidebarMenuButton
+                                    asChild
+                                    className="hover:bg-alabaster"
+                                    onClick={onToggle}
+                                  >
+                                    <Link
+                                      href="/catalog"
+                                      className="flex items-center gap-3"
+                                    >
+                                      <Award className="h-4 w-4" />
+                                      <span className="text-sm sm:text-base">
+                                        Course Catalog
+                                      </span>
+                                    </Link>
+                                  </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                {adminItems.map((item) => (
+                                  <SidebarMenuItem key={item.title}>
+                                    <SidebarMenuButton
+                                      asChild
+                                      className="hover:bg-alabaster"
+                                      onClick={onToggle}
+                                    >
+                                      <Link
+                                        href={item.url}
+                                        className="flex items-center gap-3"
+                                      >
+                                        <item.icon className="h-4 w-4" />
+                                        <span className="text-sm sm:text-base">
+                                          {item.title}
+                                        </span>
+                                      </Link>
+                                    </SidebarMenuButton>
+                                  </SidebarMenuItem>
+                                ))}
+                              </SidebarMenu>
+                            </SidebarGroupContent>
+                          </SidebarGroup>
+                        </>
+                      )}
+
+                      {/* Account items for all users */}
                       <SidebarSeparator />
                       <SidebarGroup>
                         <SidebarGroupLabel className="text-warm-gray font-medium px-4 sm:px-6">
-                          Admin
+                          Account
                         </SidebarGroupLabel>
                         <SidebarGroupContent>
                           <SidebarMenu>
-                            {/* Add Course Catalog for admin */}
-                            <SidebarMenuItem key="Course Catalog">
-                              <SidebarMenuButton
-                                asChild
-                                className="hover:bg-alabaster"
-                                onClick={onToggle}
-                              >
-                                <Link
-                                  href="/catalog"
-                                  className="flex items-center gap-3"
-                                >
-                                  <Award className="h-4 w-4" />
-                                  <span className="text-sm sm:text-base">
-                                    Course Catalog
-                                  </span>
-                                </Link>
-                              </SidebarMenuButton>
-                            </SidebarMenuItem>
-                            {adminItems.map((item) => (
+                            {accountItems.map((item) => (
                               <SidebarMenuItem key={item.title}>
                                 <SidebarMenuButton
                                   asChild
@@ -422,76 +480,67 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                           </SidebarMenu>
                         </SidebarGroupContent>
                       </SidebarGroup>
-                    </>
-                  )}
-
-                  {/* Account items for all users */}
-                  <SidebarSeparator />
-                  <SidebarGroup>
-                    <SidebarGroupLabel className="text-warm-gray font-medium px-4 sm:px-6">
-                      Account
-                    </SidebarGroupLabel>
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {accountItems.map((item) => (
-                          <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton
-                              asChild
-                              className="hover:bg-alabaster"
-                              onClick={onToggle}
-                            >
-                              <Link
-                                href={item.url}
-                                className="flex items-center gap-3"
-                              >
-                                <item.icon className="h-4 w-4" />
-                                <span className="text-sm sm:text-base">
-                                  {item.title}
-                                </span>
-                              </Link>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </>
+            )}
           </SidebarContent>
 
           <SidebarFooter className="p-4">
-            <div className="flex items-center gap-3 mb-4">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user?.profileImageUrl} />
-                <AvatarFallback className="bg-charcoal text-alabaster">
-                  {user.firstName
-                    ? `${user.firstName} ${user.lastName}`
-                        .split(' ')
-                        .map((n) => n[0])
-                        .join('')
-                        .toUpperCase()
-                    : ''}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-charcoal truncate">
-                  {user.firstName || user.email}
-                </p>
-                <p className="text-xs text-warm-gray capitalize">
-                  {user?.role?.toLowerCase()}
-                </p>
+            {isLoading ? (
+              // Loading state for footer
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
+                  <div className="flex-1 space-y-2">
+                    <div className="h-3 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="h-2 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                  </div>
+                </div>
+                <div className="h-8 bg-gray-200 rounded animate-pulse"></div>
               </div>
-            </div>
-            <Button
-              onClick={handleSignOut}
-              variant="outline"
-              size="sm"
-              className="w-full bg-transparent border-warm-gray/30 text-charcoal hover:bg-alabaster"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+            ) : !user ? (
+              // No user state for footer
+              <div className="text-center">
+                <p className="text-sm text-gray-500">Please sign in</p>
+              </div>
+            ) : (
+              // User is loaded - show full footer
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.profileImageUrl} />
+                    <AvatarFallback className="bg-charcoal text-alabaster">
+                      {user.firstName
+                        ? `${user.firstName} ${user.lastName}`
+                            .split(' ')
+                            .map((n) => n[0])
+                            .join('')
+                            .toUpperCase()
+                        : ''}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-charcoal truncate">
+                      {user.firstName || user.email}
+                    </p>
+                    <p className="text-xs text-warm-gray capitalize">
+                      {user?.role?.toLowerCase()}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleSignOut}
+                  variant="outline"
+                  size="sm"
+                  className="w-full bg-transparent border-warm-gray/30 text-charcoal hover:bg-alabaster"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </>
+            )}
           </SidebarFooter>
         </Sidebar>
       </div>

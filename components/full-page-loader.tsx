@@ -1,10 +1,12 @@
-import { FC } from "react";
+import { FC } from 'react';
 
 interface FullPageLoaderProps {
   placeholder?: string;
 }
 
-const FullPageLoader: FC<FullPageLoaderProps> = ({ placeholder = "workspace" }) => {
+const FullPageLoader: FC<FullPageLoaderProps> = ({
+  placeholder = 'workspace',
+}) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm min-h-[90vh]">
       <div className="text-center space-y-4">
