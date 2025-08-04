@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Module,
   CourseModule,
@@ -12,25 +12,23 @@ import { getHumanReadableError, debugLog } from '@/lib/error-utils';
 
 export function useCourseModules({ isAdmin = false } = {}) {
   const { data: session, status } = useSession();
-  const [modules, setModules] = useState<Module[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
 
-  // Use refs to track if we've already fetched for this user
-  const lastFetchedUserId = useRef<string | null>(null);
-  const hasFetched = useRef<boolean>(false);
+  // Query key for course modules
+  const modulesQueryKey = ['course-modules', session?.user?.id, isAdmin];
 
-  // Fetch all culture modules
-  const fetchModules = useCallback(async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      setLoading(true);
-      setError(null);
+  // Fetch all course modules
+  const {
+    data: modules = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: modulesQueryKey,
+    queryFn: async (): Promise<Module[]> => {
+      if (!session?.user?.id) {
+        throw new Error('No session available');
+      }
 
       const url = isAdmin ? '/api/course' : '/api/company/course';
       const response = await fetch(url);
@@ -41,58 +39,22 @@ export function useCourseModules({ isAdmin = false } = {}) {
       }
 
       // Convert Course objects to Module format for component compatibility
-      const convertedModules = data.modules?.map(courseToCourseModule) || [];
-      setModules(convertedModules);
-
-      // Mark as fetched for this user
-      lastFetchedUserId.current = session.user.id;
-      hasFetched.current = true;
-    } catch (error: any) {
-      console.error('Error fetching course modules:', error);
-      const errorMessage =
-        error.response?.data?.details ||
-        error.response?.data?.error ||
-        error.message ||
-        'Unknown error';
-      const humanError = getHumanReadableError(errorMessage);
-      toast.error(`Failed to load course modules: ${humanError}`);
-      // Clear error state so it doesn't block UI
-      setError(null);
-    } finally {
-      setLoading(false);
-      setIsLoading(false);
-    }
-  }, [session?.user?.id, isAdmin]);
-
-  // Load modules only when user changes or on first load
-  useEffect(() => {
-    if (status === 'loading') return; // Wait for session to load
-
-    if (
-      session?.user?.id &&
-      (!hasFetched.current || lastFetchedUserId.current !== session.user.id)
-    ) {
-      fetchModules();
-    } else if (!session?.user && hasFetched.current) {
-      // Clear data if user logs out
-      setModules([]);
-      setLoading(false);
-      hasFetched.current = false;
-      lastFetchedUserId.current = null;
-    }
-  }, [session?.user?.id, status, fetchModules]);
-
-  // Manual refetch function that bypasses the cache
-  const refetch = useCallback(async () => {
-    hasFetched.current = false; // Force refetch
-    await fetchModules();
-  }, [fetchModules]);
+      return data.modules?.map(courseToCourseModule) || [];
+    },
+    enabled: !!session?.user?.id && status !== 'loading',
+    staleTime: 2 * 60 * 60 * 1000, // 2 hours - much longer cache
+    gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in cache for a full day
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch when component remounts
+    refetchOnReconnect: false, // Don't refetch when network reconnects
+  });
 
   // Create a new course module
-  const createModule = async (): Promise<Module | null> => {
-    try {
-      setIsCreating(true);
-      setError(null);
+  const createModuleMutation = useMutation({
+    mutationFn: async (): Promise<Module | null> => {
+      if (!session?.user?.id) {
+        throw new Error('No session available');
+      }
 
       const url = isAdmin ? '/api/course' : '/api/company/course';
       const response = await fetch(url, {
@@ -103,6 +65,7 @@ export function useCourseModules({ isAdmin = false } = {}) {
         body: JSON.stringify({
           title: 'Untitled Module',
           content: 'Start writing your course module content here...',
+          category: 'General',
           quiz: null,
         }),
       });
@@ -113,19 +76,26 @@ export function useCourseModules({ isAdmin = false } = {}) {
         const errorMessage =
           data.details || data.error || 'Failed to create course module';
         console.error('API Error:', data);
-        const humanError = getHumanReadableError(errorMessage);
-        toast.error(`Failed to create module: ${humanError}`);
-        return null;
+        throw new Error(errorMessage);
       }
 
       if (data.module) {
-        const newModule = courseToCourseModule(data.module);
-        setModules((prev) => [...prev, newModule]);
-        return newModule;
+        return courseToCourseModule(data.module);
       }
 
       return null;
-    } catch (error: any) {
+    },
+    onSuccess: (newModule) => {
+      if (newModule) {
+        // Optimistically update the cache
+        queryClient.setQueryData(modulesQueryKey, (oldData: Module[] = []) => [
+          ...oldData,
+          newModule,
+        ]);
+        toast.success('New course module created');
+      }
+    },
+    onError: (error: any) => {
       console.error('Create module error:', error);
       const errorMessage =
         error.response?.data?.details ||
@@ -134,20 +104,21 @@ export function useCourseModules({ isAdmin = false } = {}) {
         'Unknown error';
       const humanError = getHumanReadableError(errorMessage);
       toast.error(`Failed to create module: ${humanError}`);
-      return null;
-    } finally {
-      setIsCreating(false);
-    }
-  };
+    },
+  });
 
   // Update a course module
-  const updateModule = async (
-    moduleId: string,
-    updates: Partial<Module>
-  ): Promise<Module | null> => {
-    try {
-      setIsUpdating(true);
-      setError(null);
+  const updateModuleMutation = useMutation({
+    mutationFn: async ({
+      moduleId,
+      updates,
+    }: {
+      moduleId: string;
+      updates: Partial<Module>;
+    }): Promise<Module | null> => {
+      if (!session?.user?.id) {
+        throw new Error('No session available');
+      }
 
       // Convert Module updates to Course format using the utility function
       debugLog('=== MODULE TO COURSE TRANSFORMATION ===');
@@ -194,21 +165,25 @@ export function useCourseModules({ isAdmin = false } = {}) {
         const errorMessage =
           data.details || data.error || 'Failed to update course module';
         console.error('API Error:', data);
-        const humanError = getHumanReadableError(errorMessage);
-        toast.error(`Failed to update module: ${humanError}`);
-        return null;
+        throw new Error(errorMessage);
       }
 
       if (data.module) {
-        const updatedModule = courseToCourseModule(data.module);
-        setModules((prev) =>
-          prev.map((m) => (m.id === moduleId ? updatedModule : m))
-        );
-        return updatedModule;
+        return courseToCourseModule(data.module);
       }
 
       return null;
-    } catch (error: any) {
+    },
+    onSuccess: (updatedModule, variables) => {
+      if (updatedModule) {
+        // Optimistically update the cache
+        queryClient.setQueryData(modulesQueryKey, (oldData: Module[] = []) =>
+          oldData.map((m) => (m.id === variables.moduleId ? updatedModule : m))
+        );
+        toast.success('Course module updated');
+      }
+    },
+    onError: (error: any) => {
       console.error('Update module error:', error);
       const errorMessage =
         error.response?.data?.details ||
@@ -217,17 +192,15 @@ export function useCourseModules({ isAdmin = false } = {}) {
         'Unknown error';
       const humanError = getHumanReadableError(errorMessage);
       toast.error(`Failed to update module: ${humanError}`);
-      return null;
-    } finally {
-      setIsUpdating(false);
-    }
-  };
+    },
+  });
 
   // Delete a course module
-  const deleteModule = async (moduleId: string): Promise<boolean> => {
-    try {
-      setIsDeleting(true);
-      setError(null);
+  const deleteModuleMutation = useMutation({
+    mutationFn: async (moduleId: string): Promise<boolean> => {
+      if (!session?.user?.id) {
+        throw new Error('No session available');
+      }
 
       const url = isAdmin
         ? `/api/course/${moduleId}`
@@ -242,14 +215,19 @@ export function useCourseModules({ isAdmin = false } = {}) {
         const errorMessage =
           data.details || data.error || 'Failed to delete course module';
         console.error('API Error:', data);
-        const humanError = getHumanReadableError(errorMessage);
-        toast.error(`Failed to delete module: ${humanError}`);
-        return false;
+        throw new Error(errorMessage);
       }
 
-      setModules((prev) => prev.filter((m) => m.id !== moduleId));
       return true;
-    } catch (error: any) {
+    },
+    onSuccess: (_, moduleId) => {
+      // Optimistically update the cache
+      queryClient.setQueryData(modulesQueryKey, (oldData: Module[] = []) =>
+        oldData.filter((m) => m.id !== moduleId)
+      );
+      toast.success('Course module deleted');
+    },
+    onError: (error: any) => {
       console.error('Delete module error:', error);
       const errorMessage =
         error.response?.data?.details ||
@@ -258,23 +236,22 @@ export function useCourseModules({ isAdmin = false } = {}) {
         'Unknown error';
       const humanError = getHumanReadableError(errorMessage);
       toast.error(`Failed to delete module: ${humanError}`);
-      return false;
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+    },
+  });
 
   return {
     modules,
     loading,
-    isLoading,
+    isLoading: loading,
     error,
-    isCreating,
-    isUpdating,
-    isDeleting,
-    createModule,
-    updateModule,
-    deleteModule,
+    isCreating: createModuleMutation.isPending,
+    isUpdating: updateModuleMutation.isPending,
+    isDeleting: deleteModuleMutation.isPending,
+    createModule: () => createModuleMutation.mutateAsync(),
+    updateModule: (moduleId: string, updates: Partial<Module>) =>
+      updateModuleMutation.mutateAsync({ moduleId, updates }),
+    deleteModule: (moduleId: string) =>
+      deleteModuleMutation.mutateAsync(moduleId),
     refetch,
   };
 }

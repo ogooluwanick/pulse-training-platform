@@ -29,9 +29,8 @@ export async function GET(request: NextRequest) {
     const companyId = session.user.companyId || session.user.id;
     console.log('Using company ID:', companyId);
 
-    // Build query for company's culture courses
+    // Build query for company's courses
     const query: any = {
-      category: 'culture',
       isCompanySpecific: true,
       companyId: companyId,
     };
@@ -43,31 +42,31 @@ export async function GET(request: NextRequest) {
     console.log('Query:', JSON.stringify(query, null, 2));
 
     // First try without population to see if basic query works
-    const cultureModulesCount = await Course.countDocuments(query);
-    console.log('Found', cultureModulesCount, 'culture modules');
+    const courseModulesCount = await Course.countDocuments(query);
+    console.log('Found', courseModulesCount, 'course modules');
 
-    const cultureModules = await Course.find(query)
+    const courseModules = await Course.find(query)
       .sort({ updatedAt: -1 })
       .lean(); // Use lean() for better performance and avoid population issues
 
     console.log(
-      'Culture modules fetched successfully, count:',
-      cultureModules.length
+      'Course modules fetched successfully, count:',
+      courseModules.length
     );
 
     return NextResponse.json({
       success: true,
-      modules: cultureModules,
+      modules: courseModules,
     });
   } catch (error) {
-    console.error('Error fetching culture modules:', error);
+    console.error('Error fetching course modules:', error);
     console.error(
       'Error stack:',
       error instanceof Error ? error.stack : 'No stack trace'
     );
     return NextResponse.json(
       {
-        error: 'Failed to fetch culture modules',
+        error: 'Failed to fetch course modules',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
@@ -112,11 +111,11 @@ export async function POST(request: NextRequest) {
     const moduleContent =
       content || 'Start writing your culture module content here...';
 
-    // Create a new culture course
-    const cultureModuleData = {
+    // Create a new course module
+    const moduleData = {
       title: moduleTitle,
-      description: description || 'A new culture module for your organization.',
-      category: 'culture',
+      description: description || 'A new course module for your organization.',
+      category: body.category || 'General',
       isCompanySpecific: true,
       companyId: companyId,
       instructor: session.user.id,
@@ -141,14 +140,14 @@ export async function POST(request: NextRequest) {
     };
 
     console.log(
-      'Creating culture module with data:',
-      JSON.stringify(cultureModuleData, null, 2)
+      'Creating course module with data:',
+      JSON.stringify(moduleData, null, 2)
     );
 
-    const cultureModule = new Course(cultureModuleData);
-    const savedModule = await cultureModule.save();
+    const courseModule = new Course(moduleData);
+    const savedModule = await courseModule.save();
 
-    console.log('Culture module saved successfully:', savedModule._id);
+    console.log('Course module saved successfully:', savedModule._id);
 
     await savedModule.populate([
       { path: 'createdBy', select: 'firstName lastName email' },
@@ -159,19 +158,19 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         module: savedModule,
-        message: 'Culture module created successfully',
+        message: 'Course module created successfully',
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Error creating culture module:', error);
+    console.error('Error creating course module:', error);
     console.error(
       'Error stack:',
       error instanceof Error ? error.stack : 'No stack trace'
     );
     return NextResponse.json(
       {
-        error: 'Failed to create culture module',
+        error: 'Failed to create course module',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }

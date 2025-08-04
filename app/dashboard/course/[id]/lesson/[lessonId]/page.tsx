@@ -520,9 +520,15 @@ export default function LessonPage() {
                       description: 'Test your understanding of this lesson',
                       questions: lesson.quiz!.questions.map((q, i) => ({
                         id: String(i),
-                        type: 'multiple-choice',
+                        type:
+                          q.type === 'true-false'
+                            ? 'true-false'
+                            : 'multiple-choice',
                         question: q.question,
-                        options: q.options,
+                        options:
+                          q.type === 'true-false'
+                            ? ['True', 'False']
+                            : q.options,
                         correctAnswer: q.answer,
                         required: true,
                       })),

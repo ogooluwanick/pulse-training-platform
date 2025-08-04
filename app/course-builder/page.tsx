@@ -28,33 +28,34 @@ export default function CourseBuilderPage() {
   const selectedModule = modules.find((m) => m.id === selectedModuleId) || null;
 
   const handleAddModule = async () => {
-    const newModule = await createModule();
-    if (newModule) {
-      setSelectedModuleId(newModule.id);
-      toast.success('New course module created');
-    } else {
-      toast.error('Failed to create course module');
+    try {
+      const newModule = await createModule();
+      if (newModule) {
+        setSelectedModuleId(newModule.id);
+      }
+    } catch (error) {
+      // Error is already handled by the mutation
     }
   };
 
   const handleDeleteModule = async (moduleId: string) => {
-    const success = await deleteModule(moduleId);
-    if (success) {
-      setSelectedModuleId(null);
-      toast.success('Course module deleted');
-    } else {
-      toast.error('Failed to delete course module');
+    try {
+      const success = await deleteModule(moduleId);
+      if (success) {
+        setSelectedModuleId(null);
+      }
+    } catch (error) {
+      // Error is already handled by the mutation
     }
   };
 
   const handleUpdateModule = async (module: Module) => {
-    // Extract the module ID and create the updates object
-    const { id, ...updates } = module;
-    const updatedModule = await updateModule(id, updates);
-    if (updatedModule) {
-      toast.success('Course module updated');
-    } else {
-      toast.error('Failed to update course module');
+    try {
+      // Extract the module ID and create the updates object
+      const { id, ...updates } = module;
+      await updateModule(id, updates);
+    } catch (error) {
+      // Error is already handled by the mutation
     }
   };
 

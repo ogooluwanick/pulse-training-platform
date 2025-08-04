@@ -96,6 +96,7 @@ export default function ModuleEditor({
   // UI state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Effects
   useEffect(() => {
@@ -279,6 +280,8 @@ export default function ModuleEditor({
     debugLog('=== SAVE DEBUG ===');
     debugLog('All lessons:', lessons);
     debugLog('Final quiz:', finalQuiz);
+
+    setHasUnsavedChanges(false);
 
     lessons.forEach((lesson, lessonIndex) => {
       if (lesson.quiz?.questions) {
@@ -488,13 +491,19 @@ export default function ModuleEditor({
 
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
+      // Capitalize the tag before adding
+      const capitalizedTag =
+        tagInput.trim().charAt(0).toUpperCase() +
+        tagInput.trim().slice(1).toLowerCase();
+      setTags([...tags, capitalizedTag]);
       setTagInput('');
+      setHasUnsavedChanges(true);
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
     setTags(tags.filter((tag) => tag !== tagToRemove));
+    setHasUnsavedChanges(true);
   };
 
   const selectedLesson = lessons.find((l) => l.id === selectedLessonId);
@@ -527,6 +536,14 @@ export default function ModuleEditor({
               <Badge variant={status === 'published' ? 'default' : 'secondary'}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </Badge>
+              {hasUnsavedChanges && (
+                <Badge
+                  variant="outline"
+                  className="text-orange-600 border-orange-600"
+                >
+                  Unsaved Changes
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -608,7 +625,10 @@ export default function ModuleEditor({
                   <Input
                     id="title"
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => {
+                      setTitle(e.target.value);
+                      setHasUnsavedChanges(true);
+                    }}
                     placeholder="Enter module title"
                     className="text-xl font-semibold"
                   />
@@ -619,7 +639,10 @@ export default function ModuleEditor({
                   <Textarea
                     id="description"
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={(e) => {
+                      setDescription(e.target.value);
+                      setHasUnsavedChanges(true);
+                    }}
                     placeholder="Describe what this course module covers..."
                     rows={3}
                   />

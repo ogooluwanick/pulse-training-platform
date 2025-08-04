@@ -44,22 +44,19 @@ export interface CourseLesson {
   duration: number;
   quiz?: {
     title: string;
-    questions: Array<{
-      question: string;
-      type?: 'multiple-choice' | 'true-false';
-      options: string[];
-      answer: string;
-      correctAnswerId?: string;
-    }>;
+    questions: Question[]; // Use frontend Question format
   };
 }
 
-// New Course-based Course Module interface
+// Updated CourseModuleCategory to match Course model exactly
 export enum CourseModuleCategory {
+  COMPLIANCE = 'Compliance',
+  SKILLS = 'Skills',
+  CULTURE = 'Culture',
+  TECHNICAL = 'Technical',
   GENERAL = 'General',
   ONBOARDING = 'Onboarding',
   PRODUCT_TRAINING = 'Product Training',
-  COMPLIANCE = 'Compliance',
   OTHER = 'Other',
 }
 
@@ -76,13 +73,7 @@ export interface CourseModule {
   lessons?: CourseLesson[];
   finalQuiz?: {
     title: string;
-    questions: Array<{
-      question: string;
-      type?: 'multiple-choice' | 'true-false';
-      options: string[];
-      answer: string;
-      correctAnswerId?: string;
-    }>;
+    questions: Question[]; // Use frontend Question format
   };
   companyId?: string;
   createdBy?: string;
@@ -94,6 +85,13 @@ export interface CourseModule {
   enrolledCount?: number;
   viewCount?: number;
   completionCount?: number;
+}
+
+// Helper function to capitalize tags
+export function capitalizeTags(tags: string[]): string[] {
+  return tags.map(
+    (tag) => tag.charAt(0).toUpperCase() + tag.slice(1).toLowerCase()
+  );
 }
 
 // Helper function to validate and filter complete questions
@@ -232,6 +230,7 @@ export function courseToCourseModule(course: CourseModule): Module {
     difficulty: course.difficulty,
     lessons: course.lessons
       ? course.lessons.map((lesson) => {
+          debugLog('Converting lesson:', lesson);
           const newLesson: CourseLesson = {
             _id: lesson._id,
             title: lesson.title,
@@ -242,13 +241,21 @@ export function courseToCourseModule(course: CourseModule): Module {
           if (lesson.quiz) {
             newLesson.quiz = {
               title: lesson.quiz.title,
-              questions: lesson.quiz.questions.map((q) => ({
-                question: q.question,
-                type: q.type,
-                options: q.options,
-                answer: q.answer,
-                correctAnswerId: q.correctAnswerId,
-              })),
+              questions: lesson.quiz.questions.map((q, index) => {
+                const convertedQuestion = {
+                  id: `lq_${index}`,
+                  text: q.question,
+                  type:
+                    q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
+                  options: q.options.map((opt, i) => ({
+                    id: (i + 1).toString(), // Use simple numbers like QuizBuilder
+                    text: opt,
+                  })),
+                  correctAnswerId: q.correctAnswerId || '1',
+                  answer: q.answer,
+                };
+                return convertedQuestion;
+              }),
             };
           }
           return newLesson;
@@ -263,10 +270,10 @@ export function courseToCourseModule(course: CourseModule): Module {
       text: q.question,
       type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
       options: q.options.map((opt, i) => ({
-        id: `opt_${i}`,
+        id: (i + 1).toString(), // Use simple numbers like QuizBuilder
         text: opt,
       })),
-      correctAnswerId: q.correctAnswerId || 'opt_0',
+      correctAnswerId: q.correctAnswerId || '1',
       answer: q.answer,
     }));
   }
@@ -274,17 +281,20 @@ export function courseToCourseModule(course: CourseModule): Module {
   if (course.finalQuiz) {
     module.finalQuiz = {
       title: course.finalQuiz.title,
-      questions: course.finalQuiz.questions.map((q, index) => ({
-        id: `fq_${index}`,
-        text: q.question,
-        type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
-        options: q.options.map((opt, i) => ({
-          id: `fopt_${i}`,
-          text: opt,
-        })),
-        correctAnswerId: q.correctAnswerId || `fopt_0`,
-        answer: q.answer,
-      })),
+      questions: course.finalQuiz.questions.map((q, index) => {
+        const convertedQuestion = {
+          id: `fq_${index}`,
+          text: q.question,
+          type: q.type === 'true-false' ? 'True/False' : 'Multiple Choice',
+          options: q.options.map((opt, i) => ({
+            id: (i + 1).toString(), // Use simple numbers like QuizBuilder
+            text: opt,
+          })),
+          correctAnswerId: q.correctAnswerId || '1',
+          answer: q.answer,
+        };
+        return convertedQuestion;
+      }),
     };
   }
 
@@ -297,17 +307,13 @@ export function courseModuleToCourse(
   companyId: string | undefined,
   userId: string
 ): Partial<CourseModule> {
-  debugLog('=== COURSE MODULE TO COURSE CONVERSION ===');
-  debugLog('Input module:', module);
-  debugLog('Module lessons:', module.lessons);
-
   const convertedCourse: Partial<CourseModule> = {
     title: module.title,
     description: module.description,
     category: module.category || CourseModuleCategory.GENERAL,
     status: module.status || 'draft',
     difficulty: module.difficulty,
-    tags: module.tags || [],
+    tags: capitalizeTags(module.tags || []), // Capitalize tags
     companyId,
     createdBy: userId,
     lastModifiedBy: userId,
@@ -316,11 +322,15 @@ export function courseModuleToCourse(
   if (module.lessons && module.lessons.length > 0) {
     convertedCourse.lessons = module.lessons.map((lesson) => {
       const newLesson: CourseLesson = {
-        ...lesson,
+        _id: lesson._id,
+        title: lesson.title,
+        type: lesson.type,
+        content: lesson.content,
+        duration: lesson.duration,
       };
       if (lesson.quiz) {
         const validQuestions = validateAndFilterQuestions(
-          lesson.quiz.questions as any
+          lesson.quiz.questions
         );
         if (validQuestions.length > 0) {
           newLesson.quiz = {
@@ -385,7 +395,6 @@ export function courseModuleToCourse(
     }
   }
 
-  debugLog('Final converted course:', convertedCourse);
   return convertedCourse;
 }
 

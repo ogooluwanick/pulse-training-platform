@@ -21,30 +21,29 @@ export async function GET(
     // Get the correct company ID
     const companyId = session.user.companyId || session.user.id;
 
-    const cultureModule = await Course.findOne({
+    const courseModule = await Course.findOne({
       _id: params.id,
-      category: 'culture',
       isCompanySpecific: true,
       companyId: companyId,
     })
       .populate('createdBy', 'firstName lastName email')
       .populate('lastModifiedBy', 'firstName lastName email');
 
-    if (!cultureModule) {
+    if (!courseModule) {
       return NextResponse.json(
-        { error: 'Culture module not found' },
+        { error: 'Course module not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      module: cultureModule,
+      module: courseModule,
     });
   } catch (error) {
-    console.error('Error fetching culture module:', error);
+    console.error('Error fetching course module:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch culture module' },
+      { error: 'Failed to fetch course module' },
       { status: 500 }
     );
   }
@@ -80,23 +79,24 @@ export async function PUT(
     // Get the correct company ID
     const companyId = session.user.companyId || session.user.id;
 
-    // Find the culture module and verify ownership
-    const cultureModule = await Course.findOne({
+    // Find the course module and verify ownership
+    const courseModule = await Course.findOne({
       _id: params.id,
-      category: 'culture',
       isCompanySpecific: true,
       companyId: companyId,
     });
 
-    if (!cultureModule) {
+    if (!courseModule) {
       return NextResponse.json(
-        { error: 'Culture module not found' },
+        { error: 'Course module not found' },
         { status: 404 }
       );
     }
 
-    console.log('Updating culture module:', params.id);
+    console.log('Updating course module:', params.id);
     console.log('Update data:', JSON.stringify(body, null, 2));
+    console.log('Lessons data:', JSON.stringify(body.lessons, null, 2));
+    console.log('Final quiz data:', JSON.stringify(body.finalQuiz, null, 2));
 
     // Prepare update data
     const updateData: any = {
@@ -127,9 +127,9 @@ export async function PUT(
       }));
     } else if (content !== undefined || quiz !== undefined) {
       // Backward compatibility: update the first lesson
-      const existingLessons = cultureModule.lessons || [];
+      const existingLessons = courseModule.lessons || [];
       const firstLesson = existingLessons[0] || {
-        title: title || cultureModule.title,
+        title: title || courseModule.title,
         type: 'text',
         content: '',
         duration: 0,
@@ -162,6 +162,14 @@ export async function PUT(
     }
 
     console.log('Final update data:', JSON.stringify(updateData, null, 2));
+    console.log(
+      'Lessons in update data:',
+      JSON.stringify(updateData.lessons, null, 2)
+    );
+    console.log(
+      'Final quiz in update data:',
+      JSON.stringify(updateData.finalQuiz, null, 2)
+    );
 
     const updatedModule = await Course.findByIdAndUpdate(
       params.id,
@@ -173,27 +181,35 @@ export async function PUT(
 
     if (!updatedModule) {
       return NextResponse.json(
-        { error: 'Failed to update culture module' },
+        { error: 'Failed to update course module' },
         { status: 500 }
       );
     }
 
-    console.log('Culture module updated successfully:', updatedModule._id);
+    console.log('Course module updated successfully:', updatedModule._id);
+    console.log(
+      'Updated module lessons:',
+      JSON.stringify(updatedModule.lessons, null, 2)
+    );
+    console.log(
+      'Updated module final quiz:',
+      JSON.stringify(updatedModule.finalQuiz, null, 2)
+    );
 
     return NextResponse.json({
       success: true,
       module: updatedModule,
-      message: 'Culture module updated successfully',
+      message: 'Course module updated successfully',
     });
   } catch (error) {
-    console.error('Error updating culture module:', error);
+    console.error('Error updating course module:', error);
     console.error(
       'Error stack:',
       error instanceof Error ? error.stack : 'No stack trace'
     );
     return NextResponse.json(
       {
-        error: 'Failed to update culture module',
+        error: 'Failed to update course module',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
@@ -219,26 +235,25 @@ export async function DELETE(
 
     const deletedModule = await Course.findOneAndDelete({
       _id: params.id,
-      category: 'culture',
       isCompanySpecific: true,
       companyId: companyId,
     });
 
     if (!deletedModule) {
       return NextResponse.json(
-        { error: 'Culture module not found' },
+        { error: 'Course module not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Culture module deleted successfully',
+      message: 'Course module deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting culture module:', error);
+    console.error('Error deleting course module:', error);
     return NextResponse.json(
-      { error: 'Failed to delete culture module' },
+      { error: 'Failed to delete course module' },
       { status: 500 }
     );
   }
