@@ -242,18 +242,14 @@ export default function EmployeeManagement() {
                   <div>
                     <p className="text-sm text-warm-gray">Department</p>
                     <p className="text-sm text-charcoal">
-                      {employee.department}
+                      {employee.department || '-'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-warm-gray">Progress</p>
                     <div className="flex items-center gap-2">
                       <Progress
-                        value={
-                          employee.overallProgress === 0
-                            ? 1
-                            : employee.overallProgress
-                        }
+                        value={employee.overallProgress || 0}
                         className="flex-1 h-2"
                       />
                       <span className="text-sm text-charcoal">
