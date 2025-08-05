@@ -43,6 +43,13 @@ export async function POST(
       assignment.lessonProgress?.filter((lp: any) => lp.status === 'completed')
         .length || 0;
 
+    // Calculate and update progress percentage
+    const progressPercentage =
+      totalLessons > 0
+        ? Math.round((completedLessons / totalLessons) * 100)
+        : 0;
+    assignment.progress = progressPercentage;
+
     if (completedLessons >= totalLessons) {
       assignment.status = 'completed';
       assignment.completedAt = new Date();

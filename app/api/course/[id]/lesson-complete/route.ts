@@ -87,6 +87,13 @@ export async function POST(
           (lp: any) => lp.status === 'completed'
         ).length || 0;
 
+      // Calculate and update progress percentage
+      const progressPercentage =
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
+      assignment.progress = progressPercentage;
+
       // Only mark as completed if ALL lessons are done AND final quiz is passed (if exists)
       if (completedLessons >= totalLessons) {
         // Check if there's a final quiz and if it's been passed

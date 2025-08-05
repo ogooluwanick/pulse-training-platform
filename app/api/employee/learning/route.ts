@@ -95,13 +95,17 @@ export async function GET() {
         skillProgress[category] = { total: 0, completed: 0, progress: 0 };
       }
       skillProgress[category].total++;
+
+      // Count as completed if course is actually completed
       if (course.status === 'completed') {
         skillProgress[category].completed++;
       }
+
+      // Add progress to total (this will be used for average calculation)
       skillProgress[category].progress += course.progress;
     });
 
-    // Calculate average progress for each category
+    // Calculate average progress for each category and ensure completed count is accurate
     Object.keys(skillProgress).forEach((category) => {
       const data = skillProgress[category];
       data.averageProgress =

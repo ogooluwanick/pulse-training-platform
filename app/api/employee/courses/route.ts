@@ -40,13 +40,21 @@ export async function GET() {
           (lp: any) => lp.status === 'completed'
         ).length || 0;
 
+      // Calculate progress based on completed lessons if assignment.progress is not set
+      const calculatedProgress =
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
+      const progress = assignment.progress || calculatedProgress;
+
       return {
-        _id: assignment._id,
+        _id: assignment._id, // Assignment ID
+        courseId: course._id, // Course ID
         title: course.title,
         description: course.description,
         category: course.category?.toLowerCase(),
         duration: course.duration || 0,
-        progress: assignment.progress || 0,
+        progress: progress,
         status: assignment.status,
         totalLessons,
         completedLessons,

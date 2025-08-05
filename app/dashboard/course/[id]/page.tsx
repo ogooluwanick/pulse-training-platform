@@ -15,6 +15,7 @@ async function fetchCourse(courseId: string) {
 }
 
 async function fetchAssignment(courseId: string) {
+  // First get the assignment ID for this course and user
   const response = await fetch(`/api/course-assignment/${courseId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch assignment data');

@@ -31,7 +31,8 @@ import { formatDuration } from '@/lib/duration';
 
 // Updated interface for course data from the API
 interface CourseWithProgress {
-  _id: string;
+  _id: string; // Assignment ID
+  courseId: string; // Course ID
   title: string;
   description: string;
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
@@ -416,11 +417,16 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                     <div className="flex justify-between text-sm">
                       <span className="text-warm-gray">Progress</span>
                       <span className="text-charcoal font-medium">
-                        {data.averageProgress || 0}%
+                        {data.total > 0
+                          ? Math.round((data.completed / data.total) * 100)
+                          : 0}
+                        %
                       </span>
                     </div>
                     <Progress
-                      value={data.averageProgress || 0}
+                      value={
+                        data.total > 0 ? (data.completed / data.total) * 100 : 0
+                      }
                       className="h-2"
                     />
                     <div className="flex justify-between text-xs text-warm-gray">
@@ -603,8 +609,8 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                           assignment.progress === 100
                             ? '[&>div]:bg-success-green'
                             : assignment.progress > 50
-                              ? '[&>div]:bg-charcoal'
-                              : '[&>div]:bg-warm-gray'
+                              ? ''
+                              : ''
                         }`}
                       />
                       <div className="flex items-center justify-between text-xs text-warm-gray">
@@ -647,7 +653,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
 
                     <div className="flex gap-2">
                       <Link
-                        href={`/dashboard/course/${assignment._id}`}
+                        href={`/dashboard/course/${assignment.courseId}`}
                         className="flex-1"
                       >
                         <Button
