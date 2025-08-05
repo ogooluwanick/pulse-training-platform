@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import User from '@/lib/models/User';
 import CourseAssignment from '@/lib/models/CourseAssignment';
+import Course from '@/lib/models/Course';
 import dbConnect from '@/lib/dbConnect';
 import Company from '@/lib/models/Company';
 import mongoose from 'mongoose';
@@ -37,7 +38,7 @@ export async function GET() {
           employee: employee._id,
         }).populate({
           path: 'course',
-          model: 'Course',
+          model: Course,
         });
 
         const coursesCompleted = assignments.filter(

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession, signIn } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
-import { Shield } from 'lucide-react';
+import FullPageLoader from '@/components/full-page-loader';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { TopMenu } from '@/components/top-menu';
@@ -57,6 +57,8 @@ const ROLE_ACCESS = {
   COMPANY: [
     '/dashboard',
     '/course-assignment',
+    '/course-builder',
+    '/catalog',
     '/employee-management',
     '/reports',
     '/analytics',
@@ -124,12 +126,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   );
 
   if (isProtectedRoute && status === 'loading') {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-        <Shield className="h-16 w-16 text-green-600 animate-pulse mb-4" />
-        <p className="text-lg text-gray-700">Loading...</p>
-      </div>
-    );
+    return <FullPageLoader />;
   }
 
   // If it's a completely public page, render without any layout components
@@ -150,12 +147,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   // For protected routes, check authentication
   if (isProtectedRoute) {
     if (status === 'unauthenticated' || !session?.user) {
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-          <Shield className="h-16 w-16 text-green-600 animate-pulse mb-4" />
-          <p className="text-lg text-gray-700">Redirecting to sign in...</p>
-        </div>
-      );
+      return <FullPageLoader />;
     }
 
     // Check role access
@@ -164,12 +156,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
     const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route));
 
     if (!hasAccess) {
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-          <Shield className="h-16 w-16 text-red-600 mb-4" />
-          <p className="text-lg text-gray-700">Access denied</p>
-        </div>
-      );
+      return <FullPageLoader />;
     }
   }
 
