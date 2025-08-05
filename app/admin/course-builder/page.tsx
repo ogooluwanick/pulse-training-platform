@@ -28,33 +28,34 @@ export default function CourseBuilderPage() {
   const selectedModule = modules.find((m) => m.id === selectedModuleId) || null;
 
   const handleAddModule = async () => {
-    const newModule = await createModule();
-    if (newModule) {
-      setSelectedModuleId(newModule.id);
-      toast.success('New course module created');
-    } else {
-      toast.error('Failed to create course module');
+    try {
+      const newModule = await createModule();
+      if (newModule) {
+        setSelectedModuleId(newModule.id);
+      }
+    } catch (error) {
+      // Error is already handled by the mutation
     }
   };
 
   const handleDeleteModule = async (moduleId: string) => {
-    const success = await deleteModule(moduleId);
-    if (success) {
-      setSelectedModuleId(null);
-      toast.success('Course module deleted');
-    } else {
-      toast.error('Failed to delete course module');
+    try {
+      const success = await deleteModule(moduleId);
+      if (success) {
+        setSelectedModuleId(null);
+      }
+    } catch (error) {
+      // Error is already handled by the mutation
     }
   };
 
   const handleUpdateModule = async (module: Module) => {
-    // Extract the module ID and create the updates object
-    const { id, ...updates } = module;
-    const updatedModule = await updateModule(id, updates);
-    if (updatedModule) {
-      toast.success('Course module updated');
-    } else {
-      toast.error('Failed to update course module');
+    try {
+      // Extract the module ID and create the updates object
+      const { id, ...updates } = module;
+      await updateModule(id, updates);
+    } catch (error) {
+      // Error is already handled by the mutation
     }
   };
 
@@ -96,19 +97,19 @@ export default function CourseBuilderPage() {
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-charcoal mb-4">
-                Welcome to the Course Builder
+                Welcome to the Admin Course Builder
               </h2>
               <p className="text-warm-gray mb-6 max-w-md">
                 As an admin, you can create and manage universal course modules
-                for all companies. Select a module from the left panel or create
-                a new one to get started.
+                that are available to all companies. Select a module from the
+                left panel or create a new one to get started.
               </p>
               <button
                 onClick={handleAddModule}
                 disabled={isCreating}
                 className="bg-charcoal text-white px-6 py-3 rounded-lg hover:bg-charcoal/90 transition-colors disabled:opacity-50"
               >
-                {isCreating ? 'Creating...' : 'Create a New Module'}
+                {isCreating ? 'Creating...' : 'Create a New Universal Module'}
               </button>
             </div>
           </div>

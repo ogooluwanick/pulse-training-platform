@@ -30,7 +30,7 @@ export function useCourseModules({ isAdmin = false } = {}) {
         throw new Error('No session available');
       }
 
-      const url = isAdmin ? '/api/course' : '/api/company/course';
+      const url = isAdmin ? '/api/admin/course-builder' : '/api/company/course';
       const response = await fetch(url);
       const data: CourseModuleResponse = await response.json();
 
@@ -41,7 +41,7 @@ export function useCourseModules({ isAdmin = false } = {}) {
       // Convert Course objects to Module format for component compatibility
       return data.modules?.map(courseToCourseModule) || [];
     },
-    enabled: !!session?.user?.id && status !== 'loading',
+    enabled: !!session?.user?.id && status !== 'loading' as any,
     staleTime: 2 * 60 * 60 * 1000, // 2 hours - much longer cache
     gcTime: 24 * 60 * 60 * 1000, // 24 hours - keep in cache for a full day
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
@@ -56,7 +56,7 @@ export function useCourseModules({ isAdmin = false } = {}) {
         throw new Error('No session available');
       }
 
-      const url = isAdmin ? '/api/course' : '/api/company/course';
+      const url = isAdmin ? '/api/admin/course-builder' : '/api/company/course';
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -149,7 +149,7 @@ export function useCourseModules({ isAdmin = false } = {}) {
       delete courseUpdates.isCompanySpecific;
 
       const url = isAdmin
-        ? `/api/course/${moduleId}`
+        ? `/api/admin/course-builder/${moduleId}`
         : `/api/company/course/${moduleId}`;
       const response = await fetch(url, {
         method: 'PUT',
@@ -203,7 +203,7 @@ export function useCourseModules({ isAdmin = false } = {}) {
       }
 
       const url = isAdmin
-        ? `/api/course/${moduleId}`
+        ? `/api/admin/course-builder/${moduleId}`
         : `/api/company/course/${moduleId}`;
       const response = await fetch(url, {
         method: 'DELETE',

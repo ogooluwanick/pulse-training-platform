@@ -1,62 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import dbConnect from '@/lib/dbConnect';
-import Course from '@/lib/models/Course';
-import User from '@/lib/models/User'; // Import User model to register it
-import { authOptions } from '../../../auth/[...nextauth]/route';
+import { Course, User } from '@/lib/models';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
-// GET: Get a specific culture module by ID
+export const dynamic = 'force-dynamic';
+
+// GET: Get a specific universal course by ID for admin
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
 
-    // Get the correct company ID
-    const companyId = session.user.companyId || session.user.id;
-
-    const courseModule = await Course.findOne({
+    const course = await Course.findOne({
       _id: params.id,
-      isCompanySpecific: true,
-      companyId: companyId,
-    })
-      .populate('createdBy', 'firstName lastName email')
-      .populate('lastModifiedBy', 'firstName lastName email');
+      isCompanySpecific: false, // Only universal courses
+    });
 
-    if (!courseModule) {
+    if (!course) {
       return NextResponse.json(
-        { error: 'Course module not found' },
+        { error: 'Universal course not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      module: courseModule,
+      module: course,
     });
   } catch (error) {
-    console.error('Error fetching course module:', error);
+    console.error('Error fetching universal course:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch course module' },
+      { error: 'Failed to fetch universal course' },
       { status: 500 }
     );
   }
 }
 
-// PUT: Update a specific culture module
+// PUT: Update a specific universal course
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -76,24 +71,20 @@ export async function PUT(
 
     await dbConnect();
 
-    // Get the correct company ID
-    const companyId = session.user.companyId || session.user.id;
-
-    // Find the course module and verify ownership
-    const courseModule = await Course.findOne({
+    // Find the universal course and verify it's universal
+    const course = await Course.findOne({
       _id: params.id,
-      isCompanySpecific: true,
-      companyId: companyId,
+      isCompanySpecific: false, // Only universal courses
     });
 
-    if (!courseModule) {
+    if (!course) {
       return NextResponse.json(
-        { error: 'Course module not found' },
+        { error: 'Universal course not found' },
         { status: 404 }
       );
     }
 
-    console.log('Updating course module:', params.id);
+    console.log('Updating universal course:', params.id);
     console.log('Update data:', JSON.stringify(body, null, 2));
     console.log('Lessons data:', JSON.stringify(body.lessons, null, 2));
     console.log('Final quiz data:', JSON.stringify(body.finalQuiz, null, 2));
@@ -130,9 +121,9 @@ export async function PUT(
       }));
     } else if (content !== undefined || quiz !== undefined) {
       // Backward compatibility: update the first lesson
-      const existingLessons = courseModule.lessons || [];
+      const existingLessons = course.lessons || [];
       const firstLesson = existingLessons[0] || {
-        title: title || courseModule.title,
+        title: title || course.title,
         type: 'text',
         content: '',
         duration: 0,
@@ -146,7 +137,7 @@ export async function PUT(
         firstLesson.quiz =
           quiz && quiz.questions && quiz.questions.length > 0
             ? {
-                title: quiz.title || 'Module Quiz',
+                title: quiz.title || 'Course Quiz',
                 questions: quiz.questions || [],
               }
             : undefined;
@@ -176,45 +167,43 @@ export async function PUT(
       JSON.stringify(updateData.finalQuiz, null, 2)
     );
 
-    const updatedModule = await Course.findByIdAndUpdate(
+    const updatedCourse = await Course.findByIdAndUpdate(
       params.id,
       updateData,
       { new: true, runValidators: true }
-    )
-      .populate('createdBy', 'firstName lastName email')
-      .populate('lastModifiedBy', 'firstName lastName email');
+    );
 
-    if (!updatedModule) {
+    if (!updatedCourse) {
       return NextResponse.json(
-        { error: 'Failed to update course module' },
+        { error: 'Failed to update universal course' },
         { status: 500 }
       );
     }
 
-    console.log('Course module updated successfully:', updatedModule._id);
+    console.log('Universal course updated successfully:', updatedCourse._id);
     console.log(
-      'Updated module lessons:',
-      JSON.stringify(updatedModule.lessons, null, 2)
+      'Updated course lessons:',
+      JSON.stringify(updatedCourse.lessons, null, 2)
     );
     console.log(
-      'Updated module final quiz:',
-      JSON.stringify(updatedModule.finalQuiz, null, 2)
+      'Updated course final quiz:',
+      JSON.stringify(updatedCourse.finalQuiz, null, 2)
     );
 
     return NextResponse.json({
       success: true,
-      module: updatedModule,
-      message: 'Course module updated successfully',
+      module: updatedCourse,
+      message: 'Universal course updated successfully',
     });
   } catch (error) {
-    console.error('Error updating course module:', error);
+    console.error('Error updating universal course:', error);
     console.error(
       'Error stack:',
       error instanceof Error ? error.stack : 'No stack trace'
     );
     return NextResponse.json(
       {
-        error: 'Failed to update course module',
+        error: 'Failed to update universal course',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
@@ -222,43 +211,39 @@ export async function PUT(
   }
 }
 
-// DELETE: Delete a specific culture module
+// DELETE: Delete a specific universal course
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user) {
+    if (!session || !session.user || session.user.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
 
-    // Get the correct company ID
-    const companyId = session.user.companyId || session.user.id;
-
-    const deletedModule = await Course.findOneAndDelete({
+    const deletedCourse = await Course.findOneAndDelete({
       _id: params.id,
-      isCompanySpecific: true,
-      companyId: companyId,
+      isCompanySpecific: false, // Only universal courses
     });
 
-    if (!deletedModule) {
+    if (!deletedCourse) {
       return NextResponse.json(
-        { error: 'Course module not found' },
+        { error: 'Universal course not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Course module deleted successfully',
+      message: 'Universal course deleted successfully',
     });
   } catch (error) {
-    console.error('Error deleting course module:', error);
+    console.error('Error deleting universal course:', error);
     return NextResponse.json(
-      { error: 'Failed to delete course module' },
+      { error: 'Failed to delete universal course' },
       { status: 500 }
     );
   }

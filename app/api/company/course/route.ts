@@ -129,12 +129,13 @@ export async function POST(request: NextRequest) {
           type: 'text',
           content: moduleContent,
           duration: 0,
-          quiz: quiz
-            ? {
-                title: quiz.title || 'Module Quiz',
-                questions: quiz.questions || [],
-              }
-            : undefined,
+          quiz:
+            quiz && quiz.questions && quiz.questions.length > 0
+              ? {
+                  title: quiz.title || 'Module Quiz',
+                  questions: quiz.questions || [],
+                }
+              : undefined,
         },
       ],
     };
