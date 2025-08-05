@@ -31,21 +31,71 @@ export async function GET() {
       model: Course,
     });
 
-    const courses = assignments.map((assignment: any) => ({
-      id: assignment._id,
-      courseId: assignment.course._id,
-      title: assignment.course.title,
-      description: assignment.course.description,
-      category: assignment.course.category,
-      duration: assignment.course.duration,
-      difficulty: assignment.course.difficulty,
-      status: assignment.status,
-      progress: assignment.progress || 0,
-      assignedAt: assignment.createdAt,
-      completedAt: assignment.completedAt,
-    }));
+    // Transform assignments to match frontend expectations
+    const courses = assignments.map((assignment: any) => {
+      const course = assignment.course;
+      const totalLessons = course.lessons?.length || 0;
+      const completedLessons =
+        assignment.lessonProgress?.filter(
+          (lp: any) => lp.status === 'completed'
+        ).length || 0;
 
-    return NextResponse.json(courses);
+      return {
+        _id: assignment._id,
+        title: course.title,
+        description: course.description,
+        category: course.category?.toLowerCase(),
+        duration: course.duration || 0,
+        progress: assignment.progress || 0,
+        status: assignment.status,
+        totalLessons,
+        completedLessons,
+        difficulty: course.difficulty,
+        rating: course.rating || [],
+        enrolledCount: course.enrolledCount || 0,
+        tags: course.tags || [],
+        assignedAt: assignment.createdAt,
+        completedAt: assignment.completedAt,
+        assignmentType: assignment.assignmentType,
+        interval: assignment.interval,
+        endDate: assignment.endDate,
+      };
+    });
+
+    // Calculate stats
+    const completedCoursesCount = courses.filter(
+      (c) => c.status === 'completed'
+    ).length;
+    const uncompletedCoursesCount = courses.length - completedCoursesCount;
+
+    // Calculate total time invested (sum of completed courses duration)
+    const timeInvested = courses
+      .filter((c) => c.status === 'completed')
+      .reduce((sum, c) => sum + (c.duration || 0), 0);
+
+    // Calculate average final quiz score from completed courses
+    const completedAssignments = assignments.filter(
+      (a: any) => a.status === 'completed'
+    );
+    const averageFinalQuizScore =
+      completedAssignments.length > 0
+        ? Math.round(
+            completedAssignments.reduce(
+              (sum: number, a: any) => sum + (a.finalQuizResult?.score || 0),
+              0
+            ) / completedAssignments.length
+          )
+        : 0;
+
+    const response = {
+      courses,
+      timeInvested,
+      completedCoursesCount,
+      uncompletedCoursesCount,
+      averageFinalQuizScore,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Failed to fetch employee courses:', error);
     return NextResponse.json(
