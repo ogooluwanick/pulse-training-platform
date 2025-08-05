@@ -98,12 +98,23 @@ interface Assignment {
   updatedAt: string;
 }
 
-// Fetch assignments from API
+// Fetch assignments from API with better error handling
 const fetchAssignments = async (): Promise<Assignment[]> => {
-  const response = await fetch('/api/course-assignment');
-  if (!response.ok) {
-    throw new Error('Failed to fetch assignments');
+  const response = await fetch('/api/course-assignment', {
+    credentials: 'include', // Ensure cookies are sent
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (response.status === 401) {
+    throw new Error('Authentication required. Please sign in again.');
   }
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch assignments: ${response.statusText}`);
+  }
+
   return response.json();
 };
 
@@ -119,9 +130,21 @@ export default function CourseAssignmentPage() {
     isLoading,
     isError,
     error,
+    refetch,
   } = useQuery<Assignment[]>({
     queryKey: ['assignments'],
     queryFn: fetchAssignments,
+    retry: (failureCount, error) => {
+      // Don't retry on 401 errors
+      if (
+        error instanceof Error &&
+        error.message.includes('Authentication required')
+      ) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const uniqueAssignees = useMemo(() => {
@@ -195,6 +218,12 @@ export default function CourseAssignmentPage() {
                 ? error.message
                 : 'Unknown error occurred'}
             </p>
+            <Button
+              onClick={() => refetch()}
+              className="mt-4 bg-charcoal hover:bg-charcoal/90 text-alabaster"
+            >
+              Retry
+            </Button>
           </div>
         </div>
       </div>

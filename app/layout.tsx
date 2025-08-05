@@ -1,12 +1,8 @@
 import type React from 'react';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { NextAuthProvider } from '@/components/next-auth-provider';
 import './globals.css';
-import { getServerSession } from 'next-auth';
-import { Toaster } from 'react-hot-toast';
-import QueryProvider from '@/components/query-provider';
-import { NotificationProvider } from '@/app/contexts/NotificationContext';
+import { Providers } from './providers';
 import { UnifiedLayout } from '@/components/unified-layout';
 
 const inter = Inter({
@@ -35,41 +31,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerSession();
   return (
     <html lang="en" className={inter.variable}>
       <body className={inter.className}>
-        <NextAuthProvider session={session}>
-          <QueryProvider>
-            <NotificationProvider>
-              <UnifiedLayout>{children}</UnifiedLayout>
-              <Toaster
-                position="bottom-right"
-                toastOptions={{
-                  style: {
-                    borderRadius: '0',
-                    borderWidth: '1.5px',
-                  },
-                  success: {
-                    style: {
-                      borderColor: 'green',
-                    },
-                  },
-                  error: {
-                    style: {
-                      borderColor: 'red',
-                    },
-                  },
-                }}
-              />
-            </NotificationProvider>
-          </QueryProvider>
-        </NextAuthProvider>
+        <Providers
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <UnifiedLayout>{children}</UnifiedLayout>
+        </Providers>
       </body>
     </html>
   );

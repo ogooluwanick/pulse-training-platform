@@ -1,39 +1,44 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/dbConnect';
 import Company from '@/lib/models/Company';
-import { getToken } from 'next-auth/jwt';
+import User from '@/lib/models/User';
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    return NextResponse.json(
-      { message: 'Authentication secret is not configured' },
-      { status: 500 }
-    );
-  }
-
-  const token = await getToken({ req, secret });
-
-  if (!token || token.role !== 'ADMIN') {
-    return NextResponse.json(
-      { message: 'Not authenticated or not an admin' },
-      { status: 401 }
-    );
-  }
-
-  await dbConnect();
-
   try {
-    const companies = await Company.find({}).populate({
-      path: 'companyAccount',
-      select: 'firstName lastName email',
-      model: 'User',
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { message: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    if (session.user.role !== 'COMPANY') {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
+    }
+
+    await dbConnect();
+
+    const company = await Company.findById(session.user.companyId).populate({
+      path: 'employees',
+      model: User,
     });
-    return NextResponse.json(companies, { status: 200 });
-  } catch (error: any) {
-    console.error('Failed to fetch companies:', error);
+
+    if (!company) {
+      return NextResponse.json(
+        { message: 'Company not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(company);
+  } catch (error) {
+    console.error('Failed to fetch company:', error);
     return NextResponse.json(
-      { message: 'Failed to fetch companies', error: error.message },
+      { message: 'Failed to fetch company' },
       { status: 500 }
     );
   }

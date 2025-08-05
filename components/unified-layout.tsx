@@ -1,19 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useSession, signIn } from 'next-auth/react';
+import { toast } from 'react-hot-toast';
+import { Shield } from 'lucide-react';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { TopMenu } from '@/components/top-menu';
-import { AuthGuard } from '@/components/auth-guard';
 
-// Pages that need auth but don't need sidebar/top menu
-const AUTH_ONLY_PAGES = ['/auth/verify-email', '/auth/verification-result'];
-
-// Pages that are public but should have top menu
-const PUBLIC_PAGES_WITH_TOP_MENU = ['/'];
-
-// Pages that are completely public (no auth, no sidebar, no top menu)
+// Pages that are completely public (no layout components)
 const COMPLETELY_PUBLIC_PAGES = [
   '/auth/signin',
   '/auth/signup',
@@ -24,17 +20,97 @@ const COMPLETELY_PUBLIC_PAGES = [
   '/auth/verification-result',
 ];
 
+// Pages that are public but should have top menu
+const PUBLIC_PAGES_WITH_TOP_MENU = ['/'];
+
+// Protected routes that require authentication
+const PROTECTED_ROUTES = [
+  '/dashboard',
+  '/learning',
+  '/catalog',
+  '/discussions',
+  '/analytics',
+  '/team',
+  '/organization',
+  '/employee-management',
+  '/course-assignment',
+  '/course-builder',
+  '/reports',
+  '/profile',
+  '/settings',
+  '/calendar',
+  '/videos',
+];
+
+// Role-based route access
+const ROLE_ACCESS = {
+  ADMIN: [
+    '/dashboard',
+    '/admin',
+    '/course-assignment',
+    '/course-builder',
+    '/reports',
+    '/analytics',
+    '/profile',
+    '/settings',
+  ],
+  COMPANY: [
+    '/dashboard',
+    '/course-assignment',
+    '/employee-management',
+    '/reports',
+    '/analytics',
+    '/profile',
+    '/settings',
+  ],
+  EMPLOYEE: ['/dashboard', '/learning', '/catalog', '/profile', '/settings'],
+};
+
 interface UnifiedLayoutProps {
   children: React.ReactNode;
 }
 
 export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
+
+  // Handle authentication
+  useEffect(() => {
+    if (status === 'loading') {
+      return;
+    }
+
+    // Check if current path is protected
+    const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
+      pathname.startsWith(route)
+    );
+
+    if (isProtectedRoute) {
+      if (status === 'unauthenticated') {
+        signIn(undefined, { callbackUrl: pathname });
+        return;
+      }
+
+      if (session?.user?.role) {
+        const allowedRoutes =
+          ROLE_ACCESS[session.user.role as keyof typeof ROLE_ACCESS] || [];
+        const hasAccess = allowedRoutes.some((route) =>
+          pathname.startsWith(route)
+        );
+
+        if (!hasAccess) {
+          toast.error('You do not have permission to access this page.');
+          router.push('/dashboard');
+        }
+      }
+    }
+  }, [status, session, router, pathname]);
 
   // Check if current page is completely public (no layout components)
   const isCompletelyPublicPage = COMPLETELY_PUBLIC_PAGES.includes(pathname);
@@ -42,8 +118,19 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   // Check if current page is public but should have top menu
   const isPublicPageWithTopMenu = PUBLIC_PAGES_WITH_TOP_MENU.includes(pathname);
 
-  // Check if current page only needs auth but no sidebar/top menu
-  const isAuthOnlyPage = AUTH_ONLY_PAGES.includes(pathname);
+  // Show loading for protected routes while session is loading
+  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  if (isProtectedRoute && status === 'loading') {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+        <Shield className="h-16 w-16 text-green-600 animate-pulse mb-4" />
+        <p className="text-lg text-gray-700">Loading...</p>
+      </div>
+    );
+  }
 
   // If it's a completely public page, render without any layout components
   if (isCompletelyPublicPage) {
@@ -60,27 +147,40 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
     );
   }
 
-  // If it's an auth-only page, render with just auth guard
-  if (isAuthOnlyPage) {
-    return (
-      <AuthGuard>
-        <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
-          {children}
+  // For protected routes, check authentication
+  if (isProtectedRoute) {
+    if (status === 'unauthenticated' || !session?.user) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+          <Shield className="h-16 w-16 text-green-600 animate-pulse mb-4" />
+          <p className="text-lg text-gray-700">Redirecting to sign in...</p>
         </div>
-      </AuthGuard>
-    );
+      );
+    }
+
+    // Check role access
+    const allowedRoutes =
+      ROLE_ACCESS[session.user.role as keyof typeof ROLE_ACCESS] || [];
+    const hasAccess = allowedRoutes.some((route) => pathname.startsWith(route));
+
+    if (!hasAccess) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
+          <Shield className="h-16 w-16 text-red-600 mb-4" />
+          <p className="text-lg text-gray-700">Access denied</p>
+        </div>
+      );
+    }
   }
 
-  // For all other pages, render with full layout (sidebar, top menu, auth)
+  // For all other pages, render with full layout (sidebar, top menu)
   return (
-    <AuthGuard>
-      <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
-        <TopMenu key={`top-menu-${pathname}`} />
-        <SidebarProvider>
-          <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
-          <main className="flex-1 pl-12 sm:pl-16 lg:pl-0">{children}</main>
-        </SidebarProvider>
-      </div>
-    </AuthGuard>
+    <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
+      <TopMenu key={`top-menu-${pathname}`} />
+      <SidebarProvider>
+        <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+        <main className="flex-1 pl-12 sm:pl-16 lg:pl-0">{children}</main>
+      </SidebarProvider>
+    </div>
   );
 }

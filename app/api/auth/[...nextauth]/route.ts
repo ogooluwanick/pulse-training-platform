@@ -3,12 +3,10 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
 import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
-import { MongoClient, ObjectId } from 'mongodb'; // Added ObjectId
-import crypto from 'crypto'; // For token generation
-import { sendVerificationEmail } from '@/lib/email'; // For resending verification
+import { MongoClient, ObjectId } from 'mongodb';
+import crypto from 'crypto';
+import { sendVerificationEmail } from '@/lib/email';
 
-// clientPromise is now a function that returns Promise<MongoClient>
-// We need to call it to get the promise for the adapter.
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise()),
   providers: [
@@ -27,7 +25,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Missing email or password');
         }
 
-        // Call clientPromise() to get the Promise<MongoClient>, then await it.
         const client: MongoClient = await clientPromise();
         const db = client.db();
         const usersCollection = db.collection('users');
@@ -46,7 +43,7 @@ export const authOptions: NextAuthOptions = {
           const newVerificationToken = crypto.randomBytes(32).toString('hex');
           const newVerificationTokenExpires = new Date(
             Date.now() + 24 * 60 * 60 * 1000
-          ); // 24 hours
+          );
 
           await usersCollection.updateOne(
             { _id: new ObjectId(dbUser._id) },
@@ -69,7 +66,6 @@ export const authOptions: NextAuthOptions = {
             );
           } catch (emailError: any) {
             console.error('Error resending verification email:', emailError);
-            // If resending fails, throw a more generic error or the original "please verify"
             throw new Error(
               'Your email is not verified. Please check your inbox or try registering again if issues persist.'
             );
@@ -85,23 +81,15 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Incorrect password');
         }
 
-        // Update lastOnline on successful login (background operation to not block login)
-        usersCollection
-          .updateOne(
-            { _id: new ObjectId(dbUser._id) },
-            { $set: { lastOnline: new Date() } }
-          )
-          .catch((err) =>
-            console.error('Failed to update lastOnline during login:', err)
-          );
+        // Update lastOnline on successful login
+        await usersCollection.updateOne(
+          { _id: new ObjectId(dbUser._id) },
+          { $set: { lastOnline: new Date() } }
+        );
 
-        // Use session timeout from new settings structure
+        // Get session timeout from user settings
         const sessionTimeoutInHours =
-          dbUser.settings &&
-          dbUser.settings.session &&
-          dbUser.settings.session.sessionTimeout
-            ? dbUser.settings.session.sessionTimeout
-            : 4;
+          dbUser.settings?.session?.sessionTimeout || 4;
 
         let companyName = dbUser.companyName;
         if (!companyName && dbUser.companyId) {
@@ -110,13 +98,14 @@ export const authOptions: NextAuthOptions = {
           });
           if (company) {
             companyName = company.name;
-            // Optionally, update the user document to include the company name for future logins
+            // Update user document with company name
             await usersCollection.updateOne(
               { _id: new ObjectId(dbUser._id) },
               { $set: { companyName: company.name } }
             );
           }
         }
+
         // Return user object without password
         return {
           id: dbUser._id.toString(),
@@ -135,37 +124,25 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days in seconds
   },
   pages: {
     signIn: '/auth/signin',
-    // signOut: '/auth/signout', // Optional: Custom signout page
-    // error: '/auth/error', // Optional: Custom error page
-    // verifyRequest: '/auth/verify-request', // Optional: Custom verify request page (for email provider)
-    // newUser: '/auth/new-user' // Optional: Redirect new users to a specific page
   },
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async jwt({ token, user, trigger, session }) {
-      // Only update lastOnline on initial login or token refresh (not on every request)
-      // This prevents database writes on every JWT verification which slows down session loading
-      if (token.id && user) {
-        // Only update lastOnline when user object is present (initial login)
+    async jwt({ token, user }) {
+      // Update lastOnline on every JWT refresh (user activity)
+      if (token.id) {
         try {
           const client: MongoClient = await clientPromise();
           const usersCollection = client.db().collection('users');
-          // Use background update to not block JWT processing
-          usersCollection
-            .updateOne(
-              { _id: new ObjectId(token.id as string) },
-              { $set: { lastOnline: new Date() } }
-            )
-            .catch((err) => console.error('Failed to update lastOnline:', err));
-        } catch (error) {
-          console.error(
-            'Database connection error during lastOnline update:',
-            error
+          await usersCollection.updateOne(
+            { _id: new ObjectId(token.id as string) },
+            { $set: { lastOnline: new Date() } }
           );
+        } catch (error) {
+          console.error('Failed to update lastOnline:', error);
         }
       }
 
@@ -180,16 +157,8 @@ export const authOptions: NextAuthOptions = {
 
         // Set JWT expiration based on user's sessionTimeout setting
         const sessionTimeoutInSeconds =
-          (user as any).settings?.session?.sessionTimeout * 3600 || 4 * 3600;
+          (user as any).sessionTimeoutInHours * 3600 || 4 * 3600;
         token.exp = Math.floor(Date.now() / 1000) + sessionTimeoutInSeconds;
-      }
-
-      if (trigger === 'update' && session) {
-        if (session.user) {
-          token.firstName = session.user.firstName;
-          token.lastName = session.user.lastName;
-          token.profileImageUrl = session.user.profileImageUrl;
-        }
       }
       return token;
     },
@@ -206,7 +175,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-  // debug: process.env.NODE_ENV === 'development', // Optional: Enable debug messages
 };
 
 const handler = NextAuth(authOptions);

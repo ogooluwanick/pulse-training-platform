@@ -1,36 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
-import Course from '@/lib/models/Course';
-import User from '@/lib/models/User';
-import { getToken } from 'next-auth/jwt';
 import mongoose from 'mongoose';
 
 export async function GET(req: NextRequest) {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) {
-    return NextResponse.json(
-      { message: 'Authentication secret is not configured' },
-      { status: 500 }
-    );
-  }
-
-  const token = await getToken({ req, secret });
-
-  if (!token) {
-    return NextResponse.json({ message: 'Not authenticated' }, { status: 401 });
-  }
-
-  await dbConnect();
-
   try {
-    if (token.role !== 'ADMIN' && token.role !== 'COMPANY') {
+    const session = await getServerSession(authOptions);
+
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { message: 'Not authenticated' },
+        { status: 401 }
+      );
+    }
+
+    if (session.user.role !== 'ADMIN' && session.user.role !== 'COMPANY') {
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
+
+    await dbConnect();
+
     const matchStage =
-      token.role === 'ADMIN'
+      session.user.role === 'ADMIN'
         ? {}
-        : { companyId: new mongoose.Types.ObjectId(token.companyId as string) };
+        : {
+            companyId: new mongoose.Types.ObjectId(
+              session.user.companyId as string
+            ),
+          };
 
     // Get all course assignments for the company with populated data
     const assignments = await CourseAssignment.aggregate([
