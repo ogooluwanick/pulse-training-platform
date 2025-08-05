@@ -27,7 +27,7 @@ export async function GET(
     }
 
     // Calculate average rating and total ratings
-    const ratings = course.rating || [];
+    const ratings = (course as any).rating || [];
     const totalRatings = ratings.length;
     const averageRating =
       totalRatings > 0

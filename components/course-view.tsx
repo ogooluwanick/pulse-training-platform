@@ -469,7 +469,10 @@ export default function CourseView({
 
     if (mode === 'try-out') {
       toast.success('Lesson completed successfully!');
-      setCompletedLessons([...completedLessons, currentLesson._id]);
+      // Only add to completedLessons if not already completed
+      if (!completedLessons.includes(currentLesson._id)) {
+        setCompletedLessons([...completedLessons, currentLesson._id]);
+      }
 
       const sequenceInfo = getLessonSequenceInfo(currentLessonIndex);
 
@@ -562,7 +565,10 @@ export default function CourseView({
       if (mode === 'try-out') {
         toast.success('Lesson completed successfully!');
         if (currentLesson) {
-          setCompletedLessons([...completedLessons, currentLesson._id]);
+          // Only add to completedLessons if not already completed
+          if (!completedLessons.includes(currentLesson._id)) {
+            setCompletedLessons([...completedLessons, currentLesson._id]);
+          }
         }
 
         const sequenceInfo = getLessonSequenceInfo(currentLessonIndex);

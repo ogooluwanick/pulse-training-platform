@@ -276,12 +276,10 @@ export default function QuizModal({
       const passed = result.score >= quiz.passingScore;
 
       if (passed) {
-        // User passed - proceed normally
+        // User passed - show results first, don't call onComplete yet
         setShowResults(true);
-        onComplete(result);
-        toast.success(
-          'Quiz passed successfully! You can now proceed to the next lesson.'
-        );
+        // Don't call onComplete here - wait for user to click continue button
+        toast.success('Quiz passed successfully! Review your results below.');
 
         // Clear session data on successful completion
         if (lessonId) {
@@ -594,14 +592,25 @@ export default function QuizModal({
                     Retake Quiz
                   </Button>
                 )}
-                <Button 
-                  onClick={quizResults.passed && onNavigateNext ? onNavigateNext : onClose} 
+                <Button
+                  onClick={() => {
+                    if (quizResults.passed) {
+                      // Call onComplete when user clicks continue
+                      onComplete(quizResults);
+                      if (onNavigateNext) {
+                        onNavigateNext();
+                      }
+                    } else {
+                      onClose();
+                    }
+                  }}
                   className="flex-1 bg-success-green hover:bg-success-green/90 text-alabaster"
                 >
-                  {quizResults.passed 
-                    ? (isFinalQuiz ? 'Course Completed' : 'Continue to Next Lesson')
-                    : 'Continue Learning'
-                  }
+                  {quizResults.passed
+                    ? isFinalQuiz
+                      ? 'Course Completed'
+                      : 'Continue to Next Lesson'
+                    : 'Continue Learning'}
                 </Button>
               </div>
             </div>
