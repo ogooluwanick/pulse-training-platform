@@ -36,10 +36,7 @@ export async function GET(request: Request) {
       .populate({
         path: 'employee',
         model: User,
-        populate: {
-          path: 'company',
-          model: Company,
-        },
+        select: 'firstName lastName email companyName department',
       })
       .populate('course', 'title');
 
@@ -67,7 +64,7 @@ export async function GET(request: Request) {
           total: 0,
           name: `${assignment.employee.firstName} ${assignment.employee.lastName}`,
           email: assignment.employee.email,
-          companyName: assignment.employee.company.name,
+          companyName: assignment.employee.companyName || 'Unknown Company',
           status: 'Not Started',
         };
       }
