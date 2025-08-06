@@ -74,7 +74,7 @@ const massAssignCourses = async ({
 };
 
 const fetchEmployees = async (): Promise<Employee[]> => {
-  const res = await fetch('/api/employee');
+  const res = await fetch('/api/admin/employees');
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }

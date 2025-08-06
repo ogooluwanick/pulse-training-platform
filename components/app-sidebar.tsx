@@ -145,11 +145,11 @@ const adminItems = [
     url: '/admin/reports',
     icon: BarChart3,
   },
-  {
-    title: 'Platform Settings',
-    url: '/admin/platform',
-    icon: Settings,
-  },
+  // {
+  //   title: 'Platform Settings',
+  //   url: '/admin/platform',
+  //   icon: Settings,
+  // },
 ];
 
 interface AppSidebarProps {
