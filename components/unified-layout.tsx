@@ -49,6 +49,7 @@ const ROLE_ACCESS = {
     '/admin',
     '/course-assignment',
     '/course-builder',
+    '/catalog',
     '/reports',
     '/analytics',
     '/profile',
