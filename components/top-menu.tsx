@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, User } from 'lucide-react';
+import { Bell, User, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
 import NotificationPanel from '@/components/notification-panel';
@@ -15,7 +15,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export function TopMenu() {
+interface TopMenuProps {
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
+}
+
+export function TopMenu({
+  sidebarOpen = false,
+  onToggleSidebar,
+}: TopMenuProps) {
   const { data: session, status } = useSession();
   const isAuthenticated = status === 'authenticated';
   const isLoading = status === 'loading';
@@ -35,10 +43,10 @@ export function TopMenu() {
         </Link>
 
         {/* Right side - Auth/User elements */}
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-3">
           {isLoading ? (
             /* Loading State */
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <div className="h-8 w-8 rounded-full bg-gray-200 animate-pulse"></div>
               <div className="flex flex-col space-y-1">
                 <div className="h-3 w-20 bg-gray-200 rounded animate-pulse"></div>
@@ -67,7 +75,7 @@ export function TopMenu() {
               />
 
               {/* User Info Dropdown */}
-              <DropdownMenu>
+              {/* <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center cursor-pointer group">
                     {user?.profileImageUrl ? (
@@ -125,11 +133,21 @@ export function TopMenu() {
                     Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
-              </DropdownMenu>
+              </DropdownMenu> */}
+
+              {/* Sidebar Toggle Button */}
+              {onToggleSidebar && (
+                <button
+                  onClick={onToggleSidebar}
+                  className="flex justify-center items-center bg-white rounded-full h-8 w-8 transition hover:bg-charcoal hover:text-white"
+                >
+                  {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
+                </button>
+              )}
             </>
           ) : (
             /* Unauthenticated State */
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <Link
                 href="/auth/signin"
                 className="px-4 py-2 rounded-md border border-charcoal text-charcoal hover:bg-charcoal hover:text-white transition-colors"

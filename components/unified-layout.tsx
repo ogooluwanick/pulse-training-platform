@@ -139,7 +139,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   if (isPublicPageWithTopMenu) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
-        <TopMenu key={`top-menu-${pathname}`} />
+        <TopMenu key={`top-menu-${pathname}`} sidebarOpen={false} />
         {children}
       </div>
     );
@@ -164,11 +164,13 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   // For all other pages, render with full layout (sidebar, top menu)
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
-      <TopMenu key={`top-menu-${pathname}`} />
-      <SidebarProvider>
-        <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
-        <main className="flex-1 pl-12 sm:pl-16 lg:pl-0">{children}</main>
-      </SidebarProvider>
+      <TopMenu
+        key={`top-menu-${pathname}`}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={toggleSidebar}
+      />
+      <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
+      <main className="flex-1">{children}</main>
     </div>
   );
 }
