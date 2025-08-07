@@ -30,8 +30,10 @@ const getTransporter = () => {
   return transporter;
 };
 
+const SITE_NAME = 'Pulse';
+
 export const mailOptsBase = {
-  from: email,
+  from: `${SITE_NAME} <${email}>`,
   // 'to' will be set per email
 };
 
@@ -42,26 +44,99 @@ const capitalize = (str: string): string => {
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
 
-// Placeholder for the email template
-// You should replace this with your actual HTML email template
+const getBaseUrl = (): string => {
+  // Prefer NEXTAUTH_URL for canonical base URL
+  return (
+    process.env.NEXTAUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (typeof window !== 'undefined'
+      ? window.location.origin
+      : 'http://localhost:3000')
+  );
+};
+
+const getLogoUrl = (): string => {
+  const baseUrl = getBaseUrl().replace(/\/$/, '');
+  return `${baseUrl}/pulse-logo.png`;
+};
+
+export const wrapEmailContent = (
+  bodyHtml: string,
+  options?: { title?: string; preheader?: string }
+): string => {
+  const baseUrl = getBaseUrl();
+  const logoUrl = getLogoUrl();
+  const title = options?.title || SITE_NAME;
+  const preheader = options?.preheader || '';
+
+  return `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title}</title>
+    <style>
+      body { margin:0; background: #f5f4ed; color: #141413; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif; }
+      .preheader { display:none!important; visibility:hidden; opacity:0; color:transparent; height:0; width:0; overflow:hidden; }
+      .container { width: 100%; background: #f5f4ed; padding: 24px 0; }
+      .card { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 16px rgba(115, 114, 108, 0.12); overflow: hidden; border: 1px solid #e5e7eb; }
+      .header { display:flex; align-items:center; gap: 10px; padding: 20px 24px; border-bottom: 1px solid #efefef; }
+      .logo { display:inline-flex; align-items:center; text-decoration:none; color: inherit; }
+      .logo-mark { display:inline-flex; align-items:center; justify-content:center; height: 32px; width: 32px; border-radius: 8px; background: #141413; color: #faf9f6; font-weight: 800; font-size: 14px; }
+      .logo-text { font-weight: 800; font-size: 18px; color: #141413; margin-left: 10px; }
+      .content { padding: 24px; line-height: 1.6; }
+      h1, h2, h3 { color: #141413; }
+      p { color: #141413; }
+      .muted { color: #73726c; }
+      .hr { height:1px; background:#efefef; border:0; margin: 16px 0; }
+      .btn { display: inline-block; background: #141413; color: #faf9f6 !important; text-decoration: none; padding: 12px 20px; border-radius: 8px; font-weight: 700; box-shadow: 0 2px 8px rgba(115,114,108,0.08); }
+      .footer { padding: 16px 24px 24px; color: #73726c; font-size: 12px; }
+      a { color: #141413; }
+    </style>
+  </head>
+  <body>
+    <span class="preheader">${preheader}</span>
+    <div class="container">
+      <div class="card">
+        <div class="header">
+          <a class="logo" href="${baseUrl}">
+            <img src="${logoUrl}" alt="${SITE_NAME} Logo" height="32" width="32" style="border-radius:8px; display:block;"/>
+            <span class="logo-text">${SITE_NAME}</span>
+          </a>
+        </div>
+        <div class="content">
+          ${bodyHtml}
+        </div>
+        <div class="footer">
+          <div>© ${new Date().getFullYear()} ${SITE_NAME}. All rights reserved.</div>
+          <div><a href="${baseUrl}">${baseUrl.replace(/^https?:\/\//, '')}</a></div>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>`;
+};
+
+// Default, generic email template
 const getDefaultEmailTemplate = (
   customerName: string,
   message: string
 ): string => {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Notification</title>
-    </head>
-    <body>
-      <p>Hi ${customerName},</p>
-      <p>${message}</p>
-      <p>Thank you,</p>
-      <p>Pulse's </p>
-    </body>
-    </html>
+  const baseUrl = getBaseUrl();
+  const sanitizedMessage = (message || '').replace(/\n/g, '<br/>');
+  const body = `
+    <h1>Hello ${customerName},</h1>
+    <p>${sanitizedMessage}</p>
+    <p style="margin-top:20px;">
+      <a href="${baseUrl}/dashboard" class="btn">Open Dashboard</a>
+    </p>
+    <p class="muted" style="margin-top:16px;">If you have any questions, just reply to this email—we're here to help.</p>
   `;
+  return wrapEmailContent(body, {
+    title: `${SITE_NAME} Notification`,
+    preheader: message,
+  });
 };
 
 interface SendEmailParams {
@@ -83,14 +158,17 @@ export const sendEmail = async ({
   try {
     const emailTransporter = getTransporter();
 
+    // If a raw htmlContent is provided, wrap it into the branded layout
+    const wrappedHtml = htmlContent
+      ? wrapEmailContent(htmlContent, { title: subject, preheader: text })
+      : getDefaultEmailTemplate(capitalize(customerName.split(' ')[0]), text);
+
     const mailOptions = {
       ...mailOptsBase,
       to: to,
       subject: subject,
       text: text,
-      html:
-        htmlContent ||
-        getDefaultEmailTemplate(capitalize(customerName.split(' ')[0]), text),
+      html: wrappedHtml,
     };
 
     await emailTransporter.sendMail(mailOptions);
@@ -104,26 +182,18 @@ export const sendEmail = async ({
 
 // Example usage (from your snippet, adapted)
 export const sendSignupEmail = async (customerEmail: string, Cname: string) => {
-  const subject = `Pulse's  SIGNUP! 🎉`;
+  const subject = `${SITE_NAME} – Welcome aboard! 🎉`;
   const firstName = Cname && Cname.trim() ? Cname.split(' ')[0] : 'there';
-  const text = `Hi ${capitalize(firstName)}, \nThank you for signing up with us at Pulse's . Enjoy a beautiful shopping experience.`;
+  const text = `Hi ${capitalize(firstName)}, welcome to ${SITE_NAME}!`;
 
-  // Assuming you have a specific HTML template for signups
-  // For now, using a modified version of the default template or you can provide your specific 'template' variable
+  const baseUrl = getBaseUrl();
   const signupHtmlTemplate = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Welcome to Pulse's !</title>
-    </head>
-    <body>
-      <h1>Welcome, ${capitalize(firstName)}!</h1>
-      <p>Thank you for signing up with us at Pulse's .</p>
-      <p>We're thrilled to have you. Enjoy a beautiful shopping experience!</p>
-      <p>Best regards,</p>
-      <p>The Pulse's  Team</p>
-    </body>
-    </html>
+    <h1>Welcome, ${capitalize(firstName)}!</h1>
+    <p>Thanks for joining ${SITE_NAME}. We’re excited to have you on board.</p>
+    <p>Jump into your dashboard to get started.</p>
+    <p style="margin-top:24px">
+      <a href="${baseUrl}/dashboard" class="btn">Go to Dashboard</a>
+    </p>
   `;
 
   return await sendEmail({
@@ -142,53 +212,27 @@ export const sendVerificationEmail = async (
   verificationToken: string,
   isNewUser: boolean = false
 ) => {
-  // Ensure NEXT_PUBLIC_APP_URL is set in your .env file
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (typeof window !== 'undefined'
-      ? window.location.origin
-      : 'http://localhost:6999');
+  const appUrl = getBaseUrl();
 
   // Standardize the verification link based on user type
   const verificationLink = isNewUser
     ? `${appUrl}/auth/set-password?token=${verificationToken}`
     : `${appUrl}/api/auth/verify-email?token=${verificationToken}`;
 
-  const subject = `Verify Your Email for Pulse`;
+  const subject = `Verify your email for ${SITE_NAME}`;
   const firstName = Cname && Cname.trim() ? Cname.split(' ')[0] : 'there';
-  const text = `Hi ${capitalize(firstName)}, \nPlease verify your email address by clicking the link below:\n${verificationLink}\nIf you did not request this, please ignore this email. This link will expire in 24 hours.`;
+  const text = `Hi ${capitalize(firstName)}, please verify your email address.`;
 
   const verificationHtmlTemplate = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Verify Your Email</title>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { width: 90%; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-        .button { background-color: #007bff; color: white !important; padding: 12px 25px; text-decoration: none; border-radius: 5px; display: inline-block; font-weight: bold; }
-        .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>Verify Your Email Address</h1>
-        <p>Hi ${capitalize(firstName)},</p>
-        <p>Thanks for signing up for Pulse! To complete your registration, please verify your email address by clicking the button below:</p>
-        <p style="text-align: center; margin: 25px 0;">
-          <a href="${verificationLink}" class="button">Verify Email Address</a>
-        </p>
-        <p>If the button above doesn't work, copy and paste the following link into your web browser:</p>
-        <p><a href="${verificationLink}">${verificationLink}</a></p>
-        <p>This verification link is valid for the next 24 hours.</p>
-        <p>If you didn't sign up for Pulse, please disregard this email.</p>
-        <div class="footer">
-          <p>Thanks,</p>
-          <p>The Pulse Team</p>
-        </div>
-      </div>
-    </body>
-    </html>
+    <h1>Verify your email</h1>
+    <p>Hi ${capitalize(firstName)},</p>
+    <p>To complete your registration with ${SITE_NAME}, please confirm your email address.</p>
+    <p style="margin:24px 0; text-align:center;">
+      <a href="${verificationLink}" class="btn">Verify Email Address</a>
+    </p>
+    <p>If the button above doesn't work, copy and paste this link into your browser:</p>
+    <p><a href="${verificationLink}">${verificationLink}</a></p>
+    <p class="muted">This link expires in 24 hours.</p>
   `;
 
   return await sendEmail({
@@ -205,27 +249,19 @@ export const sendPasswordResetEmail = async (
   Cname: string,
   resetLink: string
 ) => {
-  const subject = `Pulse Password Reset Request`;
+  const subject = `${SITE_NAME} password reset`;
   const firstName = Cname && Cname.trim() ? Cname.split(' ')[0] : 'there';
-  const text = `Hi ${capitalize(firstName)}, \nYou requested a password reset. Click the link below to reset your password:\n${resetLink}\nIf you did not request this, please ignore this email. This link will expire in 1 hour.`;
+  const text = `Hi ${capitalize(firstName)}, reset your ${SITE_NAME} password.`;
 
   const passwordResetHtmlTemplate = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Password Reset Request</title>
-    </head>
-    <body>
-      <h1>Password Reset Request</h1>
-      <p>Hi ${capitalize(firstName)},</p>
-      <p>You recently requested to reset your password for your Pulse account. Click the button below to reset it.</p>
-      <a href="${resetLink}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Your Password</a>
-      <p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
-      <p>This password reset link is only valid for the next 1 hour.</p>
-      <p>Thanks,</p>
-      <p>The Pulse Team</p>
-    </body>
-    </html>
+    <h1>Reset your password</h1>
+    <p>Hi ${capitalize(firstName)},</p>
+    <p>You recently requested to reset your ${SITE_NAME} password. Click the button below to continue.</p>
+    <p style="margin:24px 0;">
+      <a href="${resetLink}" class="btn">Reset Password</a>
+    </p>
+    <p>If you did not request this, you can safely ignore this email.</p>
+    <p class="muted">This link expires in 1 hour.</p>
   `;
 
   return await sendEmail({
@@ -242,24 +278,17 @@ export const sendInvitationEmail = async (
   companyName: string,
   token: string
 ) => {
-  const subject = `You've been invited to join ${companyName} on Pulse`;
-  const text = `Hi, \nYou've been invited to join ${companyName} on Pulse. Please sign up to get started.`;
+  const subject = `You're invited to join ${companyName} on ${SITE_NAME}`;
+  const text = `You've been invited to join ${companyName} on ${SITE_NAME}.`;
 
+  const baseUrl = getBaseUrl();
   const invitationHtmlTemplate = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>You're Invited!</title>
-    </head>
-    <body>
-      <h1>You're Invited!</h1>
-      <p>You've been invited to join <strong>${companyName}</strong> on Pulse.</p>
-      <p>Click the button below to sign up and get started.</p>
-      <a href="${process.env.NEXT_PUBLIC_APP_URL}/auth/employee-signup?token=${token}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Sign Up</a>
-      <p>Thanks,</p>
-      <p>The Pulse Team</p>
-    </body>
-    </html>
+    <h1>You're invited!</h1>
+    <p>You've been invited to join <strong>${companyName}</strong> on ${SITE_NAME}.</p>
+    <p style="margin:24px 0;">
+      <a href="${baseUrl}/auth/employee-signup?token=${token}" class="btn">Accept Invitation</a>
+    </p>
+    <p class="muted">If you weren't expecting this, you can ignore this email.</p>
   `;
 
   return await sendEmail({

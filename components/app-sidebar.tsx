@@ -87,11 +87,11 @@ const companyItems = [
 ];
 
 const adminItems = [
-  {
-    title: 'Admin Dashboard',
-    url: '/admin',
-    icon: BarChart3,
-  },
+  // {
+  //   title: 'Admin Dashboard',
+  //   url: '/admin',
+  //   icon: BarChart3,
+  // },
   {
     title: 'Company Management',
     url: '/admin/companies',

@@ -6,6 +6,7 @@ import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import Course from '@/lib/models/Course';
+import Company from '@/lib/models/Company';
 import { scheduleIntervalAssignment } from '@/lib/cron-manager';
 import { handleCourseEnrollment } from '@/lib/notificationActivityService';
 
@@ -35,45 +36,66 @@ export async function POST(
       employee: employeeId,
     }).populate('course');
 
-    const existingCourseIds = existingAssignments.map((a) =>
-      a.course._id.toString()
-    );
-    const newCourseIds = assignments.map((a) => a.courseId);
+    // Remove the duplicate check - allow multiple assignments of the same course
+    // const existingCourseIds = existingAssignments.map((a) =>
+    //   a.course._id.toString()
+    // );
+    // const newCourseIds = assignments.map((a) => a.courseId);
 
-    // Filter out already assigned courses
-    const newAssignments = assignments.filter(
-      (assignment) => !existingCourseIds.includes(assignment.courseId)
-    );
+    // // Filter out already assigned courses
+    // const newAssignments = assignments.filter(
+    //   (assignment) => !existingCourseIds.includes(assignment.courseId)
+    // );
 
-    if (newAssignments.length === 0) {
-      return NextResponse.json(
-        { message: 'All courses are already assigned to this employee' },
-        { status: 400 }
-      );
-    }
+    // if (newAssignments.length === 0) {
+    //   return NextResponse.json(
+    //     { message: 'All courses are already assigned to this employee' },
+    //     { status: 400 }
+    //   );
+    // }
+
+    // Process all assignments - allow duplicates
+    const newAssignments = assignments;
 
     // Get employee and company info
     const employee = await User.findById(employeeId);
     if (!employee) {
-      return new NextResponse('Employee not found', { status: 404 });
+      return NextResponse.json(
+        { message: 'Employee not found' },
+        { status: 404 }
+      );
     }
 
-    const company = await User.findById(session.user.companyId);
+    // Check if companyId exists in session
+    if (!session.user.companyId) {
+      return NextResponse.json(
+        { message: 'Company ID not found in session' },
+        { status: 400 }
+      );
+    }
+
+    const company = await Company.findById(session.user.companyId);
     if (!company) {
-      return new NextResponse('Company not found', { status: 404 });
+      return NextResponse.json(
+        { message: 'Company not found' },
+        { status: 404 }
+      );
     }
 
     const createdAssignments = [];
     const notificationResults = [];
 
     for (const assignment of newAssignments) {
-      const { courseId, assignmentType, interval, endDate } = assignment;
+      const { courseId, type, assignmentType, interval, endDate } = assignment;
+
+      // Use assignmentType if provided, otherwise fall back to type
+      const finalAssignmentType = assignmentType || type || 'one-time';
 
       // Create course assignment
       const newAssignment = new CourseAssignment({
         course: courseId,
         employee: employeeId,
-        assignmentType,
+        assignmentType: finalAssignmentType,
         interval,
         endDate: endDate ? new Date(endDate) : undefined,
         companyId: session.user.companyId,
@@ -125,7 +147,7 @@ export async function POST(
       }
 
       // Schedule interval assignment if needed
-      if (assignmentType === 'interval' && interval) {
+      if (finalAssignmentType === 'interval' && interval) {
         await scheduleIntervalAssignment(newAssignment._id.toString());
       }
     }
@@ -137,6 +159,9 @@ export async function POST(
     });
   } catch (error) {
     console.error('Error assigning courses:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json(
+      { message: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }

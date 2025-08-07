@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, User, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSession, signOut } from 'next-auth/react';
@@ -29,7 +29,22 @@ export function TopMenu({
   const isLoading = status === 'loading';
   const user = session?.user;
   const [isPanelOpen, setIsPanelOpen] = useState(false);
-  const { unreadNotificationCount } = useNotificationContext();
+  const { unreadNotificationCount, refetchNotifications } =
+    useNotificationContext();
+
+  // Fetch notifications when the top bar loads, then every 10 minutes
+  useEffect(() => {
+    if (isAuthenticated) {
+      refetchNotifications();
+      const intervalId = setInterval(
+        () => {
+          refetchNotifications();
+        },
+        10 * 60 * 1000
+      );
+      return () => clearInterval(intervalId);
+    }
+  }, [isAuthenticated, refetchNotifications]);
 
   return (
     <div className="sticky top-0 z-40 w-full border-b border-warm-gray/20 backdrop-blur-md bg-white/70 supports-[backdrop-filter]:bg-white/60">

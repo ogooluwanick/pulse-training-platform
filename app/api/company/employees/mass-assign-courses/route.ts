@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import User from '@/lib/models/User';
 import Course from '@/lib/models/Course';
+import Company from '@/lib/models/Company';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { handleBulkCourseAssignment } from '@/lib/notificationActivityService';
@@ -37,10 +38,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if companyId exists in session
+    if (!session.user.companyId) {
+      return NextResponse.json(
+        { message: 'Company ID not found in session' },
+        { status: 400 }
+      );
+    }
+
     // Get company info
-    const company = await User.findById(session.user.companyId);
+    const company = await Company.findById(session.user.companyId);
     if (!company) {
-      return new NextResponse('Company not found', { status: 404 });
+      return NextResponse.json(
+        { message: 'Company not found' },
+        { status: 404 }
+      );
     }
 
     // Get employees and courses info
@@ -108,26 +120,27 @@ export async function POST(request: NextRequest) {
 
       // Create course assignments
       for (const employee of employees) {
-        const existingAssignment = await CourseAssignment.findOne({
+        // Remove the duplicate check - allow multiple assignments of the same course
+        // const existingAssignment = await CourseAssignment.findOne({
+        //   course: course._id,
+        //   employee: employee._id,
+        // });
+
+        // if (!existingAssignment) {
+        const newAssignment = new CourseAssignment({
           course: course._id,
           employee: employee._id,
+          assignmentType: assignmentType || 'one-time',
+          interval: interval || undefined,
+          endDate: endDate ? new Date(endDate) : undefined,
+          companyId: session.user.companyId,
+          status: 'not-started',
+          lessonProgress: [],
         });
 
-        if (!existingAssignment) {
-          const newAssignment = new CourseAssignment({
-            course: course._id,
-            employee: employee._id,
-            assignmentType: assignmentType || 'one-time',
-            interval: interval || undefined,
-            endDate: endDate ? new Date(endDate) : undefined,
-            companyId: session.user.companyId,
-            status: 'not-started',
-            lessonProgress: [],
-          });
-
-          await newAssignment.save();
-          createdAssignments.push(newAssignment);
-        }
+        await newAssignment.save();
+        createdAssignments.push(newAssignment);
+        // }
       }
     }
 
@@ -138,6 +151,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error in mass course assignment:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    return NextResponse.json(
+      { message: 'Internal Server Error' },
+      { status: 500 }
+    );
   }
 }

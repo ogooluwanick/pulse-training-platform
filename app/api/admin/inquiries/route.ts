@@ -120,63 +120,37 @@ export async function PATCH(request: NextRequest) {
           'Thank you for your interest, but we are unable to proceed with your demo request at this time.',
       };
 
+      const baseUrl =
+        process.env.NEXTAUTH_URL ||
+        process.env.NEXT_PUBLIC_APP_URL ||
+        'http://localhost:3000';
       const statusUpdateEmailContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <title>Demo Request Status Update</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { width: 90%; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-            .header { background-color: #2c3e50; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-            .content { padding: 20px; }
-            .status-badge { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; text-transform: uppercase; }
-            .status-pending { background-color: #fff3cd; color: #856404; }
-            .status-contacted { background-color: #cce5ff; color: #004085; }
-            .status-qualified { background-color: #d4edda; color: #155724; }
-            .status-converted { background-color: #d1ecf1; color: #0c5460; }
-            .status-rejected { background-color: #f8d7da; color: #721c24; }
-            .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Demo Request Status Update</h1>
-            </div>
-            <div class="content">
-              <h2>Hello ${inquiry.firstName} ${inquiry.lastName},</h2>
-              <p>Your demo request status has been updated.</p>
-              
-              <div style="margin: 20px 0;">
-                <strong>Current Status:</strong>
-                <span class="status-badge status-${status}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>
-              </div>
-              
-              <p><strong>Message:</strong></p>
-              <p style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #2c3e50;">
-                ${statusMessages[status as keyof typeof statusMessages] || 'Your demo request status has been updated.'}
-              </p>
-              
-              <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px;">
-                <h3>Your Request Details:</h3>
-                <ul>
-                  <li><strong>Company:</strong> ${inquiry.companyName}</li>
-                  <li><strong>Company Size:</strong> ${inquiry.companySize}</li>
-                  <li><strong>Sector:</strong> ${inquiry.sector}</li>
-                  <li><strong>Submitted:</strong> ${new Date(inquiry.createdAt).toLocaleDateString()}</li>
-                </ul>
-              </div>
-              
-              <p>If you have any questions, please don't hesitate to reach out to our team.</p>
-              
-              <div class="footer">
-                <p>Best regards,<br>The Pulse Team</p>
-              </div>
-            </div>
-          </div>
-        </body>
-        </html>
+        <h1>Demo request status update</h1>
+        <p>Hello ${inquiry.firstName} ${inquiry.lastName},</p>
+        <p>Your demo request status has been updated.</p>
+        <p><strong>Current status:</strong>
+          <span style="display:inline-block; padding:6px 12px; border-radius:999px; background:#f5f4ed; font-weight:700;">
+            ${status.charAt(0).toUpperCase() + status.slice(1)}
+          </span>
+        </p>
+        <p style="margin: 12px 0 0 0;"><strong>Message:</strong></p>
+        <p style="background-color: #f5f4ed; padding: 12px 16px; border-radius: 8px;">
+          ${statusMessages[status as keyof typeof statusMessages] || 'Your demo request status has been updated.'}
+        </p>
+        <div style="margin: 16px 0; padding: 12px 16px; background-color: #f5f4ed; border-radius: 8px;">
+          <h3 style="margin:0 0 8px 0;">Your request details</h3>
+          <ul style="padding-left:18px; margin:0;">
+            <li><strong>Company:</strong> ${inquiry.companyName}</li>
+            <li><strong>Company size:</strong> ${inquiry.companySize}</li>
+            <li><strong>Sector:</strong> ${inquiry.sector}</li>
+            <li><strong>Submitted:</strong> ${new Date(inquiry.createdAt).toLocaleDateString()}</li>
+          </ul>
+        </div>
+        <p>If you have any questions, please reach out to our team.</p>
+        <p style="margin-top:16px;">
+          <a href="${baseUrl}" class="btn">Visit Website</a>
+        </p>
+        <p class="muted" style="margin-top:16px;">Best regards,<br/>The Pulse Team</p>
       `;
 
       try {

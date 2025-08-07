@@ -67,52 +67,32 @@ export async function POST(request: NextRequest) {
 
     await inquiry.save();
 
-    // Send confirmation email to the user
+    // Send confirmation email to the user (body-only; wrapper applies branding)
+    const baseUrl =
+      process.env.NEXTAUTH_URL ||
+      process.env.NEXT_PUBLIC_APP_URL ||
+      'http://localhost:3000';
     const userEmailContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Demo Request Received</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { width: 90%; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-          .header { background-color: #2c3e50; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-          .content { padding: 20px; }
-          .details { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Demo Request Received</h1>
-          </div>
-          <div class="content">
-            <h2>Thank you for your demo request!</h2>
-            <p>Dear ${firstName} ${lastName},</p>
-            <p>Thank you for your interest in Pulse. We have received your demo request and our team will be in touch with you shortly.</p>
-            
-            <div class="details">
-              <h3>Your Request Details:</h3>
-              <ul>
-                <li><strong>Name:</strong> ${firstName} ${lastName}</li>
-                <li><strong>Email:</strong> ${email}</li>
-                <li><strong>Company:</strong> ${companyName}</li>
-                <li><strong>Company Size:</strong> ${companySize}</li>
-                <li><strong>Sector:</strong> ${sector}</li>
-                ${phone ? `<li><strong>Phone:</strong> ${phone}</li>` : ''}
-                ${message ? `<li><strong>Message:</strong> ${message}</li>` : ''}
-              </ul>
-            </div>
-            
-            <p>We typically respond within 24 hours during business days.</p>
-            <div class="footer">
-              <p>Best regards,<br>The Pulse Team</p>
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
+      <h1>We’ve received your demo request</h1>
+      <p>Hi ${firstName} ${lastName},</p>
+      <p>Thanks for your interest in Pulse. Your demo request is in, and a member of our team will reach out shortly.</p>
+      <div style="margin:16px 0; padding:12px 16px; background:#f5f4ed; border-radius:8px;">
+        <h3 style="margin:0 0 8px 0;">Request details</h3>
+        <ul style="padding-left:18px; margin:0;">
+          <li><strong>Name:</strong> ${firstName} ${lastName}</li>
+          <li><strong>Email:</strong> ${email}</li>
+          <li><strong>Company:</strong> ${companyName}</li>
+          <li><strong>Company size:</strong> ${companySize}</li>
+          <li><strong>Sector:</strong> ${sector}</li>
+          ${phone ? `<li><strong>Phone:</strong> ${phone}</li>` : ''}
+          ${message ? `<li><strong>Message:</strong> ${message}</li>` : ''}
+        </ul>
+      </div>
+      <p>In the meantime, you can learn more about Pulse on our website.</p>
+      <p style="margin-top:20px;">
+        <a href="${baseUrl}" class="btn">Visit Website</a>
+      </p>
+      <p class="muted" style="margin-top:16px;">We typically respond within one business day.</p>
     `;
 
     await sendEmail({
@@ -123,51 +103,25 @@ export async function POST(request: NextRequest) {
       customerName: `${firstName} ${lastName}`,
     });
 
-    // Send notification email to admin
+    // Send notification email to admin (body-only)
     const adminEmailContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>New Demo Request</title>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { width: 90%; max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
-          .header { background-color: #e74c3c; color: white; padding: 20px; border-radius: 5px 5px 0 0; }
-          .content { padding: 20px; }
-          .details { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0; }
-          .footer { margin-top: 20px; font-size: 0.9em; color: #777; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>New Demo Request</h1>
-          </div>
-          <div class="content">
-            <p>A new demo request has been submitted:</p>
-            
-            <div class="details">
-              <h3>Contact Information:</h3>
-              <ul>
-                <li><strong>Name:</strong> ${firstName} ${lastName}</li>
-                <li><strong>Email:</strong> ${email}</li>
-                <li><strong>Company:</strong> ${companyName}</li>
-                <li><strong>Company Size:</strong> ${companySize}</li>
-                <li><strong>Sector:</strong> ${sector}</li>
-                ${phone ? `<li><strong>Phone:</strong> ${phone}</li>` : ''}
-                ${message ? `<li><strong>Message:</strong> ${message}</li>` : ''}
-              </ul>
-            </div>
-            
-            <p><strong>Inquiry ID:</strong> ${inquiry._id}</p>
-            <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
-            <div class="footer">
-              <p>This is an automated notification from Pulse.</p>
-            </div>
-          </div>
-        </div>
-      </body>
-      </html>
+      <h1>New demo request</h1>
+      <p>A new demo request has been submitted.</p>
+      <div style="margin:16px 0; padding:12px 16px; background:#f5f4ed; border-radius:8px;">
+        <h3 style="margin:0 0 8px 0;">Contact information</h3>
+        <ul style="padding-left:18px; margin:0;">
+          <li><strong>Name:</strong> ${firstName} ${lastName}</li>
+          <li><strong>Email:</strong> ${email}</li>
+          <li><strong>Company:</strong> ${companyName}</li>
+          <li><strong>Company size:</strong> ${companySize}</li>
+          <li><strong>Sector:</strong> ${sector}</li>
+          ${phone ? `<li><strong>Phone:</strong> ${phone}</li>` : ''}
+          ${message ? `<li><strong>Message:</strong> ${message}</li>` : ''}
+        </ul>
+      </div>
+      <p><strong>Inquiry ID:</strong> ${inquiry._id}</p>
+      <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+      <p class="muted">This is an automated notification from Pulse.</p>
     `;
 
     // Send to admin email (you can configure this in your environment variables)

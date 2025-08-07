@@ -79,10 +79,14 @@ const assignCourses = async ({
       body: JSON.stringify({ assignments }),
     }
   );
+
+  const data = await res.json();
+
   if (!res.ok) {
-    throw new Error('Network response was not ok');
+    throw new Error(data.message || 'Failed to assign courses');
   }
-  return res.json();
+
+  return data;
 };
 
 const massAssignCourses = async ({
@@ -92,17 +96,33 @@ const massAssignCourses = async ({
   employeeIds: string[];
   assignments: AssignmentDetails[];
 }) => {
+  // Extract courseIds from assignments for mass assign
+  const courseIds = assignments.map((a) => a.courseId);
+  const assignmentType = assignments[0]?.type || 'one-time';
+  const interval = assignments[0]?.interval;
+  const endDate = assignments[0]?.endDate;
+
   const res = await fetch(`/api/company/employees/mass-assign-courses`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ employeeIds, assignments }),
+    body: JSON.stringify({
+      employeeIds,
+      courseIds,
+      assignmentType,
+      interval,
+      endDate,
+    }),
   });
+
+  const data = await res.json();
+
   if (!res.ok) {
-    throw new Error('Network response was not ok');
+    throw new Error(data.message || 'Failed to assign courses');
   }
-  return res.json();
+
+  return data;
 };
 
 const fetchEmployees = async (): Promise<Employee[]> => {
@@ -160,25 +180,25 @@ export default function EmployeeManagementPage() {
 
   const assignMutation = useMutation({
     mutationFn: assignCourses,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setIsAssignModalOpen(false);
-      toast.success('Courses assigned successfully!');
+      toast.success(data.message || 'Courses assigned successfully!');
     },
-    onError: () => {
-      toast.error('Failed to assign courses.');
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to assign courses.');
     },
   });
 
   const massAssignMutation = useMutation({
     mutationFn: massAssignCourses,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       setIsMassAssignModalOpen(false);
-      toast.success('Courses assigned successfully!');
+      toast.success(data.message || 'Courses assigned successfully!');
     },
-    onError: () => {
-      toast.error('Failed to assign courses.');
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to assign courses.');
     },
   });
 
