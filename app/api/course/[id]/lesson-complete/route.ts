@@ -3,6 +3,10 @@ import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createEnrollmentActivity } from '@/lib/activityService';
+import { createInfoNotification } from '@/lib/notificationService';
+import User from '@/lib/models/User';
+import Course from '@/lib/models/Course';
 
 export async function POST(
   req: NextRequest,
@@ -117,6 +121,41 @@ export async function POST(
     }
 
     await assignment.save();
+
+    // Create activity and notification for lesson completion
+    try {
+      // Get user and course info for notifications
+      const user = await User.findById(userId);
+      const courseData = await Course.findById(courseId);
+
+      if (user && courseData) {
+        // Create activity for lesson completion
+        await createEnrollmentActivity(
+          userId,
+          courseId,
+          user.companyId?.toString()
+        );
+
+        // Create notification for lesson completion
+        await createInfoNotification(
+          userId,
+          'Lesson Completed! 📚',
+          `Great job! You've completed a lesson in "${courseData.title}". Keep up the good work!`,
+          `/dashboard/course/${courseId}`,
+          'lesson_completion'
+        );
+
+        console.log(
+          `[Lesson Complete] Activity and notification created for user ${userId} and course ${courseId}`
+        );
+      }
+    } catch (error) {
+      console.error(
+        '[Lesson Complete] Error creating activity/notification:',
+        error
+      );
+      // Don't fail the main request if notification/activity creation fails
+    }
 
     return NextResponse.json({
       message: 'Lesson completed successfully',

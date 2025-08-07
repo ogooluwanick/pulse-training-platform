@@ -4,6 +4,9 @@ import CourseAssignment from '@/lib/models/CourseAssignment';
 import Course from '@/lib/models/Course';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { createCompletionActivity } from '@/lib/activityService';
+import { createCourseCompletionNotification } from '@/lib/notificationService';
+import User from '@/lib/models/User';
 
 export async function POST(
   req: NextRequest,
@@ -59,6 +62,39 @@ export async function POST(
   assignment.finalQuizResult = finalQuizResult;
 
   await assignment.save();
+
+  // Create activity and notification for course completion
+  try {
+    // Get user and course info for notifications
+    const user = await User.findById(userId);
+    const courseData = await Course.findById(courseId);
+
+    if (user && courseData) {
+      // Create completion activity
+      await createCompletionActivity(
+        userId,
+        courseId,
+        user.companyId?.toString()
+      );
+
+      // Create course completion notification
+      await createCourseCompletionNotification(
+        userId,
+        courseData.title,
+        courseId
+      );
+
+      console.log(
+        `[Final Quiz Complete] Activity and notification created for user ${userId} and course ${courseId}`
+      );
+    }
+  } catch (error) {
+    console.error(
+      '[Final Quiz Complete] Error creating activity/notification:',
+      error
+    );
+    // Don't fail the main request if notification/activity creation fails
+  }
 
   // Check if user has already rated this course
   // const courseData = await Course.findById(courseId);

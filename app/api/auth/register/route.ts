@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
 import clientPromise from '../../../../lib/mongodb';
 import { sendVerificationEmail } from '../../../../lib/email';
+import { createWelcomeNotification } from '@/lib/notificationActivityService';
 
 interface Company {
   name: string;
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
     const verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     let companyId;
-    if (role === 'COMPANY' && organizationName) {
+    if (role === 'COMPANY') {
       const capitalizedCompanyName = organizationName
         .split(' ')
         .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
@@ -72,71 +73,73 @@ export async function POST(req: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
       const companyResult = await companiesCollection.insertOne(newCompany);
       companyId = companyResult.insertedId;
     }
 
-    const newUser: any = {
-      firstName: firstName.charAt(0).toUpperCase() + firstName.slice(1),
-      lastName: lastName.charAt(0).toUpperCase() + lastName.slice(1),
+    const newUser = {
       email,
       password: hashedPassword,
-      role: role || 'COMPANY',
-      emailVerified: null,
-      verificationToken,
-      verificationTokenExpires,
+      firstName,
+      lastName,
+      role,
+      companyName: organizationName,
       phoneNumber,
       designation,
       department,
+      companyId,
+      status: 'pending',
+      verificationToken,
+      verificationTokenExpires,
+      createdAt: new Date(),
+      updatedAt: new Date(),
     };
 
-    if (companyId) {
-      newUser.companyId = companyId;
-      newUser.companyName = organizationName
-        .split(' ')
-        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
+    const userResult = await usersCollection.insertOne(newUser);
+    const userId = userResult.insertedId;
 
-    const result = await usersCollection.insertOne(newUser);
-    const userId = result.insertedId;
+    // Send verification email
+    await sendVerificationEmail(
+      email,
+      `${firstName} ${lastName}`,
+      verificationToken,
+      true // isNewUser = true for registration flow
+    );
 
-    if (companyId) {
-      await companiesCollection.updateOne(
-        { _id: companyId },
-        { $set: { companyAccount: userId } }
-      );
-    }
-
-    // Send verification email with standardized flow
+    // Create welcome notification for new user
     try {
-      await sendVerificationEmail(
-        newUser.email,
-        `${firstName} ${lastName}`,
-        verificationToken,
-        false // Use regular email verification flow
+      const notification = await createWelcomeNotification({
+        id: userId.toString(),
+        email: newUser.email,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        companyId: companyId?.toString(),
+      });
+
+      console.log(
+        `[User Registration] Welcome notification created for new user ${userId}`
       );
-    } catch (emailError: any) {
-      console.error('Error sending verification email:', emailError);
-      // Delete the user if email fails
-      await usersCollection.deleteOne({ _id: userId });
-      return NextResponse.json(
-        {
-          message:
-            'Account created but verification email failed to send. Please try again.',
-        },
-        { status: 500 }
+    } catch (error) {
+      console.error(
+        `[User Registration] Error creating welcome notification for user ${userId}:`,
+        error
       );
+      // Continue with registration even if notification fails
     }
 
     return NextResponse.json(
-      { message: 'User created. Please verify your email.' },
+      {
+        message:
+          'User registered successfully. Please check your email to verify your account.',
+        userId: userId.toString(),
+      },
       { status: 201 }
     );
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('Error registering user:', error);
     return NextResponse.json(
-      { message: 'An error occurred during registration.' },
+      { message: 'Internal server error.' },
       { status: 500 }
     );
   }

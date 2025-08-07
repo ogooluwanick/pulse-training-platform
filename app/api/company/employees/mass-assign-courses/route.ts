@@ -1,14 +1,13 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import User from '@/lib/models/User';
 import Course from '@/lib/models/Course';
-import mongoose from 'mongoose';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { scheduleIntervalAssignment } from '@/lib/cron-manager';
+import { handleBulkCourseAssignment } from '@/lib/notificationActivityService';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   await dbConnect();
 
   try {
@@ -17,7 +16,8 @@ export async function POST(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { employeeIds, assignments } = await request.json();
+    const { employeeIds, courseIds, assignmentType, interval, endDate } =
+      await request.json();
 
     if (
       !employeeIds ||
@@ -30,126 +30,114 @@ export async function POST(request: Request) {
       );
     }
 
-    if (
-      !assignments ||
-      !Array.isArray(assignments) ||
-      assignments.length === 0
-    ) {
+    if (!courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
       return NextResponse.json(
-        { message: 'Assignments are required' },
+        { message: 'Course IDs are required' },
         { status: 400 }
       );
     }
 
-    const assignmentDocuments = [];
-    const courseEnrollmentCounts = new Map<string, number>();
+    // Get company info
+    const company = await User.findById(session.user.companyId);
+    if (!company) {
+      return new NextResponse('Company not found', { status: 404 });
+    }
 
-    for (const employeeId of employeeIds) {
-      for (const assignment of assignments) {
-        // Check if this employee already has this course assigned
-        const existingAssignment = await CourseAssignment.findOne({
-          employee: employeeId,
-          course: assignment.courseId,
+    // Get employees and courses info
+    const employees = await User.find({ _id: { $in: employeeIds } });
+    const courses = await Course.find({ _id: { $in: courseIds } });
+
+    if (employees.length === 0) {
+      return NextResponse.json(
+        { message: 'No valid employees found' },
+        { status: 400 }
+      );
+    }
+
+    if (courses.length === 0) {
+      return NextResponse.json(
+        { message: 'No valid courses found' },
+        { status: 400 }
+      );
+    }
+
+    const createdAssignments = [];
+    const bulkResults = [];
+
+    // Process each course for each employee
+    for (const course of courses) {
+      const courseUserInfos = employees.map((employee) => ({
+        id: employee._id.toString(),
+        email: employee.email,
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        companyId: employee.companyId?.toString(),
+      }));
+
+      const courseInfo = {
+        id: course._id.toString(),
+        title: course.title,
+      };
+
+      // Handle bulk course assignment with notifications
+      try {
+        const result = await handleBulkCourseAssignment(
+          courseUserInfos,
+          courseInfo,
+          true // Send email notifications
+        );
+
+        bulkResults.push({
+          courseId: course._id.toString(),
+          courseTitle: course.title,
+          notifications: result.notifications.length,
+          activities: result.activities.length,
+          emails: result.emails.length,
         });
 
-        // Only create assignment if it doesn't already exist
+        console.log(
+          `[Mass Assignment] Bulk assignment handled for course ${course._id} with ${courseUserInfos.length} employees`
+        );
+      } catch (error) {
+        console.error(
+          `[Mass Assignment] Error handling bulk assignment for course ${course._id}:`,
+          error
+        );
+        // Continue with other courses even if one fails
+      }
+
+      // Create course assignments
+      for (const employee of employees) {
+        const existingAssignment = await CourseAssignment.findOne({
+          course: course._id,
+          employee: employee._id,
+        });
+
         if (!existingAssignment) {
-          if (assignment.type === 'one-time') {
-            // Get course details to initialize lesson progress
-            const course = await Course.findById(assignment.courseId);
+          const newAssignment = new CourseAssignment({
+            course: course._id,
+            employee: employee._id,
+            assignmentType: assignmentType || 'one-time',
+            interval: interval || undefined,
+            endDate: endDate ? new Date(endDate) : undefined,
+            companyId: session.user.companyId,
+            status: 'not-started',
+            lessonProgress: [],
+          });
 
-            assignmentDocuments.push({
-              employee: new mongoose.Types.ObjectId(employeeId),
-              course: new mongoose.Types.ObjectId(assignment.courseId),
-              assignmentType: assignment.type,
-              interval: assignment.interval,
-              endDate: assignment.endDate,
-              status: 'not-started',
-              companyId: new mongoose.Types.ObjectId(session.user.companyId),
-              lessonProgress:
-                course && course.lessons
-                  ? course.lessons.map(
-                      (lesson: { _id: mongoose.Types.ObjectId }) => ({
-                        lessonId: lesson._id,
-                        status: 'not-started',
-                      })
-                    )
-                  : [],
-            });
-
-            // Count enrollments for each course
-            const courseId = assignment.courseId;
-            courseEnrollmentCounts.set(
-              courseId,
-              (courseEnrollmentCounts.get(courseId) || 0) + 1
-            );
-          } else if (assignment.type === 'interval') {
-            scheduleIntervalAssignment({
-              employee: new mongoose.Types.ObjectId(employeeId),
-              course: new mongoose.Types.ObjectId(assignment.courseId),
-              companyId: new mongoose.Types.ObjectId(session.user.companyId),
-              interval: assignment.interval,
-            });
-          }
+          await newAssignment.save();
+          createdAssignments.push(newAssignment);
         }
       }
     }
 
-    if (assignmentDocuments.length === 0) {
-      return NextResponse.json(
-        { message: 'No new assignments to create (all employees already assigned to selected courses)' },
-        { status: 200 }
-      );
-    }
-
-    const createdAssignments =
-      await CourseAssignment.insertMany(assignmentDocuments);
-
-    // Update enrolledCount for each course
-    const courseUpdatePromises = Array.from(courseEnrollmentCounts.entries()).map(
-      ([courseId, count]) =>
-        Course.findByIdAndUpdate(courseId, {
-          $inc: { enrolledCount: count },
-        })
-    );
-    await Promise.all(courseUpdatePromises);
-
-    const userUpdates = createdAssignments.reduce(
-      (acc, assignment) => {
-        if (assignment && assignment.employee) {
-          const userId = assignment.employee.toString();
-          if (!acc[userId]) {
-            acc[userId] = [];
-          }
-          acc[userId].push(assignment._id);
-        }
-        return acc;
-      },
-      {} as Record<string, mongoose.Types.ObjectId[]>
-    );
-
-    const bulkOps = Object.entries(userUpdates).map(
-      ([userId, assignmentIds]) => ({
-        updateOne: {
-          filter: { _id: new mongoose.Types.ObjectId(userId) },
-          update: { $push: { courseAssignments: { $each: assignmentIds } } },
-        },
-      })
-    );
-
-    if (bulkOps.length > 0) {
-      await User.bulkWrite(bulkOps as any);
-    }
-
-    return NextResponse.json(
-      { message: 'Courses assigned successfully' },
-      { status: 200 }
-    );
+    return NextResponse.json({
+      message: 'Courses assigned successfully to all employees',
+      createdAssignments: createdAssignments.length,
+      bulkResults,
+    });
   } catch (error) {
-    console.error('Error assigning courses:', error);
-    return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error in mass course assignment:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
