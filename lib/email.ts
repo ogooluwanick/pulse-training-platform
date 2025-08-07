@@ -3,21 +3,32 @@ import nodemailer from 'nodemailer';
 const email = process.env.NEXT_PUBLIC_NODEMAIL_EMAIL;
 const password = process.env.NEXT_PUBLIC_NODEMAIL_PASS;
 
-if (!email || !password) {
-  console.error(
-    'Email or password for nodemailer is not defined in environment variables.'
-  );
-  // Optionally, throw an error or handle this case as per your application's needs
-  // throw new Error("Nodemailer email or password not configured");
-}
+// Email configuration validation
+export const validateEmailConfig = () => {
+  if (!email || !password) {
+    throw new Error(
+      'Email configuration not found. Please check NEXT_PUBLIC_NODEMAIL_EMAIL and NEXT_PUBLIC_NODEMAIL_PASS environment variables.'
+    );
+  }
+  return { email, password };
+};
 
-export const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: email,
-    pass: password,
-  },
-});
+// Initialize transporter with validation
+let transporter: nodemailer.Transporter | null = null;
+
+const getTransporter = () => {
+  if (!transporter) {
+    const config = validateEmailConfig();
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: config.email,
+        pass: config.password,
+      },
+    });
+  }
+  return transporter;
+};
 
 export const mailOptsBase = {
   from: email,
@@ -61,6 +72,7 @@ interface SendEmailParams {
   customerName?: string; // Optional: for personalizing the default template
 }
 
+// Global email sending function
 export const sendEmail = async ({
   to,
   subject,
@@ -68,38 +80,30 @@ export const sendEmail = async ({
   htmlContent,
   customerName = 'Valued Customer',
 }: SendEmailParams) => {
-  if (!email) {
-    console.error("Nodemailer 'from' email is not configured. Email not sent.");
-    return; // Or throw an error
-  }
-
-  const mailOptions = {
-    ...mailOptsBase,
-    to: to,
-    subject: subject,
-    text: text,
-    html:
-      htmlContent ||
-      getDefaultEmailTemplate(capitalize(customerName.split(' ')[0]), text),
-  };
-
   try {
-    await transporter.sendMail(mailOptions);
+    const emailTransporter = getTransporter();
+
+    const mailOptions = {
+      ...mailOptsBase,
+      to: to,
+      subject: subject,
+      text: text,
+      html:
+        htmlContent ||
+        getDefaultEmailTemplate(capitalize(customerName.split(' ')[0]), text),
+    };
+
+    await emailTransporter.sendMail(mailOptions);
     console.log(`Email sent successfully to ${to} with subject "${subject}"`);
+    return { success: true };
   } catch (error) {
     console.error('Error sending email:', error);
-    // Handle error appropriately
+    throw new Error(`Failed to send email: ${error}`);
   }
 };
 
 // Example usage (from your snippet, adapted)
 export const sendSignupEmail = async (customerEmail: string, Cname: string) => {
-  if (!email) {
-    console.error(
-      "Nodemailer 'from' email is not configured. Signup email not sent."
-    );
-    return;
-  }
   const subject = `Pulse's  SIGNUP! 🎉`;
   const firstName = Cname && Cname.trim() ? Cname.split(' ')[0] : 'there';
   const text = `Hi ${capitalize(firstName)}, \nThank you for signing up with us at Pulse's . Enjoy a beautiful shopping experience.`;
@@ -122,43 +126,30 @@ export const sendSignupEmail = async (customerEmail: string, Cname: string) => {
     </html>
   `;
 
-  await sendEmail({
+  return await sendEmail({
     to: customerEmail, // Assuming the customer's email is the recipient for their signup confirmation
     subject,
     text,
     htmlContent: signupHtmlTemplate, // Or your specific template variable
     customerName: Cname,
   });
-
-  // If you also need to send a notification to the admin email (yourself)
-  // await sendEmail({
-  //   to: email, // Admin email
-  //   subject: `New Signup: ${Cname}`,
-  //   text: `A new user has signed up: ${Cname} (${customerEmail})`,
-  //   customerName: "Admin"
-  // });
 };
 
+// Standardized email verification function
 export const sendVerificationEmail = async (
   customerEmail: string,
   Cname: string,
   verificationToken: string,
   isNewUser: boolean = false
 ) => {
-  if (!email) {
-    console.error(
-      "Nodemailer 'from' email is not configured. Verification email not sent."
-    );
-    // Potentially throw an error to be caught by the calling function in register route
-    throw new Error("Nodemailer 'from' email is not configured.");
-  }
-
   // Ensure NEXT_PUBLIC_APP_URL is set in your .env file
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     (typeof window !== 'undefined'
       ? window.location.origin
       : 'http://localhost:6999');
+
+  // Standardize the verification link based on user type
   const verificationLink = isNewUser
     ? `${appUrl}/auth/set-password?token=${verificationToken}`
     : `${appUrl}/api/auth/verify-email?token=${verificationToken}`;
@@ -200,7 +191,7 @@ export const sendVerificationEmail = async (
     </html>
   `;
 
-  await sendEmail({
+  return await sendEmail({
     to: customerEmail,
     subject,
     text,
@@ -214,12 +205,6 @@ export const sendPasswordResetEmail = async (
   Cname: string,
   resetLink: string
 ) => {
-  if (!email) {
-    console.error(
-      "Nodemailer 'from' email is not configured. Password reset email not sent."
-    );
-    return;
-  }
   const subject = `Pulse Password Reset Request`;
   const firstName = Cname && Cname.trim() ? Cname.split(' ')[0] : 'there';
   const text = `Hi ${capitalize(firstName)}, \nYou requested a password reset. Click the link below to reset your password:\n${resetLink}\nIf you did not request this, please ignore this email. This link will expire in 1 hour.`;
@@ -243,7 +228,7 @@ export const sendPasswordResetEmail = async (
     </html>
   `;
 
-  await sendEmail({
+  return await sendEmail({
     to: customerEmail,
     subject,
     text,
@@ -257,12 +242,6 @@ export const sendInvitationEmail = async (
   companyName: string,
   token: string
 ) => {
-  if (!email) {
-    console.error(
-      "Nodemailer 'from' email is not configured. Invitation email not sent."
-    );
-    return;
-  }
   const subject = `You've been invited to join ${companyName} on Pulse`;
   const text = `Hi, \nYou've been invited to join ${companyName} on Pulse. Please sign up to get started.`;
 
@@ -283,7 +262,7 @@ export const sendInvitationEmail = async (
     </html>
   `;
 
-  await sendEmail({
+  return await sendEmail({
     to: customerEmail,
     subject,
     text,

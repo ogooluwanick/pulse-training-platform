@@ -28,7 +28,20 @@ export async function POST(req: NextRequest) {
       department,
     } = await req.json();
 
-    // ... validation logic ...
+    // Basic validation
+    if (!firstName || !lastName || !email || !password) {
+      return NextResponse.json(
+        { message: 'Missing required fields.' },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { message: 'Password must be at least 6 characters long.' },
+        { status: 400 }
+      );
+    }
 
     const client = await clientPromise();
     const db = client.db();
@@ -68,7 +81,7 @@ export async function POST(req: NextRequest) {
       lastName: lastName.charAt(0).toUpperCase() + lastName.slice(1),
       email,
       password: hashedPassword,
-      role: role || 'submitter',
+      role: role || 'COMPANY',
       emailVerified: null,
       verificationToken,
       verificationTokenExpires,
@@ -95,18 +108,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    await sendVerificationEmail(
-      newUser.email,
-      `${firstName} ${lastName}`,
-      verificationToken
-    );
+    // Send verification email with standardized flow
+    try {
+      await sendVerificationEmail(
+        newUser.email,
+        `${firstName} ${lastName}`,
+        verificationToken,
+        false // Use regular email verification flow
+      );
+    } catch (emailError: any) {
+      console.error('Error sending verification email:', emailError);
+      // Delete the user if email fails
+      await usersCollection.deleteOne({ _id: userId });
+      return NextResponse.json(
+        {
+          message:
+            'Account created but verification email failed to send. Please try again.',
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       { message: 'User created. Please verify your email.' },
       { status: 201 }
     );
   } catch (error) {
-    console.error(error);
+    console.error('Registration error:', error);
     return NextResponse.json(
       { message: 'An error occurred during registration.' },
       { status: 500 }

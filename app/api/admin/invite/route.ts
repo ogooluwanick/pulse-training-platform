@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/User';
 import { sendInvitationEmail } from '@/lib/email';
 import { getToken } from 'next-auth/jwt';
+import crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   const secret = process.env.NEXTAUTH_SECRET;
@@ -16,7 +17,10 @@ export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret });
 
   if (!token || token.role !== 'ADMIN') {
-    return NextResponse.json({ message: 'Not authenticated or not an admin' }, { status: 401 });
+    return NextResponse.json(
+      { message: 'Not authenticated or not an admin' },
+      { status: 401 }
+    );
   }
 
   await dbConnect();
@@ -24,7 +28,10 @@ export async function POST(req: NextRequest) {
   const { emails } = await req.json();
 
   if (!emails || !Array.isArray(emails)) {
-    return NextResponse.json({ message: 'Emails are required' }, { status: 400 });
+    return NextResponse.json(
+      { message: 'Emails are required' },
+      { status: 400 }
+    );
   }
 
   const invitedUsers = [];
@@ -38,14 +45,20 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Generate invitation token
+      const invitationToken = crypto.randomBytes(32).toString('hex');
+      const invitationTokenExpires = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours
+
       const newUser = new User({
         email,
         role: 'ADMIN',
-        status: 'PENDING',
+        status: 'pending',
+        invitationToken,
+        invitationTokenExpires,
       });
 
       await newUser.save();
-      await sendInvitationEmail(email, "Pulse", newUser.id);
+      await sendInvitationEmail(email, 'Pulse', invitationToken);
 
       invitedUsers.push(newUser);
     } catch (error) {

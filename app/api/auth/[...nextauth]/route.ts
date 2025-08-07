@@ -59,7 +59,8 @@ export const authOptions: NextAuthOptions = {
             await sendVerificationEmail(
               dbUser.email,
               `${dbUser.firstName} ${dbUser.lastName}`,
-              newVerificationToken
+              newVerificationToken,
+              false // Use regular email verification flow
             );
             throw new Error(
               "Your email is not verified. We've sent a new verification link to your email address. Please check your inbox."
