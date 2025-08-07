@@ -49,11 +49,15 @@ export async function GET(request: Request) {
     }
 
     const employees = company.employees as any[];
-    let filteredEmployees = employees;
+
+    // Filter out company accounts from employees list
+    let filteredEmployees = employees.filter((employee: any) => {
+      return employee.role !== 'COMPANY';
+    });
 
     // Apply department filter
     if (filters.department && filters.department !== 'all') {
-      filteredEmployees = employees.filter(
+      filteredEmployees = filteredEmployees.filter(
         (emp) => emp.department === filters.department
       );
     }

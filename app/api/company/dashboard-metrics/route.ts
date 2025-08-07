@@ -23,15 +23,23 @@ export async function GET(request: Request) {
       return new NextResponse('Company ID is required', { status: 400 });
     }
 
-    const company = await Company.findById(companyId);
+    const company = await Company.findById(companyId).populate({
+      path: 'employees',
+      model: 'User',
+    });
     if (!company) {
       return new NextResponse('Company not found', { status: 404 });
     }
 
-    const totalEmployees = company.employees.length;
+    // Filter out company accounts from employees list
+    const filteredEmployees = company.employees.filter((employee: any) => {
+      return employee.role !== 'COMPANY';
+    });
+
+    const totalEmployees = filteredEmployees.length;
 
     const assignments = await CourseAssignment.find({
-      employee: { $in: company.employees },
+      employee: { $in: filteredEmployees.map((emp: any) => emp._id) },
     }).populate('employee');
 
     // Calculate compliance based on completed assignments vs total assignments

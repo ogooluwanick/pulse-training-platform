@@ -37,11 +37,17 @@ export async function GET(request: Request) {
       model: User,
     });
 
+    // Filter out assignments for company accounts
+    const filteredAssignments = assignments.filter((assignment: any) => {
+      const employee = assignment.employee;
+      return employee && employee.role !== 'COMPANY';
+    });
+
     // Group assignments by employee to identify employees at risk using standardized rules
     const employeeRiskMap = new Map();
     const now = new Date();
 
-    assignments.forEach((assignment) => {
+    filteredAssignments.forEach((assignment) => {
       const employee = assignment.employee as any;
       if (!employee) return;
 

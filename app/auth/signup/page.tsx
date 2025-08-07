@@ -15,6 +15,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react'; // Import useSession
 import toast from 'react-hot-toast';
@@ -25,8 +32,24 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [department, setDepartment] = useState('');
   const router = useRouter();
   const { data: session } = useSession(); // Get session data
+
+  // Department options
+  const departments = [
+    'Engineering',
+    'Marketing',
+    'Sales',
+    'HR',
+    'Finance',
+    'Operations',
+    'Customer Support',
+    'Product Management',
+    'Legal',
+    'IT',
+    'Other',
+  ];
 
   // Redirect if user is already logged in
   useEffect(() => {
@@ -48,9 +71,17 @@ export default function SignUpPage() {
     const confirmPassword = formData.get('confirmPassword') as string;
     const name = formData.get('name') as string;
     const organizationName = formData.get('organizationName') as string;
+    const phoneNumber = formData.get('phoneNumber') as string;
+    const designation = formData.get('designation') as string;
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!department) {
+      setError('Please select a department');
       setIsLoading(false);
       return;
     }
@@ -68,6 +99,9 @@ export default function SignUpPage() {
           password,
           role: 'COMPANY', // Explicitly set role to COMPANY for this signup page
           organizationName,
+          phoneNumber,
+          designation,
+          department,
         }),
       });
 
@@ -77,7 +111,9 @@ export default function SignUpPage() {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      toast.success('Your account has been created. You will be redirected to the login page shortly.');
+      toast.success(
+        'Your account has been created. You will be redirected to the login page shortly.'
+      );
 
       // Redirect to login page after 5 seconds
       setTimeout(() => {
@@ -103,12 +139,10 @@ export default function SignUpPage() {
               <span className="text-lg font-bold">P</span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-charcoal">
-              Welcome to Pulse
-            </h1>
-            <p className="text-warm-gray">
-              Sign in to your intelligent workspace
-            </p>
+          <h1 className="text-2xl font-bold text-charcoal">Welcome to Pulse</h1>
+          <p className="text-warm-gray">
+            Sign in to your intelligent workspace
+          </p>
         </div>
 
         {/* Sign Up Card */}
@@ -175,6 +209,65 @@ export default function SignUpPage() {
                   className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="phoneNumber"
+                  className="text-charcoal font-medium"
+                >
+                  Phone Number
+                </Label>
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  type="tel"
+                  placeholder="Enter your phone number"
+                  className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="designation"
+                  className="text-charcoal font-medium"
+                >
+                  Designation
+                </Label>
+                <Input
+                  id="designation"
+                  name="designation"
+                  type="text"
+                  placeholder="Enter your designation/role"
+                  className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label
+                  htmlFor="department"
+                  className="text-charcoal font-medium"
+                >
+                  Department
+                </Label>
+                <Select
+                  onValueChange={setDepartment}
+                  value={department}
+                  required
+                >
+                  <SelectTrigger className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft">
+                    <SelectValue placeholder="Select your department" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-warm-gray/20">
+                    {departments.map((dept) => (
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">

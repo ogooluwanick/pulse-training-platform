@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {  toast } from 'react-hot-toast';
+import { toast } from 'react-hot-toast';
 import {
   Card,
   CardContent,
@@ -13,6 +13,17 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { UserPlus, Mail } from 'lucide-react';
 import FullPageLoader from '@/components/full-page-loader';
 import EditEmployeeModal from '@/components/edit-employee-modal';
 import AssignCourseModal from '@/components/assign-course-modal';
@@ -120,6 +131,8 @@ export default function EmployeeManagementPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isMassAssignModalOpen, setIsMassAssignModalOpen] = useState(false);
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [inviteEmails, setInviteEmails] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null
   );
@@ -168,6 +181,56 @@ export default function EmployeeManagementPage() {
       toast.error('Failed to assign courses.');
     },
   });
+
+  const inviteMutation = useMutation({
+    mutationFn: (emails: string[]) =>
+      fetch('/api/company/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ emails }),
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'Something went wrong');
+        }
+        return data;
+      }),
+    onSuccess: (data) => {
+      toast.success(
+        `Invitations sent! Successful: ${data.invitedUsers.length}, Failed: ${data.failedInvites.length}`
+      );
+      if (data.failedInvites.length > 0) {
+        toast.error(
+          `Failed invites: ${data.failedInvites
+            .map((f: any) => f.email)
+            .join(', ')}`
+        );
+      }
+      setIsInviteDialogOpen(false);
+      setInviteEmails('');
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Failed to send invitations: ${error.message}`);
+    },
+  });
+
+  const handleInviteEmployees = () => {
+    const emailRegex = /\S+@\S+\.\S+/;
+    const emails = inviteEmails
+      .split(/[,\s\n]+/)
+      .map((email) => email.trim())
+      .filter((email) => email && emailRegex.test(email));
+
+    if (emails.length === 0) {
+      toast.error('No valid email addresses entered.');
+      return;
+    }
+
+    inviteMutation.mutate(emails);
+  };
 
   const handleEditClick = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -237,12 +300,74 @@ export default function EmployeeManagementPage() {
               Manage your organization's employees and their progress
             </CardDescription>
           </div>
-          <Button
-            onClick={() => setIsMassAssignModalOpen(true)}
-            className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-          >
-            Mass Assign Courses
-          </Button>
+          <div className="flex gap-2">
+            <Dialog
+              open={isInviteDialogOpen}
+              onOpenChange={setIsInviteDialogOpen}
+            >
+              <DialogTrigger asChild>
+                <Button className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite Employees
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-parchment border-warm-gray/20">
+                <DialogHeader>
+                  <DialogTitle className="text-charcoal">
+                    Invite Employees
+                  </DialogTitle>
+                  <DialogDescription className="text-warm-gray">
+                    Enter email addresses to invite employees to your
+                    organization
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="emails" className="text-charcoal">
+                      Email Addresses
+                    </Label>
+                    <Textarea
+                      id="emails"
+                      placeholder="Enter email addresses, one per line or separated by commas"
+                      value={inviteEmails}
+                      onChange={(e) => setInviteEmails(e.target.value)}
+                      className="bg-alabaster border-warm-gray/30 focus:border-charcoal"
+                      rows={4}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleInviteEmployees}
+                      disabled={inviteMutation.isPending}
+                      className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                    >
+                      {inviteMutation.isPending ? (
+                        'Sending...'
+                      ) : (
+                        <>
+                          <Mail className="h-4 w-4 mr-2" />
+                          Send Invitations
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsInviteDialogOpen(false)}
+                      className="bg-transparent"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <Button
+              onClick={() => setIsMassAssignModalOpen(true)}
+              className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+            >
+              Mass Assign Courses
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

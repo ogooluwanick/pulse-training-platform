@@ -31,8 +31,13 @@ export async function GET() {
       return new NextResponse('Company not found', { status: 404 });
     }
 
+    // Filter out company accounts from employees list
+    const filteredEmployees = company.employees.filter((employee: any) => {
+      return employee.role !== 'COMPANY';
+    });
+
     const employeeData = await Promise.all(
-      company.employees.map(async (employee: any) => {
+      filteredEmployees.map(async (employee: any) => {
         // Find course assignments for this employee
         const assignments = await CourseAssignment.find({
           employee: employee._id,

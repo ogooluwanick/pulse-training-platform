@@ -219,7 +219,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-parchment border-t border-warm-gray/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid md:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-charcoal text-alabaster">
@@ -272,7 +272,7 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-            <div>
+            {/* <div>
               <h3 className="font-semibold text-charcoal mb-4">Support</h3>
               <ul className="space-y-2 text-warm-gray">
                 <li>
@@ -291,7 +291,7 @@ export default function LandingPage() {
                   </a>
                 </li>
               </ul>
-            </div>
+            </div> */}
           </div>
           <div className="border-t border-warm-gray/20 mt-12 pt-8 text-center text-warm-gray">
             <p>&copy; 2024 Pulse. All rights reserved.</p>

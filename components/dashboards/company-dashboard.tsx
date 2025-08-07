@@ -12,24 +12,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import {
-  Users,
-  AlertTriangle,
-  UserPlus,
-  Mail,
-  Shield,
-  Clock,
-} from 'lucide-react';
+import { Users, AlertTriangle, Shield, Clock } from 'lucide-react';
 import type { User } from 'next-auth';
 import FullPageLoader from '@/components/full-page-loader';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -106,9 +89,6 @@ const fetchRecentActivity = async (
 };
 
 export function CompanyDashboard({ user }: CompanyDashboardProps) {
-  const [inviteEmails, setInviteEmails] = useState('');
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-
   const {
     data: metrics,
     isLoading: isLoadingMetrics,
@@ -176,56 +156,6 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
 
   const queryClient = useQueryClient();
 
-  const inviteMutation = useMutation({
-    mutationFn: (emails: string[]) =>
-      fetch('/api/company/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ emails }),
-      }).then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.message || 'Something went wrong');
-        }
-        return data;
-      }),
-    onSuccess: (data) => {
-      toast.success(
-        `Invitations sent! Successful: ${data.invitedUsers.length}, Failed: ${data.failedInvites.length}`
-      );
-      if (data.failedInvites.length > 0) {
-        toast.error(
-          `Failed invites: ${data.failedInvites
-            .map((f: any) => f.email)
-            .join(', ')}`
-        );
-      }
-      setIsInviteDialogOpen(false);
-      setInviteEmails('');
-      queryClient.invalidateQueries({ queryKey: ['dashboardMetrics'] });
-    },
-    onError: (error: any) => {
-      toast.error(`Failed to send invitations: ${error.message}`);
-    },
-  });
-
-  const handleInviteEmployees = () => {
-    const emailRegex = /\S+@\S+\.\S+/;
-    const emails = inviteEmails
-      .split(/[,\s\n]+/)
-      .map((email) => email.trim())
-      .filter((email) => email && emailRegex.test(email));
-
-    if (emails.length === 0) {
-      toast.error('No valid email addresses entered.');
-      return;
-    }
-
-    inviteMutation.mutate(emails);
-  };
-
   if (isLoadingMetrics || isLoadingEmployeesAtRisk || isLoadingRecentActivity) {
     return <FullPageLoader />;
   }
@@ -245,62 +175,6 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
             <p className="text-warm-gray">Compliance Overview</p>
           </div>
         </div>
-        <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Invite Employees
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-parchment border-warm-gray/20">
-            <DialogHeader>
-              <DialogTitle className="text-charcoal">
-                Invite Employees
-              </DialogTitle>
-              <DialogDescription className="text-warm-gray">
-                Enter email addresses to invite employees to your organization
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="emails" className="text-charcoal">
-                  Email Addresses
-                </Label>
-                <Textarea
-                  id="emails"
-                  placeholder="Enter email addresses, one per line or separated by commas"
-                  value={inviteEmails}
-                  onChange={(e) => setInviteEmails(e.target.value)}
-                  className="bg-alabaster border-warm-gray/30 focus:border-charcoal"
-                  rows={4}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleInviteEmployees}
-                  disabled={inviteMutation.isPending}
-                  className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-                >
-                  {inviteMutation.isPending ? (
-                    'Sending...'
-                  ) : (
-                    <>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Send Invitations
-                    </>
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsInviteDialogOpen(false)}
-                  className="bg-transparent"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
       {/* Key Metrics */}

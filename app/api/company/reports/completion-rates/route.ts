@@ -1,56 +1,64 @@
-import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 
-export const dynamic = 'force-dynamic'
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import Course from "@/lib/models/Course"
-import CourseAssignment from "@/lib/models/CourseAssignment"
-import dbConnect from "@/lib/dbConnect"
-import Company from "@/lib/models/Company"
-import mongoose from "mongoose"
+export const dynamic = 'force-dynamic';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import Course from '@/lib/models/Course';
+import CourseAssignment from '@/lib/models/CourseAssignment';
+import dbConnect from '@/lib/dbConnect';
+import Company from '@/lib/models/Company';
+import mongoose from 'mongoose';
 
 export async function GET() {
   try {
-    await dbConnect()
+    await dbConnect();
 
-    const session = await getServerSession(authOptions)
-    if (!session || !session.user || session.user.role !== "COMPANY") {
-      return new NextResponse("Unauthorized", { status: 401 })
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || session.user.role !== 'COMPANY') {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const user = session.user as any
-    const companyId = new mongoose.Types.ObjectId(user.companyId)
+    const user = session.user as any;
+    const companyId = new mongoose.Types.ObjectId(user.companyId);
 
-    const company = await Company.findById(companyId)
+    const company = await Company.findById(companyId).populate({
+      path: 'employees',
+      model: 'User',
+    });
     if (!company) {
-      return new NextResponse("Company not found", { status: 404 })
+      return new NextResponse('Company not found', { status: 404 });
     }
 
-    const courses = await Course.find({ companyId: companyId })
+    // Filter out company accounts from employees list
+    const filteredEmployees = company.employees.filter((employee: any) => {
+      return employee.role !== 'COMPANY';
+    });
+
+    const courses = await Course.find({ companyId: companyId });
 
     const completionRates = await Promise.all(
       courses.map(async (course) => {
         const assignments = await CourseAssignment.find({
           course: course._id,
-          employee: { $in: company.employees },
-        })
+          employee: { $in: filteredEmployees.map((emp: any) => emp._id) },
+        });
         const completedAssignments = assignments.filter(
-          (a) => a.status === "completed"
-        ).length
+          (a) => a.status === 'completed'
+        ).length;
         const rate =
           assignments.length > 0
             ? (completedAssignments / assignments.length) * 100
-            : 0
+            : 0;
         return {
           course: course.title,
           rate: Math.round(rate),
-        }
+        };
       })
-    )
+    );
 
-    return NextResponse.json(completionRates)
+    return NextResponse.json(completionRates);
   } catch (error) {
-    console.error(error)
-    return new NextResponse("Internal Server Error", { status: 500 })
+    console.error(error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

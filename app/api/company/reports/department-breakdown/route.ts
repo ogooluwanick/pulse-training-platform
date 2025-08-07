@@ -31,13 +31,19 @@ export async function GET() {
     }
 
     const employees = company.employees as any[];
+
+    // Filter out company accounts from employees list
+    const filteredEmployees = employees.filter((employee: any) => {
+      return employee.role !== 'COMPANY';
+    });
+
     const departments = [
-      ...new Set(employees.map((e) => e.department).filter(Boolean)),
+      ...new Set(filteredEmployees.map((e) => e.department).filter(Boolean)),
     ];
 
     const departmentBreakdown = await Promise.all(
       departments.map(async (department) => {
-        const departmentEmployees = employees.filter(
+        const departmentEmployees = filteredEmployees.filter(
           (e) => e.department === department
         );
         const employeeIds = departmentEmployees.map((e) => e._id);
