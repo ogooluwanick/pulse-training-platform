@@ -1,16 +1,18 @@
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
 
 const email = process.env.NEXT_PUBLIC_NODEMAIL_EMAIL;
 const password = process.env.NEXT_PUBLIC_NODEMAIL_PASS;
 
 if (!email || !password) {
-  console.error("Email or password for nodemailer is not defined in environment variables.");
+  console.error(
+    'Email or password for nodemailer is not defined in environment variables.'
+  );
   // Optionally, throw an error or handle this case as per your application's needs
   // throw new Error("Nodemailer email or password not configured");
 }
 
 export const transporter = nodemailer.createTransport({
-  service: "gmail",
+  service: 'gmail',
   auth: {
     user: email,
     pass: password,
@@ -25,13 +27,16 @@ export const mailOptsBase = {
 // Placeholder for the capitalize function
 // You should replace this with your actual implementation
 const capitalize = (str: string): string => {
-  if (!str) return "";
+  if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 };
 
 // Placeholder for the email template
 // You should replace this with your actual HTML email template
-const getDefaultEmailTemplate = (customerName: string, message: string): string => {
+const getDefaultEmailTemplate = (
+  customerName: string,
+  message: string
+): string => {
   return `
     <!DOCTYPE html>
     <html>
@@ -56,7 +61,13 @@ interface SendEmailParams {
   customerName?: string; // Optional: for personalizing the default template
 }
 
-export const sendEmail = async ({ to, subject, text, htmlContent, customerName = "Valued Customer" }: SendEmailParams) => {
+export const sendEmail = async ({
+  to,
+  subject,
+  text,
+  htmlContent,
+  customerName = 'Valued Customer',
+}: SendEmailParams) => {
   if (!email) {
     console.error("Nodemailer 'from' email is not configured. Email not sent.");
     return; // Or throw an error
@@ -67,14 +78,16 @@ export const sendEmail = async ({ to, subject, text, htmlContent, customerName =
     to: to,
     subject: subject,
     text: text,
-    html: htmlContent || getDefaultEmailTemplate(capitalize(customerName.split(" ")[0]), text),
+    html:
+      htmlContent ||
+      getDefaultEmailTemplate(capitalize(customerName.split(' ')[0]), text),
   };
 
   try {
     await transporter.sendMail(mailOptions);
     console.log(`Email sent successfully to ${to} with subject "${subject}"`);
   } catch (error) {
-    console.error("Error sending email:", error);
+    console.error('Error sending email:', error);
     // Handle error appropriately
   }
 };
@@ -82,12 +95,15 @@ export const sendEmail = async ({ to, subject, text, htmlContent, customerName =
 // Example usage (from your snippet, adapted)
 export const sendSignupEmail = async (customerEmail: string, Cname: string) => {
   if (!email) {
-    console.error("Nodemailer 'from' email is not configured. Signup email not sent.");
+    console.error(
+      "Nodemailer 'from' email is not configured. Signup email not sent."
+    );
     return;
   }
   const subject = `Pulse's  SIGNUP! 🎉`;
-  const text = `Hi ${capitalize(Cname.split(" ")[0])}, \nThank you for signing up with us at Pulse's . Enjoy a beautiful shopping experience.`;
-  
+  const firstName = Cname && Cname.trim() ? Cname.split(' ')[0] : 'there';
+  const text = `Hi ${capitalize(firstName)}, \nThank you for signing up with us at Pulse's . Enjoy a beautiful shopping experience.`;
+
   // Assuming you have a specific HTML template for signups
   // For now, using a modified version of the default template or you can provide your specific 'template' variable
   const signupHtmlTemplate = `
@@ -97,7 +113,7 @@ export const sendSignupEmail = async (customerEmail: string, Cname: string) => {
       <title>Welcome to Pulse's !</title>
     </head>
     <body>
-      <h1>Welcome, ${capitalize(Cname.split(" ")[0])}!</h1>
+      <h1>Welcome, ${capitalize(firstName)}!</h1>
       <p>Thank you for signing up with us at Pulse's .</p>
       <p>We're thrilled to have you. Enjoy a beautiful shopping experience!</p>
       <p>Best regards,</p>
@@ -123,21 +139,33 @@ export const sendSignupEmail = async (customerEmail: string, Cname: string) => {
   // });
 };
 
-export const sendVerificationEmail = async (customerEmail: string, Cname: string, verificationToken: string, isNewUser: boolean = false) => {
+export const sendVerificationEmail = async (
+  customerEmail: string,
+  Cname: string,
+  verificationToken: string,
+  isNewUser: boolean = false
+) => {
   if (!email) {
-    console.error("Nodemailer 'from' email is not configured. Verification email not sent.");
+    console.error(
+      "Nodemailer 'from' email is not configured. Verification email not sent."
+    );
     // Potentially throw an error to be caught by the calling function in register route
     throw new Error("Nodemailer 'from' email is not configured.");
   }
 
   // Ensure NEXT_PUBLIC_APP_URL is set in your .env file
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:6999');
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (typeof window !== 'undefined'
+      ? window.location.origin
+      : 'http://localhost:6999');
   const verificationLink = isNewUser
     ? `${appUrl}/auth/set-password?token=${verificationToken}`
     : `${appUrl}/api/auth/verify-email?token=${verificationToken}`;
 
   const subject = `Verify Your Email for Pulse`;
-  const text = `Hi ${capitalize(Cname.split(" ")[0])}, \nPlease verify your email address by clicking the link below:\n${verificationLink}\nIf you did not request this, please ignore this email. This link will expire in 24 hours.`;
+  const firstName = Cname && Cname.trim() ? Cname.split(' ')[0] : 'there';
+  const text = `Hi ${capitalize(firstName)}, \nPlease verify your email address by clicking the link below:\n${verificationLink}\nIf you did not request this, please ignore this email. This link will expire in 24 hours.`;
 
   const verificationHtmlTemplate = `
     <!DOCTYPE html>
@@ -154,7 +182,7 @@ export const sendVerificationEmail = async (customerEmail: string, Cname: string
     <body>
       <div class="container">
         <h1>Verify Your Email Address</h1>
-        <p>Hi ${capitalize(Cname.split(" ")[0])},</p>
+        <p>Hi ${capitalize(firstName)},</p>
         <p>Thanks for signing up for Pulse! To complete your registration, please verify your email address by clicking the button below:</p>
         <p style="text-align: center; margin: 25px 0;">
           <a href="${verificationLink}" class="button">Verify Email Address</a>
@@ -181,14 +209,21 @@ export const sendVerificationEmail = async (customerEmail: string, Cname: string
   });
 };
 
-export const sendPasswordResetEmail = async (customerEmail: string, Cname: string, resetLink: string) => {
+export const sendPasswordResetEmail = async (
+  customerEmail: string,
+  Cname: string,
+  resetLink: string
+) => {
   if (!email) {
-    console.error("Nodemailer 'from' email is not configured. Password reset email not sent.");
+    console.error(
+      "Nodemailer 'from' email is not configured. Password reset email not sent."
+    );
     return;
   }
   const subject = `Pulse Password Reset Request`;
-  const text = `Hi ${capitalize(Cname.split(" ")[0])}, \nYou requested a password reset. Click the link below to reset your password:\n${resetLink}\nIf you did not request this, please ignore this email. This link will expire in 1 hour.`;
-  
+  const firstName = Cname && Cname.trim() ? Cname.split(' ')[0] : 'there';
+  const text = `Hi ${capitalize(firstName)}, \nYou requested a password reset. Click the link below to reset your password:\n${resetLink}\nIf you did not request this, please ignore this email. This link will expire in 1 hour.`;
+
   const passwordResetHtmlTemplate = `
     <!DOCTYPE html>
     <html>
@@ -197,7 +232,7 @@ export const sendPasswordResetEmail = async (customerEmail: string, Cname: strin
     </head>
     <body>
       <h1>Password Reset Request</h1>
-      <p>Hi ${capitalize(Cname.split(" ")[0])},</p>
+      <p>Hi ${capitalize(firstName)},</p>
       <p>You recently requested to reset your password for your Pulse account. Click the button below to reset it.</p>
       <a href="${resetLink}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Reset Your Password</a>
       <p>If you did not request a password reset, please ignore this email or contact support if you have concerns.</p>
@@ -217,14 +252,20 @@ export const sendPasswordResetEmail = async (customerEmail: string, Cname: strin
   });
 };
 
-export const sendInvitationEmail = async (customerEmail: string, companyName: string, token: string) => {
+export const sendInvitationEmail = async (
+  customerEmail: string,
+  companyName: string,
+  token: string
+) => {
   if (!email) {
-    console.error("Nodemailer 'from' email is not configured. Invitation email not sent.");
+    console.error(
+      "Nodemailer 'from' email is not configured. Invitation email not sent."
+    );
     return;
   }
   const subject = `You've been invited to join ${companyName} on Pulse`;
   const text = `Hi, \nYou've been invited to join ${companyName} on Pulse. Please sign up to get started.`;
-  
+
   const invitationHtmlTemplate = `
     <!DOCTYPE html>
     <html>
@@ -247,6 +288,6 @@ export const sendInvitationEmail = async (customerEmail: string, companyName: st
     subject,
     text,
     htmlContent: invitationHtmlTemplate,
-    customerName: "there",
+    customerName: 'there',
   });
 };

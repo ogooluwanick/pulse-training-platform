@@ -109,7 +109,9 @@ export const authOptions: NextAuthOptions = {
         // Return user object without password
         return {
           id: dbUser._id.toString(),
-          name: dbUser.name,
+          name:
+            `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim() ||
+            'User',
           email: dbUser.email,
           role: dbUser.role,
           firstName: dbUser.firstName,
@@ -148,6 +150,7 @@ export const authOptions: NextAuthOptions = {
 
       if (user) {
         token.id = user.id;
+        token.name = user.name;
         token.role = user.role;
         token.firstName = user.firstName;
         token.lastName = user.lastName;
@@ -165,6 +168,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.name = token.name as string;
         session.user.role = token.role as 'ADMIN' | 'COMPANY' | 'EMPLOYEE';
         session.user.firstName = token.firstName as string;
         session.user.lastName = token.lastName as string;
