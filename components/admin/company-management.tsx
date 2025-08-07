@@ -28,7 +28,7 @@ interface Company {
     email: string;
   };
   employees?: any[];
-  savedCourses?: any[];
+  // savedCourses?: any[];
   createdAt?: string;
   updatedAt?: string;
 }

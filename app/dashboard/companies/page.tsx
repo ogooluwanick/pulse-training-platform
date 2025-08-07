@@ -47,7 +47,7 @@ interface Company {
     email: string;
   };
   employees?: any[];
-  savedCourses?: any[];
+  // savedCourses?: any[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -345,12 +345,12 @@ export default function CompanyManagementPage() {
                         {company.employees?.length || 0}
                       </p>
                     </div>
-                    <div>
+                    {/* <div>
                       <p className="text-sm text-warm-gray">Courses</p>
                       <p className="text-sm text-charcoal">
                         {company.savedCourses?.length || 0}
                       </p>
-                    </div>
+                    </div> */}
                     <div>
                       <p className="text-sm text-warm-gray">Status</p>
                       <Badge

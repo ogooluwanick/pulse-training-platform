@@ -79,10 +79,10 @@ export default function CourseCatalogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  const [showSavedOnly, setShowSavedOnly] = useState(false);
-  const [savedCourses, setSavedCourses] = useState<string[]>([]);
+  // const [showSavedOnly, setShowSavedOnly] = useState(false);
+  // const [savedCourses, setSavedCourses] = useState<string[]>([]);
 
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
 
   const {
     data: courses = [],
@@ -101,95 +101,95 @@ export default function CourseCatalogPage() {
   });
 
   // Fetch saved courses
-  const { data: savedCoursesData } = useQuery({
-    queryKey: ['savedCourses'],
-    queryFn: async () => {
-      const response = await fetch('/api/company/courses/save');
-      if (!response.ok) {
-        throw new Error('Failed to fetch saved courses');
-      }
-      return response.json();
-    },
-  });
+  // const { data: savedCoursesData } = useQuery({
+  //   queryKey: ['savedCourses'],
+  //   queryFn: async () => {
+  //     const response = await fetch('/api/company/courses/save');
+  //     if (!response.ok) {
+  //       throw new Error('Failed to fetch saved courses');
+  //     }
+  //     return response.json();
+  //   },
+  // });
 
-  useEffect(() => {
-    if (savedCoursesData?.savedCourses) {
-      setSavedCourses(
-        savedCoursesData.savedCourses.map((id: string | number) =>
-          id.toString()
-        )
-      );
-    }
-  }, [savedCoursesData]);
+  // useEffect(() => {
+  //   if (savedCoursesData?.savedCourses) {
+  //     setSavedCourses(
+  //       savedCoursesData.savedCourses.map((id: string | number) =>
+  //         id.toString()
+  //       )
+  //     );
+  //   }
+  // }, [savedCoursesData]);
 
   // Save/Unsave course mutation
-  const saveCourse = useMutation({
-    mutationFn: async ({
-      courseId,
-      save,
-    }: {
-      courseId: string;
-      save: boolean;
-    }) => {
-      console.log('Frontend: Attempting to save course:', {
-        courseId,
-        save,
-        type: typeof courseId,
-      }); // Debug log
+  // const saveCourse = useMutation({
+  //   mutationFn: async ({
+  //     courseId,
+  //     save,
+  //   }: {
+  //     courseId: string;
+  //     save: boolean;
+  //   }) => {
+  //     console.log('Frontend: Attempting to save course:', {
+  //       courseId,
+  //       save,
+  //       type: typeof courseId,
+  //     }); // Debug log
 
-      const url = save
-        ? '/api/company/courses/save'
-        : `/api/company/courses/save?courseId=${courseId}`;
+  //     const url = save
+  //       ? '/api/company/courses/save'
+  //       : `/api/company/courses/save?courseId=${courseId}`;
 
-      console.log('Frontend: Request URL:', url); // Debug log
-      console.log(
-        'Frontend: Request body:',
-        save ? JSON.stringify({ courseId }) : 'No body'
-      ); // Debug log
+  //     console.log('Frontend: Request URL:', url); // Debug log
+  //     console.log(
+  //       'Frontend: Request body:',
+  //       save ? JSON.stringify({ courseId }) : 'No body'
+  //     ); // Debug log
 
-      const response = await fetch(url, {
-        method: save ? 'POST' : 'DELETE',
-        headers: save ? { 'Content-Type': 'application/json' } : {},
-        body: save ? JSON.stringify({ courseId }) : undefined,
-      });
+  //     const response = await fetch(url, {
+  //       method: save ? 'POST' : 'DELETE',
+  //       headers: save ? { 'Content-Type': 'application/json' } : {},
+  //       body: save ? JSON.stringify({ courseId }) : undefined,
+  //     });
 
-      console.log('Frontend: Response status:', response.status); // Debug log
+  //     console.log('Frontend: Response status:', response.status); // Debug log
 
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Frontend: API Error:', error); // Debug log
-        throw new Error(error.message || 'Failed to update saved course');
-      }
+  //     if (!response.ok) {
+  //       const error = await response.json();
+  //       console.error('Frontend: API Error:', error); // Debug log
+  //       throw new Error(error.message || 'Failed to update saved course');
+  //     }
 
-      const result = await response.json();
-      console.log('Frontend: Success response:', result); // Debug log
-      return result;
-    },
-    onSuccess: (data, variables) => {
-      const { courseId, save } = variables;
+  //     const result = await response.json();
+  //     console.log('Frontend: Success response:', result); // Debug log
+  //     return result;
+  //   },
+  //   onSuccess: (data, variables) => {
+  //     const { courseId, save } = variables;
 
-      if (save) {
-        setSavedCourses((prev) => [...prev, courseId]);
-        toast.success('Course saved to your interests!');
-      } else {
-        setSavedCourses((prev) => prev.filter((id) => id !== courseId));
-        toast.success('Course removed from saved courses');
-      }
+  //     if (save) {
+  //       setSavedCourses((prev) => [...prev, courseId]);
+  //       toast.success('Course saved to your interests!');
+  //     } else {
+  //       setSavedCourses((prev) => prev.filter((id) => id !== courseId));
+  //       toast.success('Course removed from saved courses');
+  //     }
 
-      // Refresh saved courses data
-      queryClient.invalidateQueries({ queryKey: ['savedCourses'] });
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error ? error.message : 'Failed to update course'
-      );
-    },
-  });
+  //     // Refresh saved courses data
+  //     queryClient.invalidateQueries({ queryKey: ['savedCourses'] });
+  //   },
+  //   onError: (error) => {
+  //     toast.error(
+  //       error instanceof Error ? error.message : 'Failed to update course'
+  //     );
+  //   },
+  // });
 
-  const handleToggleSave = (courseId: string) => {
-    const isSaved = savedCourses.includes(courseId);
-    saveCourse.mutate({ courseId, save: !isSaved });
-  };
+  // const handleToggleSave = (courseId: string) => {
+  //   const isSaved = savedCourses.includes(courseId);
+  //   saveCourse.mutate({ courseId, save: !isSaved });
+  // };
 
   const { data: assignedCourses = [] } = useQuery<AssignedCourse[]>({
     queryKey: ['assignedCourses'],
@@ -237,9 +237,9 @@ export default function CourseCatalogPage() {
     const matchesCategory =
       selectedCategory === 'all' || course.category === selectedCategory;
 
-    const matchesSaved = !showSavedOnly || savedCourses.includes(course._id);
+    // const matchesSaved = !showSavedOnly || savedCourses.includes(course._id);
 
-    return matchesSearch && matchesCategory && matchesSaved;
+    return matchesSearch && matchesCategory;
   });
 
   if (isLoading) {
@@ -305,7 +305,7 @@ export default function CourseCatalogPage() {
               </SelectContent>
             </Select>
 
-            <Button
+            {/* <Button
               variant={showSavedOnly ? 'default' : 'outline'}
               onClick={() => setShowSavedOnly(!showSavedOnly)}
               className={`w-full md:w-auto ${
@@ -323,7 +323,7 @@ export default function CourseCatalogPage() {
                   {savedCourses.length}
                 </Badge>
               )}
-            </Button>
+            </Button> */}
           </div>
         </CardContent>
       </Card>
@@ -346,7 +346,7 @@ export default function CourseCatalogPage() {
           {filteredCourses.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredCourses.map((course) => {
-                const isSaved = savedCourses.includes(course._id);
+                // const isSaved = savedCourses.includes(course._id);
 
                 return (
                   <Card
@@ -430,11 +430,11 @@ export default function CourseCatalogPage() {
                           >
                             <Button className="w-full bg-charcoal hover:bg-charcoal/90 text-alabaster">
                               <Play className="h-4 w-4 mr-2" />
-                              Try It
+                              Preview Course
                             </Button>
                           </Link>
                         )}
-                        <Button
+                        {/* <Button
                           variant="outline"
                           size="icon"
                           className={`bg-transparent border-warm-gray/30 hover:border-warning-ochre/50 transition-colors ${
@@ -448,7 +448,7 @@ export default function CourseCatalogPage() {
                           <Award
                             className={`h-4 w-4 ${isSaved ? 'fill-current' : ''}`}
                           />
-                        </Button>
+                        </Button> */}
                       </div>
                     </CardContent>
                   </Card>
@@ -457,11 +457,7 @@ export default function CourseCatalogPage() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-warm-gray">
-                {showSavedOnly
-                  ? 'No saved courses found.'
-                  : 'No courses found.'}
-              </p>
+              <p className="text-warm-gray">No courses found.</p>
             </div>
           )}
         </TabsContent>

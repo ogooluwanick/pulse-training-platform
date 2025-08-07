@@ -39,12 +39,12 @@ export async function GET(req: NextRequest) {
             path: 'employees',
             model: User,
             select: 'firstName lastName email department',
-          })
-          .populate({
-            path: 'savedCourses',
-            model: 'Course',
-            select: 'title description',
           });
+        // .populate({
+        //   path: 'savedCourses',
+        //   model: 'Course',
+        //   select: 'title description',
+        // });
 
         if (!company) {
           return NextResponse.json(
@@ -66,12 +66,12 @@ export async function GET(req: NextRequest) {
             path: 'employees',
             model: User,
             select: 'firstName lastName email department',
-          })
-          .populate({
-            path: 'savedCourses',
-            model: 'Course',
-            select: 'title description',
           });
+        // .populate({
+        //   path: 'savedCourses',
+        //   model: 'Course',
+        //   select: 'title description',
+        // });
 
         return NextResponse.json(companies);
       }
@@ -87,12 +87,12 @@ export async function GET(req: NextRequest) {
           path: 'employees',
           model: User,
           select: 'firstName lastName email department',
-        })
-        .populate({
-          path: 'savedCourses',
-          model: 'Course',
-          select: 'title description',
         });
+      // .populate({
+      //   path: 'savedCourses',
+      //   model: 'Course',
+      //   select: 'title description',
+      // });
 
       if (!company) {
         return NextResponse.json(

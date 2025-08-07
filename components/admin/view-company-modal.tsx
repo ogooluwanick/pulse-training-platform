@@ -32,7 +32,7 @@ interface Company {
     email: string;
   };
   employees?: any[];
-  savedCourses?: any[];
+  // savedCourses?: any[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -179,7 +179,7 @@ export default function ViewCompanyModal({
                   </div>
                 </div>
 
-                <div className="text-center p-4 bg-parchment rounded-lg border border-warm-gray/20">
+                {/* <div className="text-center p-4 bg-parchment rounded-lg border border-warm-gray/20">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Activity className="h-5 w-5 text-charcoal" />
                     <span className="text-sm text-warm-gray">
@@ -189,7 +189,7 @@ export default function ViewCompanyModal({
                   <div className="text-2xl font-bold text-charcoal">
                     {company.savedCourses?.length || 0}
                   </div>
-                </div>
+                </div> */}
 
                 <div className="text-center p-4 bg-parchment rounded-lg border border-warm-gray/20">
                   <div className="flex items-center justify-center gap-2 mb-2">

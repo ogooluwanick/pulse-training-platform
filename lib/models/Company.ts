@@ -17,12 +17,12 @@ const CompanySchema = new Schema(
         ref: 'User',
       },
     ],
-    savedCourses: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'Course',
-      },
-    ],
+    // savedCourses: [
+    //   {
+    //     type: Schema.Types.ObjectId,
+    //     ref: 'Course',
+    //   },
+    // ],
     status: {
       type: String,
       enum: ['active', 'deactivated'],
