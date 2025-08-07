@@ -65,34 +65,30 @@ const CourseSchema = new Schema(
       ],
       required: true,
     },
-    instructor: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: false,
-    },
+    // instructor: {
+    //   type: Schema.Types.ObjectId,
+    //   ref: 'User',
+    //   required: false,
+    // },
     duration: {
       // IN MINS
       type: Number,
       required: false,
     },
-    difficulty: {
-      type: String,
-      enum: ['Beginner', 'Intermediate', 'Advanced'],
-      required: false,
-    },
-    rating: [
-      {
-        user: {
-          type: Schema.Types.ObjectId,
-          ref: 'User',
-        },
-        rating: {
-          type: Number,
-          min: 1,
-          max: 5,
-        },
-      },
-    ],
+
+    // rating: [
+    //   {
+    //     user: {
+    //       type: Schema.Types.ObjectId,
+    //       ref: 'User',
+    //     },
+    //     rating: {
+    //       type: Number,
+    //       min: 1,
+    //       max: 5,
+    //     },
+    //   },
+    // ],
     enrolledCount: {
       type: Number,
       required: false,
@@ -178,15 +174,15 @@ export interface Course {
     | 'Onboarding'
     | 'Product Training'
     | 'Other';
-  instructor?: { name: string } | string;
+  // instructor?: { name: string } | string;
   duration?: number;
-  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
-  rating?: Array<{
-    user: string;
-    rating: number;
-  }>;
-  averageRating?: number;
-  totalRatings?: number;
+
+  // rating?: Array<{
+  //   user: string;
+  //   rating: number;
+  // }>;
+  // averageRating?: number;
+  // totalRatings?: number;
   enrolledCount?: number;
   tags: string[];
   lessons: Lesson[];

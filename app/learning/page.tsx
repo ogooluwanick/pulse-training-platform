@@ -47,7 +47,7 @@ interface Course {
   status: string;
   totalLessons: number;
   completedLessons: number;
-  difficulty?: string;
+
   assignedAt?: string;
   completedAt?: string;
 }
@@ -86,18 +86,7 @@ export default function MyLearningPage() {
     queryFn: fetchLearningData,
   });
 
-  const getDifficultyColor = (difficulty?: string) => {
-    switch (difficulty) {
-      case 'Beginner':
-        return 'bg-success-green text-alabaster';
-      case 'Intermediate':
-        return 'bg-warning-ochre text-alabaster';
-      case 'Advanced':
-        return 'bg-charcoal text-alabaster';
-      default:
-        return 'bg-warm-gray text-alabaster';
-    }
-  };
+
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -342,14 +331,7 @@ export default function MyLearningPage() {
                           >
                             {course.category}
                           </Badge>
-                          {course.difficulty && (
-                            <Badge
-                              className={getDifficultyColor(course.difficulty)}
-                              variant="secondary"
-                            >
-                              {course.difficulty}
-                            </Badge>
-                          )}
+
                           <Badge
                             className={getStatusColor(course.status)}
                             variant="secondary"

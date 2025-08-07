@@ -46,13 +46,12 @@ interface Course {
   _id: string;
   title: string;
   description: string;
-  instructor: { firstName?: string; name?: string } | string;
+  // instructor: { firstName?: string; name?: string } | string;
   duration: number;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
-  rating: number;
-  averageRating?: number;
-  totalRatings?: number;
+  // rating: number;
+  // averageRating?: number;
+  // totalRatings?: number;
   enrolledCount: number;
   tags: string[];
 }
@@ -72,18 +71,7 @@ const fetchCourses = async (): Promise<Course[]> => {
   return res.json();
 };
 
-const getDifficultyColor = (difficulty: Course['difficulty']) => {
-  switch (difficulty) {
-    case 'Beginner':
-      return 'bg-success-green text-alabaster';
-    case 'Intermediate':
-      return 'bg-warning-ochre text-alabaster';
-    case 'Advanced':
-      return 'bg-charcoal text-alabaster';
-    default:
-      return 'bg-warm-gray text-alabaster';
-  }
-};
+
 
 const getCategoryColor = (category: Course['category']) => {
   switch (category) {
@@ -311,14 +299,7 @@ export default function MassAssignCourseModal({
                                 {course.category.charAt(0).toUpperCase() +
                                   course.category.slice(1)}
                               </Badge>
-                              <Badge
-                                className={getDifficultyColor(
-                                  course.difficulty
-                                )}
-                                variant="secondary"
-                              >
-                                {course.difficulty}
-                              </Badge>
+
                             </div>
                             <div>
                               <CardTitle className="text-lg text-charcoal">
@@ -332,14 +313,14 @@ export default function MassAssignCourseModal({
                           <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
                             <div>
                               <div className="flex items-center justify-between text-sm text-warm-gray">
-                                <span>
+                                {/* <span>
                                   By{' '}
                                   {typeof course.instructor === 'object'
                                     ? course.instructor?.firstName ||
                                       'Pulse Platform'
                                     : course.instructor || 'Pulse Platform'}
-                                </span>
-                                <div className="flex items-center gap-1">
+                                </span> */}
+                                {/* <div className="flex items-center gap-1">
                                   <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
                                   <span>
                                     {course.averageRating
@@ -349,7 +330,7 @@ export default function MassAssignCourseModal({
                                   <span className="text-xs">
                                     ({course.totalRatings || 0})
                                   </span>
-                                </div>
+                                </div> */}
                               </div>
                               <div className="flex items-center gap-4 text-sm text-warm-gray mt-2">
                                 <div className="flex items-center gap-1">

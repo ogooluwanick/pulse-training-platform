@@ -28,6 +28,7 @@ export async function GET(
     })
       .populate('createdBy', 'firstName lastName email')
       .populate('lastModifiedBy', 'firstName lastName email');
+      // .populate('instructor', 'firstName lastName email')
 
     if (!courseModule) {
       return NextResponse.json(
@@ -68,7 +69,7 @@ export async function PUT(
       quiz,
       tags,
       status,
-      difficulty,
+
       lessons,
       finalQuiz,
       category,
@@ -109,7 +110,7 @@ export async function PUT(
     if (tags !== undefined) updateData.tags = tags;
     if (status !== undefined) updateData.status = status;
     if (category !== undefined) updateData.category = category;
-    if (difficulty !== undefined) updateData.difficulty = difficulty;
+
 
     // Handle lessons array
     if (lessons !== undefined && Array.isArray(lessons)) {

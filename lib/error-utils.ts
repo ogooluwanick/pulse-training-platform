@@ -117,8 +117,7 @@ export function formatValidationErrors(errors: ValidationError[]): string[] {
         return 'Please add a course description';
       case 'category':
         return 'Please select a course category';
-      case 'difficulty':
-        return 'Please select a difficulty level';
+
       case 'status':
         return 'Please select a course status';
       default:

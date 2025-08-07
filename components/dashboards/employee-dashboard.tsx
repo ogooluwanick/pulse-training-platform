@@ -31,8 +31,7 @@ import { formatDuration } from '@/lib/duration';
 
 // Updated interface for course data from the API
 interface CourseWithProgress {
-  _id: string; // Assignment ID
-  courseId: string; // Course ID
+  _id: string;
   title: string;
   description: string;
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
@@ -41,8 +40,8 @@ interface CourseWithProgress {
   status: 'not-started' | 'in-progress' | 'completed';
   totalLessons: number;
   completedLessons: number;
-  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
-  rating?: any[];
+  // difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+  // rating?: any[];
   enrolledCount?: number;
   tags?: string[];
   assignedAt?: string;
@@ -127,7 +126,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     queryFn: fetchLearningData,
     enabled: !!user.id,
     staleTime: 0, // Force fresh data
-    cacheTime: 0, // Don't cache
+    gcTime: 0, // Don't cache
   });
 
   // Fetch course assignments for basic course data
@@ -139,7 +138,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     queryFn: fetchCourseAssignments,
     enabled: !!user.id,
     staleTime: 0, // Force fresh data
-    cacheTime: 0, // Don't cache
+    gcTime: 0, // Don't cache
   });
 
   const isLoading = isLoadingLearning || isLoadingCourses;
@@ -200,20 +199,20 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     }
   };
 
-  const getDifficultyColor = (
-    difficulty?: CourseWithProgress['difficulty']
-  ) => {
-    switch (difficulty) {
-      case 'Beginner':
-        return 'text-success-green';
-      case 'Intermediate':
-        return 'text-warning-ochre';
-      case 'Advanced':
-        return 'text-charcoal';
-      default:
-        return 'text-warm-gray';
-    }
-  };
+  // const getDifficultyColor = (
+  //   difficulty?: CourseWithProgress['difficulty']
+  // ) => {
+  //   switch (difficulty) {
+  //     case 'Beginner':
+  //       return 'text-success-green';
+  //     case 'Intermediate':
+  //       return 'text-warning-ochre';
+  //     case 'Advanced':
+  //       return 'text-charcoal';
+  //     default:
+  //       return 'text-warm-gray';
+  //   }
+  // };
 
   const getAssignmentTypeBadge = (assignment: CourseWithProgress) => {
     if (assignment.assignmentType === 'interval' && assignment.interval) {
@@ -417,16 +416,11 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                     <div className="flex justify-between text-sm">
                       <span className="text-warm-gray">Progress</span>
                       <span className="text-charcoal font-medium">
-                        {data.total > 0
-                          ? Math.round((data.completed / data.total) * 100)
-                          : 0}
-                        %
+                        {data.averageProgress || 0}%
                       </span>
                     </div>
                     <Progress
-                      value={
-                        data.total > 0 ? (data.completed / data.total) * 100 : 0
-                      }
+                      value={data.averageProgress || 0}
                       className="h-2"
                     />
                     <div className="flex justify-between text-xs text-warm-gray">
@@ -622,7 +616,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
 
                     {/* Course details */}
                     <div className="space-y-2 text-xs text-warm-gray">
-                      {assignment.difficulty && (
+                      {/* {assignment.difficulty && (
                         <div className="flex items-center gap-1">
                           <span>Level:</span>
                           <span
@@ -631,7 +625,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                             {assignment.difficulty}
                           </span>
                         </div>
-                      )}
+                      )} */}
                       {assignment.duration > 0 && (
                         <div className="flex items-center gap-1">
                           <Clock className="h-3 w-3" />
@@ -653,7 +647,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
 
                     <div className="flex gap-2">
                       <Link
-                        href={`/dashboard/course/${assignment.courseId}`}
+                        href={`/dashboard/course/${assignment._id}`}
                         className="flex-1"
                       >
                         <Button

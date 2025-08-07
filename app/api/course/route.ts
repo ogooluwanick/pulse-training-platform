@@ -14,27 +14,27 @@ export async function GET() {
 
   try {
     const courses = await Course.find({ status: 'published' })
-      .populate('instructor')
+      // .populate('instructor')
       .lean();
 
     // Calculate average rating and total ratings for each course
-    const coursesWithRatings = courses.map((course) => {
-      const ratings = course.rating || [];
-      const totalRatings = ratings.length;
-      const averageRating =
-        totalRatings > 0
-          ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) /
-            totalRatings
-          : 0;
+    // const coursesWithRatings = courses.map((course) => {
+    //   const ratings = course.rating || [];
+    //   const totalRatings = ratings.length;
+    //   const averageRating =
+    //     totalRatings > 0
+    //       ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) /
+    //         totalRatings
+    //       : 0;
 
-      return {
-        ...course,
-        averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
-        totalRatings,
-      };
-    });
+    //   return {
+    //     ...course,
+    //     averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+    //     totalRatings,
+    //   };
+    // });
 
-    return NextResponse.json({ success: true, courses: coursesWithRatings });
+    return NextResponse.json({ success: true, courses: courses });
   } catch (error) {
     console.error('Error fetching courses:', error);
     return NextResponse.json(
@@ -59,7 +59,6 @@ export async function POST(request: Request) {
       description,
       category,
       status,
-      difficulty,
       tags,
       lessons,
       finalQuiz,
@@ -71,7 +70,6 @@ export async function POST(request: Request) {
       description,
       category,
       status,
-      difficulty,
       tags,
       lessons,
       finalQuiz,

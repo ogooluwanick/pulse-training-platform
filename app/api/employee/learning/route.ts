@@ -50,8 +50,8 @@ export async function GET() {
         status: assignment.status,
         totalLessons,
         completedLessons,
-        difficulty: course.difficulty,
-        rating: course.rating || [],
+
+        // rating: course.rating || [],
         enrolledCount: course.enrolledCount || 0,
         tags: course.tags || [],
         assignedAt: assignment.createdAt,

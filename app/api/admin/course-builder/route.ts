@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         description || 'A new universal course available to all companies.',
       category: body.category || 'General',
       isCompanySpecific: false, // Universal course
-      instructor: session.user.id,
+      // instructor: session.user.id,
       createdBy: session.user.id,
       lastModifiedBy: session.user.id,
       status,

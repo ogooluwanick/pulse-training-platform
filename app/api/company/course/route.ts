@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       category: body.category || 'General',
       isCompanySpecific: true,
       companyId: companyId,
-      instructor: session.user.id,
+      // instructor: session.user.id,
       createdBy: session.user.id,
       lastModifiedBy: session.user.id,
       status,

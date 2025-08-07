@@ -6,12 +6,7 @@
     "title": "Data Privacy & GDPR Compliance",
     "description": "Essential training on data protection regulations and best practices for handling personal data.",
     "category": "compliance",
-    "instructor": {
-      "$oid": "6886a4d4e733962f77f78c00"
-    },
     "duration": 120,
-    "difficulty": "Beginner",
-    "rating": [],
     "enrolledCount": 0,
     "tags": [
       "GDPR",
@@ -123,12 +118,7 @@
     "title": "Anti-Money Laundering (AML)",
     "description": "A comprehensive overview of Anti-Money Laundering regulations and practices to prevent financial crimes.",
     "category": "compliance",
-    "instructor": {
-      "$oid": "6886a4d4e733962f77f78c00"
-    },
     "duration": 180,
-    "difficulty": "Intermediate",
-    "rating": [],
     "enrolledCount": 0,
     "tags": [
       "AML",
@@ -216,12 +206,7 @@
     "title": "Company Culture & Values",
     "description": "An introduction to our company's culture, mission, and the core values that guide our work.",
     "category": "culture",
-    "instructor": {
-      "$oid": "6886a4d4e733962f77f78c00"
-    },
     "duration": 60,
-    "difficulty": "Beginner",
-    "rating": [],
     "enrolledCount": 0,
     "tags": [
       "Culture",
@@ -293,12 +278,7 @@
     "title": "Cybersecurity Awareness",
     "description": "Learn how to protect our company's digital assets and recognize common cybersecurity threats.",
     "category": "compliance",
-    "instructor": {
-      "$oid": "6886a4d4e733962f77f78c00"
-    },
     "duration": 90,
-    "difficulty": "Beginner",
-    "rating": [],
     "enrolledCount": 0,
     "tags": [
       "Cybersecurity",
@@ -373,12 +353,7 @@
     "title": "Comprehensive Test Course",
     "description": "A comprehensive course to test all features of the course builder.",
     "category": "technical",
-    "instructor": {
-      "$oid": "6886a4d4e733962f77f78c00"
-    },
     "duration": 60,
-    "difficulty": "Intermediate",
-    "rating": [],
     "enrolledCount": 0,
     "tags": [
       "testing",

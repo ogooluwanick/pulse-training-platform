@@ -27,7 +27,6 @@ export interface Module {
   description?: string;
   tags?: string[];
   status?: 'draft' | 'published' | 'archived';
-  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   lessons?: CourseLesson[];
   finalQuiz?: {
     title: string;
@@ -68,7 +67,6 @@ export interface CourseModule {
   content?: string; // From the first lesson (for backward compatibility)
   category: CourseModuleCategory;
   status: 'draft' | 'published' | 'archived';
-  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   tags: string[];
   lessons?: CourseLesson[];
   finalQuiz?: {
@@ -85,6 +83,10 @@ export interface CourseModule {
   enrolledCount?: number;
   viewCount?: number;
   completionCount?: number;
+  // instructor?: string;
+  // rating?: number;
+  // averageRating?: number;
+  // totalRatings?: number;
 }
 
 // Helper function to capitalize tags
@@ -227,7 +229,7 @@ export function courseToCourseModule(course: CourseModule): Module {
     category: course.category,
     tags: course.tags || [],
     status: course.status,
-    difficulty: course.difficulty,
+
     lessons: course.lessons
       ? course.lessons.map((lesson) => {
           debugLog('Converting lesson:', lesson);
@@ -312,7 +314,7 @@ export function courseModuleToCourse(
     description: module.description,
     category: module.category || CourseModuleCategory.GENERAL,
     status: module.status || 'draft',
-    difficulty: module.difficulty,
+
     tags: capitalizeTags(module.tags || []), // Capitalize tags
     companyId,
     createdBy: userId,

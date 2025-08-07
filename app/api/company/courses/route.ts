@@ -20,7 +20,9 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const courses = await Course.find({}).populate('instructor').lean();
+    const courses = await Course.find({})
+      // .populate('instructor')
+      .lean();
 
     const coursesWithAggregates = await Promise.all(
       courses.map(async (course) => {
@@ -29,20 +31,20 @@ export async function GET() {
         });
 
         // Calculate average rating and total ratings
-        const averageRating =
-          course.rating && course.rating.length > 0
-            ? course.rating.reduce((acc: number, r: any) => acc + r.rating, 0) /
-              course.rating.length
-            : 0;
+        // const averageRating =
+        //   course.rating && course.rating.length > 0
+        //     ? course.rating.reduce((acc: number, r: any) => acc + r.rating, 0) /
+        //       course.rating.length
+        //     : 0;
 
-        const totalRatings = course.rating ? course.rating.length : 0;
+        // const totalRatings = course.rating ? course.rating.length : 0;
 
         return {
           ...course,
           enrolledCount,
-          averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
-          totalRatings,
-          rating: averageRating, // Keep for backward compatibility
+          // averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal
+          // totalRatings,
+          // rating: averageRating, // Keep for backward compatibility
           tags: course.tags || [],
         };
       })

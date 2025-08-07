@@ -61,13 +61,13 @@ export async function POST(
   await assignment.save();
 
   // Check if user has already rated this course
-  const courseData = await Course.findById(courseId);
-  const hasRated =
-    courseData?.rating.some((r: any) => r.user.toString() === userId) || false;
+  // const courseData = await Course.findById(courseId);
+  // const hasRated =
+  //   courseData?.rating.some((r: any) => r.user.toString() === userId) || false;
 
   return NextResponse.json({
     message: 'Course marked as completed',
     assignment,
-    shouldPromptRating: !hasRated, // Only prompt if user hasn't rated yet
+    // shouldPromptRating: !hasRated, // Only prompt if user hasn't rated yet
   });
 }

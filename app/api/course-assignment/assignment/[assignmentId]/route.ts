@@ -39,7 +39,8 @@ export async function GET(
     // Manually populate the course to ensure all fields are included
     const course = await Course.findById(assignment.course)
       .select(
-        'title description category instructor duration difficulty rating enrolledCount tags lessons finalQuiz status isCompanySpecific companyId createdBy lastModifiedBy'
+        'title description category duration enrolledCount tags lessons finalQuiz status isCompanySpecific companyId createdBy lastModifiedBy'
+        // 'title description category duration enrolledCount tags lessons finalQuiz status isCompanySpecific companyId createdBy lastModifiedBy'
       )
       .lean();
     if (course) {

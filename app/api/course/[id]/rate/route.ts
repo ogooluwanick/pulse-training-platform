@@ -6,6 +6,29 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import mongoose from 'mongoose';
 
+// Rating functionality temporarily disabled
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return NextResponse.json(
+    { message: 'Rating functionality is temporarily disabled' },
+    { status: 503 }
+  );
+}
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  return NextResponse.json(
+    { message: 'Rating functionality is temporarily disabled' },
+    { status: 503 }
+  );
+}
+
+// Original rating implementation (commented out)
+/*
 export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -138,3 +161,4 @@ export async function GET(
     );
   }
 }
+*/

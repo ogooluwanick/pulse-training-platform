@@ -45,8 +45,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import toast from 'react-hot-toast';
 import { isYouTubeUrl } from '@/lib/utils';
 import { Course, Lesson } from '@/lib/models/Course';
-import CourseRating from '@/components/course-rating';
-import CourseCompletionRatingModal from '@/components/course-completion-rating-modal';
+// import CourseRating from '@/components/course-rating';
+// import CourseCompletionRatingModal from '@/components/course-completion-rating-modal';
 
 interface LessonProgress {
   lessonId: string;
@@ -98,7 +98,7 @@ export default function CourseView({
   const [progress, setProgress] = useState(0);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<number>(0);
-  const [showRatingPrompt, setShowRatingPrompt] = useState(false);
+  // const [showRatingPrompt, setShowRatingPrompt] = useState(false);
   const [courseCompleted, setCourseCompleted] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCompletedLessons, setShowCompletedLessons] = useState(true);
@@ -438,9 +438,9 @@ export default function CourseView({
             setFinalQuizPassed(true);
 
             // Show rating prompt if user hasn't rated yet
-            if (data.shouldPromptRating) {
-              setShowRatingPrompt(true);
-            }
+            // if (data.shouldPromptRating) {
+            //   setShowRatingPrompt(true);
+            // }
           },
         }
       );
@@ -449,14 +449,12 @@ export default function CourseView({
     }
   };
 
-  const handleRatingSubmit = (rating: number) => {
-    setShowRatingPrompt(false);
-    toast.success('Thank you for your rating!');
-    // Optionally refresh course data to show updated rating
-    if (course) {
-      // Update course state with new rating info if needed
-    }
-  };
+  // const handleRatingSubmit = (rating: number) => {
+  //   // setShowRatingPrompt(false);
+  //   toast.success('Thank you for your rating!');
+  //   // Optionally refresh course data to show updated rating
+  //   // Update course state with new rating info if needed
+  // };
 
   const handleMarkAsComplete = async () => {
     if (!currentLesson?._id) {
@@ -1626,13 +1624,13 @@ export default function CourseView({
       </Dialog>
 
       {/* Course Completion Rating Modal */}
-      <CourseCompletionRatingModal
+      {/* <CourseCompletionRatingModal
         isOpen={showRatingPrompt}
         onClose={() => setShowRatingPrompt(false)}
         onRatingSubmit={handleRatingSubmit}
         courseId={params.id as string}
         courseTitle={course?.title || 'Course'}
-      />
+      /> */}
     </div>
   );
 }

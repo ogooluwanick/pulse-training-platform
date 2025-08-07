@@ -20,14 +20,14 @@ interface Video {
   description: string;
   url: string;
   duration: number;
-  instructor: string;
+  // instructor: string;
   topic?: {
     title: string;
   };
   category?: string;
   thumbnail?: string;
   views?: number;
-  rating?: number;
+  // rating?: number;
 }
 
 export default function VideosPage() {
@@ -135,9 +135,7 @@ export default function VideosPage() {
 
       const matchesSearch =
         video.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        video.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (video.instructor &&
-          video.instructor.toLowerCase().includes(searchTerm.toLowerCase()));
+        video.description.toLowerCase().includes(searchTerm.toLowerCase());
 
       console.log('🎯 Video filter results:', {
         videoTitle: video.title,
@@ -244,7 +242,7 @@ export default function VideosPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-gray" />
               <Input
-                placeholder="Search videos, instructors, or topics..."
+                placeholder="Search videos, topics, or categories..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-alabaster border-warm-gray/30 focus:border-charcoal"
@@ -328,10 +326,10 @@ export default function VideosPage() {
                   {video.description}
                 </p>
                 <div className="flex items-center justify-between text-xs text-warm-gray">
-                  <div className="flex items-center gap-1">
+                  {/* <div className="flex items-center gap-1">
                     <User className="h-3 w-3" />
                     <span>{video.instructor}</span>
-                  </div>
+                  </div> */}
                   {video.views && (
                     <div className="flex items-center gap-1">
                       <span>{video.views} views</span>

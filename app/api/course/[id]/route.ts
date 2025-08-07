@@ -17,7 +17,7 @@ export async function GET(
 
   try {
     const course = await Course.findOne({ _id: params.id, status: 'published' })
-      .populate('instructor')
+      // .populate('instructor')
       .lean();
     if (!course) {
       return NextResponse.json(
@@ -27,21 +27,21 @@ export async function GET(
     }
 
     // Calculate average rating and total ratings
-    const ratings = (course as any).rating || [];
-    const totalRatings = ratings.length;
-    const averageRating =
-      totalRatings > 0
-        ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) /
-          totalRatings
-        : 0;
+    // const ratings = (course as any).rating || [];
+    // const totalRatings = ratings.length;
+    // const averageRating =
+    //   totalRatings > 0
+    //     ? ratings.reduce((sum: number, r: any) => sum + r.rating, 0) /
+    //       totalRatings
+    //     : 0;
 
-    const courseWithRatings = {
-      ...course,
-      averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
-      totalRatings,
-    };
+    // const courseWithRatings = {
+    //   ...course,
+    //   averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+    //   totalRatings,
+    // };
 
-    return NextResponse.json({ success: true, module: courseWithRatings });
+    return NextResponse.json({ success: true, module: course });
   } catch (error) {
     console.error('Error fetching course:', error);
     return NextResponse.json(
@@ -69,7 +69,6 @@ export async function PUT(
       description,
       category,
       status,
-      difficulty,
       tags,
       lessons,
       finalQuiz,
@@ -83,7 +82,6 @@ export async function PUT(
         description,
         category,
         status,
-        difficulty,
         tags,
         lessons,
         finalQuiz,

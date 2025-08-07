@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
             title: { $ifNull: ['$courseDetails.title', 'Course Not Found'] },
             description: { $ifNull: ['$courseDetails.description', ''] },
             category: { $ifNull: ['$courseDetails.category', 'unknown'] },
-            difficulty: { $ifNull: ['$courseDetails.difficulty', null] },
+
             duration: { $ifNull: ['$courseDetails.duration', 0] },
             lessons: { $ifNull: ['$courseDetails.lessons', []] },
             finalQuiz: { $ifNull: ['$courseDetails.finalQuiz', null] },

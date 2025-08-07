@@ -76,9 +76,7 @@ export default function ModuleEditor({
   const [status, setStatus] = useState<'draft' | 'published' | 'archived'>(
     'draft'
   );
-  const [difficulty, setDifficulty] = useState<
-    'Beginner' | 'Intermediate' | 'Advanced'
-  >('Beginner');
+
   const [category, setCategory] = useState<CourseModuleCategory>(
     CourseModuleCategory.GENERAL
   );
@@ -105,7 +103,7 @@ export default function ModuleEditor({
       setDescription(module.description || '');
       setTags(module.tags || []);
       setStatus(module.status || 'draft');
-      setDifficulty(module.difficulty || 'Beginner');
+
       setCategory(module.category || CourseModuleCategory.GENERAL);
 
       // Handle lessons
@@ -378,7 +376,7 @@ export default function ModuleEditor({
         description,
         tags,
         status,
-        difficulty,
+
         category,
         lessons: backendLessons.map((lesson, index) => {
           const mappedLesson = {
@@ -1025,24 +1023,7 @@ export default function ModuleEditor({
                     </Select>
                   </div>
 
-                  <div>
-                    <Label>Difficulty</Label>
-                    <Select
-                      value={difficulty}
-                      onValueChange={(value: any) => setDifficulty(value)}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Beginner">Beginner</SelectItem>
-                        <SelectItem value="Intermediate">
-                          Intermediate
-                        </SelectItem>
-                        <SelectItem value="Advanced">Advanced</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+
                 </div>
               </CardContent>
             </Card>

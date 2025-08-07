@@ -31,13 +31,12 @@ interface Course {
   _id: string;
   title: string;
   description: string;
-  instructor: { firstName?: string; name?: string } | string;
+  // instructor: { firstName?: string; name?: string } | string;
   duration: number;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
   category?: 'compliance' | 'skills' | 'culture' | 'technical';
-  rating: number;
-  averageRating?: number;
-  totalRatings?: number;
+  // rating: number;
+  // averageRating?: number;
+  // totalRatings?: number;
   enrolledCount: number;
   tags: string[];
   isEnrolled: boolean;
@@ -51,7 +50,7 @@ interface AssignedCourse {
     title: string;
     description: string;
     category?: 'compliance' | 'skills' | 'culture' | 'technical';
-    difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+
     duration: number;
     lessons: any[];
     finalQuiz: any;
@@ -79,7 +78,7 @@ interface AssignedCourse {
 export default function CourseCatalogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('all');
+
   const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [savedCourses, setSavedCourses] = useState<string[]>([]);
 
@@ -203,25 +202,12 @@ export default function CourseCatalogPage() {
     },
   });
 
-  const getDifficultyColor = (difficulty: Course['difficulty']) => {
-    switch (difficulty) {
-      case 'Beginner':
-        return 'bg-success-green text-alabaster';
-      case 'Intermediate':
-        return 'bg-warning-ochre text-alabaster';
-      case 'Advanced':
-        return 'bg-charcoal text-alabaster';
-      default:
-        return 'bg-warm-gray text-alabaster';
-    }
-  };
-
-  const getInstructorName = (instructor: Course['instructor']): string => {
-    if (typeof instructor === 'string') {
-      return instructor;
-    }
-    return instructor?.firstName || instructor?.name || 'Pulse Platform';
-  };
+  // const getInstructorName = (instructor: Course['instructor']): string => {
+  //   if (typeof instructor === 'string') {
+  //     return instructor;
+  //   }
+  //   return instructor?.firstName || instructor?.name || 'Pulse Platform';
+  // };
 
   const getCategoryColor = (category: Course['category']) => {
     if (!category) {
@@ -250,13 +236,10 @@ export default function CourseCatalogPage() {
       );
     const matchesCategory =
       selectedCategory === 'all' || course.category === selectedCategory;
-    const matchesDifficulty =
-      selectedDifficulty === 'all' || course.difficulty === selectedDifficulty;
+
     const matchesSaved = !showSavedOnly || savedCourses.includes(course._id);
 
-    return (
-      matchesSearch && matchesCategory && matchesDifficulty && matchesSaved
-    );
+    return matchesSearch && matchesCategory && matchesSaved;
   });
 
   if (isLoading) {
@@ -300,7 +283,7 @@ export default function CourseCatalogPage() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-gray" />
               <Input
-                placeholder="Search courses, instructors, or topics..."
+                placeholder="Search courses, topics, or tags..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 bg-alabaster border-warm-gray/30 focus:border-charcoal"
@@ -321,20 +304,7 @@ export default function CourseCatalogPage() {
                 <SelectItem value="technical">Technical</SelectItem>
               </SelectContent>
             </Select>
-            <Select
-              value={selectedDifficulty}
-              onValueChange={setSelectedDifficulty}
-            >
-              <SelectTrigger className="w-full md:w-48 bg-alabaster border-warm-gray/30">
-                <SelectValue placeholder="Difficulty" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="Beginner">Beginner</SelectItem>
-                <SelectItem value="Intermediate">Intermediate</SelectItem>
-                <SelectItem value="Advanced">Advanced</SelectItem>
-              </SelectContent>
-            </Select>
+
             <Button
               variant={showSavedOnly ? 'default' : 'outline'}
               onClick={() => setShowSavedOnly(!showSavedOnly)}
@@ -394,12 +364,6 @@ export default function CourseCatalogPage() {
                               course.category.slice(1)
                             : 'Unknown'}
                         </Badge>
-                        <Badge
-                          className={getDifficultyColor(course.difficulty)}
-                          variant="secondary"
-                        >
-                          {course.difficulty}
-                        </Badge>
                       </div>
                       <div>
                         <CardTitle className="text-lg text-charcoal">
@@ -412,8 +376,8 @@ export default function CourseCatalogPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-center justify-between text-sm text-warm-gray">
-                        <span>By {getInstructorName(course.instructor)}</span>
-                        <div className="flex items-center gap-1">
+                        {/* <span>By {getInstructorName(course.instructor)}</span> */}
+                        {/* <div className="flex items-center gap-1">
                           <Star className="h-3 w-3 fill-warning-ochre text-warning-ochre" />
                           <span>
                             {course.averageRating
@@ -423,7 +387,7 @@ export default function CourseCatalogPage() {
                           <span className="text-xs">
                             ({course.totalRatings || 0})
                           </span>
-                        </div>
+                        </div> */}
                       </div>
                       <div className="flex items-center gap-4 text-sm text-warm-gray">
                         <div className="flex items-center gap-1">
@@ -520,14 +484,6 @@ export default function CourseCatalogPage() {
                           ? assignment.course.category.charAt(0).toUpperCase() +
                             assignment.course.category.slice(1)
                           : 'Unknown'}
-                      </Badge>
-                      <Badge
-                        className={getDifficultyColor(
-                          assignment.course.difficulty
-                        )}
-                        variant="secondary"
-                      >
-                        {assignment.course.difficulty}
                       </Badge>
                     </div>
                     <div>

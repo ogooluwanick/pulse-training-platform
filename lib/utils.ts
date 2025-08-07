@@ -12,8 +12,8 @@ export const isYouTubeUrl = (url: string): boolean => {
 };
 
 // Utility function to consistently format instructor names
-export const getInstructorName = (instructor: { name: string } | string | null | undefined): string => {
-  if (!instructor) return 'Pulse Platform';
-  if (typeof instructor === 'string') return instructor || 'Pulse Platform';
-  return instructor.name || 'Pulse Platform';
-};
+// export const getInstructorName = (instructor: { name: string } | string | null | undefined): string => {
+//   if (!instructor) return 'Pulse Platform';
+//   if (typeof instructor === 'string') return instructor || 'Pulse Platform';
+//   return instructor.name || 'Pulse Platform';
+// };
