@@ -1,11 +1,21 @@
+'use client';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, Users, BarChart3, Award } from 'lucide-react';
 import Image from 'next/image';
 import AnimatedDiv from '@/components/AnimatedDiv';
+import DemoRequestModal from '@/components/demo-request-modal';
 
 export default function LandingPage() {
+  const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
+
+  const handleOpenModal = () => {
+    setIsDemoModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
       {/* Hero Section */}
@@ -34,6 +44,7 @@ export default function LandingPage() {
                 <Button
                   size="lg"
                   className="px-4 py-2 rounded-md border border-charcoal text-charcoal hover:bg-charcoal hover:text-white transition-colors"
+                  onClick={handleOpenModal}
                 >
                   Request a Demo
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -41,7 +52,7 @@ export default function LandingPage() {
                 <Button
                   variant="outline"
                   size="lg"
-                  className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                  className="px-4 py-2 rounded-md bg-charcoal border-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
                 >
                   Watch Overview
                 </Button>
@@ -189,6 +200,7 @@ export default function LandingPage() {
             <Button
               size="lg"
               className="border-solid border border-charcoal bg-white hover:border-white hover:bg-charcoal hover:text-white  shadow-soft-lg"
+              onClick={() => setIsDemoModalOpen(true)}
             >
               Request a Demo
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -286,6 +298,12 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Demo Request Modal */}
+      <DemoRequestModal
+        isOpen={isDemoModalOpen}
+        onClose={() => setIsDemoModalOpen(false)}
+      />
     </div>
   );
 }

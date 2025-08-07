@@ -145,6 +145,11 @@ const adminItems = [
     url: '/admin/reports',
     icon: BarChart3,
   },
+  {
+    title: 'Inquiries',
+    url: '/admin/inquiries',
+    icon: MessageSquare,
+  },
   // {
   //   title: 'Platform Settings',
   //   url: '/admin/platform',

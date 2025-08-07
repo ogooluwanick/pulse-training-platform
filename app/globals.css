@@ -14,7 +14,7 @@
 }
 
 /* Custom scrollbar styling */
-::-webkit-scrollbar {
+/* ::-webkit-scrollbar {
   width: 6px;
 }
 
@@ -29,6 +29,11 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #141413;
+} */
+
+::-webkit-scrollbar {
+	width: 0px !important;
+	height: 0px !important;
 }
 
 /* Smooth transitions for interactive elements */

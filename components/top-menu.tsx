@@ -140,7 +140,7 @@ export function TopMenu() {
                 href="/auth/signup"
                 className="px-4 py-2 rounded-md bg-charcoal text-white hover:bg-charcoal/90 transition-soft"
               >
-                Get Started
+                Sign Up
               </Link>
             </div>
           )}
