@@ -38,7 +38,12 @@ export async function POST(request: Request) {
           model: Company,
         },
       })
-      .populate('course', 'title');
+      .populate({
+        path: 'course',
+        model: Course,
+        select: 'title',
+        match: {}, // No status filter for admin users
+      });
 
     const employeeProgress: {
       [key: string]: {

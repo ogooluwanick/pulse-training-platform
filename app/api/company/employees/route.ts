@@ -35,11 +35,14 @@ export async function GET() {
     const employeeData = await Promise.all(
       filteredEmployees.map(async (employee: any) => {
         // Find course assignments for this employee
+        // For company users, we need to populate courses without status filtering
+        // since company users should be able to see all their courses regardless of status
         const assignments = await CourseAssignment.find({
           employee: employee._id,
         }).populate({
           path: 'course',
           model: Course,
+          match: {}, // No status filter for company users
         });
 
         const coursesCompleted = assignments.filter(

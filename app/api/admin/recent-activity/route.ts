@@ -24,7 +24,12 @@ export async function GET() {
         model: User,
         select: 'firstName lastName companyId',
       })
-      .populate({ path: 'courseId', model: Course, select: 'title' })
+      .populate({
+        path: 'courseId',
+        model: Course,
+        select: 'title',
+        match: {}, // No status filter for admin users
+      })
       .sort({ createdAt: -1 })
       .limit(10);
 

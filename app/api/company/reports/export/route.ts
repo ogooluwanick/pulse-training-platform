@@ -69,7 +69,12 @@ export async function POST(request: Request) {
 
     // Get filtered assignments with populated course data
     const assignments = await CourseAssignment.find(assignmentQuery)
-      .populate('course', 'title lessons')
+      .populate({
+        path: 'course',
+        model: Course,
+        select: 'title lessons',
+        match: {}, // No status filter for company users
+      })
       .populate('employee', 'firstName lastName email department');
 
     // Calculate detailed employee progress for export

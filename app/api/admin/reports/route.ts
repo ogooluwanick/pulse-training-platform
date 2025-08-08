@@ -38,7 +38,12 @@ export async function GET(request: Request) {
         model: User,
         select: 'firstName lastName email companyName department',
       })
-      .populate('course', 'title');
+      .populate({
+        path: 'course',
+        model: Course,
+        select: 'title',
+        match: {}, // No status filter for admin users
+      });
 
     let totalCompletion = 0;
     let coursesInProgress = 0;

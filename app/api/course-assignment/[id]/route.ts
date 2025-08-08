@@ -40,7 +40,12 @@ export async function GET(
     const assignment = await CourseAssignment.findOne({
       course: new Types.ObjectId(courseId),
       employee: new Types.ObjectId(userId),
-    }).populate('course', 'title description lessons finalQuiz');
+    }).populate({
+      path: 'course',
+      model: Course,
+      select: 'title description lessons finalQuiz',
+      match: {}, // No status filter for course assignments
+    });
 
     console.log('Assignment found:', assignment ? 'YES' : 'NO');
 

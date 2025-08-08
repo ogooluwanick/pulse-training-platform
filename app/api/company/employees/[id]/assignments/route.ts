@@ -29,7 +29,11 @@ export async function GET(
 
     const assignments = await CourseAssignment.find({
       employee: new mongoose.Types.ObjectId(employeeId),
-    }).populate('course');
+    }).populate({
+      path: 'course',
+      model: Course,
+      match: {}, // No status filter for company users
+    });
 
     return NextResponse.json(assignments);
   } catch (error) {

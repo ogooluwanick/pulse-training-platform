@@ -27,7 +27,12 @@ export async function GET(request: Request) {
       userId: { $in: filteredEmployees.map((emp: any) => emp._id) },
     })
       .populate({ path: 'userId', model: User, select: 'firstName lastName' })
-      .populate({ path: 'courseId', model: Course, select: 'title' })
+      .populate({
+        path: 'courseId',
+        model: Course,
+        select: 'title',
+        match: {}, // No status filter for company users
+      })
       .sort({ createdAt: -1 })
       .limit(5);
 

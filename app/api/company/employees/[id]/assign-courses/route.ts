@@ -35,7 +35,11 @@ export async function POST(
 
     const existingAssignments = await CourseAssignment.find({
       employee: employeeId,
-    }).populate('course');
+    }).populate({
+      path: 'course',
+      model: Course,
+      match: {}, // No status filter for company users
+    });
 
     // Remove the duplicate check - allow multiple assignments of the same course
     // const existingCourseIds = existingAssignments.map((a) =>
