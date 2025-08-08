@@ -24,8 +24,19 @@ export async function GET() {
 
     await dbConnect();
 
+    // Get active company ID from session or cookie
+    const activeCompanyId = session.user.activeCompanyId;
+
+    if (!activeCompanyId) {
+      return NextResponse.json(
+        { message: 'No active company selected' },
+        { status: 400 }
+      );
+    }
+
     const assignments = await CourseAssignment.find({
       employee: session.user.id,
+      companyId: activeCompanyId,
     }).populate({
       path: 'course',
       model: Course,

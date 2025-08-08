@@ -391,74 +391,97 @@ export default function EmployeeManagementPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {employees?.map((employee) => (
-              <div
-                key={employee.id}
-                className="flex items-center gap-4 p-4 rounded-lg bg-alabaster border border-warm-gray/20"
-              >
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div>
-                    <p className="font-medium text-charcoal truncate capitalize">
-                      {employee.name || '-'}
-                    </p>
-                    <p className="text-sm text-warm-gray truncate">
-                      {employee.email}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-warm-gray">Department</p>
-                    <p className="text-sm text-charcoal">
-                      {employee.department}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-warm-gray">Progress</p>
-                    <div className="flex items-center gap-2">
-                      <Progress
-                        value={
-                          employee.overallProgress === 0
-                            ? 1
-                            : employee.overallProgress
-                        }
-                        className="flex-1 h-2"
-                      />
-                      <span className="text-sm text-charcoal">
-                        {employee.overallProgress}%
-                      </span>
+            {employees && employees.length > 0 ? (
+              employees.map((employee) => (
+                <div
+                  key={employee.id}
+                  className="flex items-center gap-4 p-4 rounded-lg bg-alabaster border border-warm-gray/20"
+                >
+                  <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <p className="font-medium text-charcoal truncate capitalize">
+                        {employee.name || '-'}
+                      </p>
+                      <p className="text-sm text-warm-gray truncate">
+                        {employee.email}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-warm-gray">Department</p>
+                      <p className="text-sm text-charcoal">
+                        {employee.department}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-warm-gray">Progress</p>
+                      <div className="flex items-center gap-2">
+                        <Progress
+                          value={
+                            employee.overallProgress === 0
+                              ? 1
+                              : employee.overallProgress
+                          }
+                          className="flex-1 h-2"
+                        />
+                        <span className="text-sm text-charcoal">
+                          {employee.overallProgress}%
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-warm-gray">Status</p>
+                      <Badge
+                        className={getStatusColor(employee.status)}
+                        variant="secondary"
+                      >
+                        {employee.status === 'on-track' && 'On Track'}
+                        {employee.status === 'at-risk' && 'At Risk'}
+                        {employee.status === 'overdue' && 'Overdue'}
+                      </Badge>
                     </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-warm-gray">Status</p>
-                    <Badge
-                      className={getStatusColor(employee.status)}
-                      variant="secondary"
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                      onClick={() => handleEditClick(employee)}
                     >
-                      {employee.status === 'on-track' && 'On Track'}
-                      {employee.status === 'at-risk' && 'At Risk'}
-                      {employee.status === 'overdue' && 'Overdue'}
-                    </Badge>
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-transparent border-warm-gray/30"
+                      onClick={() => handleAssignClick(employee)}
+                    >
+                      Assign
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-                    onClick={() => handleEditClick(employee)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-transparent border-warm-gray/30"
-                    onClick={() => handleAssignClick(employee)}
-                  >
-                    Assign
-                  </Button>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <div className="mx-auto w-24 h-24 bg-warm-gray/20 rounded-full flex items-center justify-center mb-4">
+                  <UserPlus className="h-12 w-12 text-warm-gray" />
                 </div>
+                <h3 className="text-lg font-semibold text-charcoal mb-2">
+                  No Employees Yet
+                </h3>
+                <p className="text-warm-gray mb-6 max-w-md mx-auto">
+                  Get started by inviting your team members to join your
+                  organization. They'll receive an email invitation to create
+                  their account and start learning.
+                </p>
+                <Button
+                  onClick={() => setIsInviteDialogOpen(true)}
+                  className="px-6 py-3 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite Your First Employee
+                </Button>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>

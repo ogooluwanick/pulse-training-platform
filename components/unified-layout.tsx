@@ -139,7 +139,12 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
   if (isPublicPageWithTopMenu) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: '#f5f4ed' }}>
-        <TopMenu key={`top-menu-${pathname}`} sidebarOpen={false} />
+        <TopMenu
+          key={`top-menu-${pathname}`}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={toggleSidebar}
+        />
+        <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
         {children}
       </div>
     );

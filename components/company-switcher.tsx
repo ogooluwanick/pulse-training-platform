@@ -23,6 +23,14 @@ export function CompanySwitcher({ className }: CompanySwitcherProps) {
   const companyNames = session?.user?.companyNames || [];
   const activeCompanyId = session?.user?.activeCompanyId;
 
+  // Debug logging
+  console.log('CompanySwitcher Debug:', {
+    companyIds,
+    companyNames,
+    activeCompanyId,
+    hasMultipleCompanies: companyIds.length > 1,
+  });
+
   const activeCompanyName =
     companyNames[companyIds.indexOf(activeCompanyId || '')] || 'Select Company';
 
@@ -70,7 +78,16 @@ export function CompanySwitcher({ className }: CompanySwitcherProps) {
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent
+        align="end"
+        className="w-56 max-h-60 overflow-y-auto"
+        side="bottom"
+        sideOffset={8}
+        alignOffset={0}
+        avoidCollisions={true}
+        collisionPadding={20}
+        collisionBoundary={document.body}
+      >
         {companyIds.map((companyId, index) => (
           <DropdownMenuItem
             key={companyId}
@@ -79,7 +96,7 @@ export function CompanySwitcher({ className }: CompanySwitcherProps) {
               companyId === activeCompanyId ? 'bg-accent' : ''
             }`}
           >
-            <div className="flex flex-col">
+            <div className="flex flex-col w-full">
               <span className="font-medium">{companyNames[index]}</span>
               {companyId === activeCompanyId && (
                 <span className="text-xs text-muted-foreground">Active</span>
