@@ -86,11 +86,8 @@ const CourseAssignmentSchema = new Schema(
   { timestamps: true }
 );
 
-// Create compound unique index for employee-course-company combinations
-CourseAssignmentSchema.index(
-  { employee: 1, course: 1, companyId: 1 },
-  { unique: true }
-);
+// Create compound index for employee-course-company combinations (non-unique to allow multiple assignments)
+CourseAssignmentSchema.index({ employee: 1, course: 1, companyId: 1 });
 
 const CourseAssignment =
   models.CourseAssignment || model('CourseAssignment', CourseAssignmentSchema);
