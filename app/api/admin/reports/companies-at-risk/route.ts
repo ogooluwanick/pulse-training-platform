@@ -45,14 +45,14 @@ export async function GET() {
       let overdueAssignments = [];
 
       // Check each assignment for risk
-      assignments.forEach((assignment) => {
-        if (assignment.status === 'completed') return;
+      for (const assignment of assignments) {
+        if (assignment.status === 'completed') continue;
 
         const employee = await User.findById(assignment.employee).select(
           'firstName lastName'
         );
 
-        if (!employee) return;
+        if (!employee) continue;
 
         // Check for overdue assignments
         if (assignment.endDate && new Date(assignment.endDate) < now) {
@@ -67,7 +67,7 @@ export async function GET() {
             isOverdue: true,
           });
         }
-      });
+      }
 
       // Determine company status
       let status: 'on-track' | 'at-risk' | 'overdue' = 'on-track';
