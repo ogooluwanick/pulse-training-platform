@@ -45,7 +45,10 @@ export async function GET(req: NextRequest) {
             {
               $match: {
                 $expr: { $eq: ['$_id', '$$courseId'] },
-                status: 'published',
+                // Only filter by published status for employees, allow all statuses for admin/company
+                ...(session.user.role === 'EMPLOYEE'
+                  ? { status: 'published' }
+                  : {}),
               },
             },
           ],

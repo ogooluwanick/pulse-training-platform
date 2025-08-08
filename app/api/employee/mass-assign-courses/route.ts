@@ -31,9 +31,14 @@ export async function POST(req: NextRequest) {
 
     const employees = await User.find({ _id: { $in: employeeIds } });
     const courseIds = assignments.map((a: any) => a.courseId);
+    // For admin and company users, allow access to all courses regardless of status
+    // For employees, only allow access to published courses
+    const statusFilter =
+      token.role === 'EMPLOYEE' ? { status: 'published' } : {};
+
     const courses = await Course.find({
       _id: { $in: courseIds },
-      status: 'published',
+      ...statusFilter,
     });
     const courseMap = new Map(courses.map((c) => [c._id.toString(), c]));
 

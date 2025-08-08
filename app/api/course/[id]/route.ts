@@ -36,7 +36,12 @@ export async function GET(
       );
     }
 
-    const course = await Course.findOne({ _id: params.id, status: 'published' })
+    // For admin and company users, allow access to all courses regardless of status
+    // For employees, only allow access to published courses
+    const statusFilter =
+      session.user.role === 'EMPLOYEE' ? { status: 'published' } : {};
+
+    const course = await Course.findOne({ _id: params.id, ...statusFilter })
       // .populate('instructor')
       .lean();
     if (!course) {

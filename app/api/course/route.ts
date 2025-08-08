@@ -13,7 +13,12 @@ export async function GET() {
   }
 
   try {
-    const courses = await Course.find({ status: 'published' })
+    // For admin and company users, allow access to all courses regardless of status
+    // For employees, only allow access to published courses
+    const statusFilter =
+      session.user.role === 'EMPLOYEE' ? { status: 'published' } : {};
+
+    const courses = await Course.find(statusFilter)
       // .populate('instructor')
       .lean();
 
