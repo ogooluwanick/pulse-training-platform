@@ -60,9 +60,7 @@ const fetchDashboardMetrics = async (
     companyId
   );
 
-  const res = await fetch(`/api/company/dashboard-metrics`, {
-    headers: companyId ? { 'x-company-id': companyId } : undefined,
-  });
+  const res = await fetch(`/api/company/dashboard-metrics`);
 
   console.log(
     '[CompanyDashboard] Dashboard metrics response status:',
@@ -90,9 +88,7 @@ const fetchEmployeesAtRisk = async (
     companyId
   );
 
-  const res = await fetch(`/api/company/employees-at-risk`, {
-    headers: companyId ? { 'x-company-id': companyId } : undefined,
-  });
+  const res = await fetch(`/api/company/employees-at-risk`);
 
   console.log(
     '[CompanyDashboard] Employees at risk response status:',
@@ -120,9 +116,7 @@ const fetchRecentActivity = async (
     companyId
   );
 
-  const res = await fetch(`/api/company/recent-activity`, {
-    headers: companyId ? { 'x-company-id': companyId } : undefined,
-  });
+  const res = await fetch(`/api/company/recent-activity`);
 
   console.log(
     '[CompanyDashboard] Recent activity response status:',
