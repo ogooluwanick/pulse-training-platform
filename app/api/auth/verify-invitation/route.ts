@@ -19,16 +19,21 @@ export async function GET(request: Request) {
     const user = await User.findOne({
       invitationToken: token,
       invitationTokenExpires: { $gt: new Date() },
-    })
-      .populate({
-        path: 'invitationTokenCompanyId',
-        model: Company,
-        select: 'name',
-      })
-      .populate({ path: 'companyId', model: Company, select: 'name' });
+    }).select('+invitationTokenCompanyId');
 
-    if (!user) {
-      return new NextResponse('Invalid or expired token', { status: 400 });
+    // Get company information separately to avoid populate issues
+    let companyName = 'Unknown Company';
+    const invitedCompanyId = (user as any).invitationTokenCompanyId?.toString();
+
+    if (invitedCompanyId) {
+      try {
+        const company = await Company.findById(invitedCompanyId).select('name');
+        if (company) {
+          companyName = company.name;
+        }
+      } catch (error) {
+        console.error('Error fetching company name:', error);
+      }
     }
 
     // Return company being invited, and whether this user email already exists in other companies
@@ -39,9 +44,7 @@ export async function GET(request: Request) {
     // If returning employee, include user data for prefilling
     const responseData: any = {
       message: 'Token is valid',
-      companyName:
-        (user as any).invitationTokenCompanyId?.name ||
-        (user as any).companyId?.name,
+      companyName: companyName,
       returningEmployee: alreadyEmployeeElsewhere,
     };
 

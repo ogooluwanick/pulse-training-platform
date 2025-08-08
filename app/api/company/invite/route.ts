@@ -45,6 +45,7 @@ export async function POST(request: Request) {
 
           existingUser.invitationToken = invitationToken;
           existingUser.invitationTokenExpires = invitationTokenExpires;
+          existingUser.invitationTokenCompanyId = companyId;
           await existingUser.save();
 
           await sendInvitationEmail(email, company.name, invitationToken);
@@ -78,8 +79,6 @@ export async function POST(request: Request) {
       });
 
       await newUser.save();
-      // Add membership for the invited user
-      await addUserToCompany(newUser._id.toString(), companyId);
       await sendInvitationEmail(email, company.name, invitationToken);
 
       // Create welcome notification for new user
