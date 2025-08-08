@@ -53,50 +53,128 @@ interface RecentActivity {
 }
 
 const fetchDashboardMetrics = async (
-  companyId: string
+  companyId?: string | null
 ): Promise<DashboardMetrics> => {
-  const res = await fetch(
-    `/api/company/dashboard-metrics?companyId=${companyId}`
+  console.log(
+    '[CompanyDashboard] Fetching dashboard metrics for companyId:',
+    companyId
   );
+
+  const res = await fetch(`/api/company/dashboard-metrics`, {
+    headers: companyId ? { 'x-company-id': companyId } : undefined,
+  });
+
+  console.log(
+    '[CompanyDashboard] Dashboard metrics response status:',
+    res.status
+  );
+
   if (!res.ok) {
-    throw new Error('Network response was not ok');
+    const errorText = await res.text();
+    console.error('[CompanyDashboard] Dashboard metrics error:', errorText);
+    throw new Error(
+      `Network response was not ok: ${res.status} - ${errorText}`
+    );
   }
-  return res.json();
+
+  const data = await res.json();
+  console.log('[CompanyDashboard] Dashboard metrics data received:', data);
+  return data;
 };
 
 const fetchEmployeesAtRisk = async (
-  companyId: string
+  companyId?: string | null
 ): Promise<EmployeeAtRisk[]> => {
-  const res = await fetch(
-    `/api/company/employees-at-risk?companyId=${companyId}`
+  console.log(
+    '[CompanyDashboard] Fetching employees at risk for companyId:',
+    companyId
   );
+
+  const res = await fetch(`/api/company/employees-at-risk`, {
+    headers: companyId ? { 'x-company-id': companyId } : undefined,
+  });
+
+  console.log(
+    '[CompanyDashboard] Employees at risk response status:',
+    res.status
+  );
+
   if (!res.ok) {
-    throw new Error('Network response was not ok');
+    const errorText = await res.text();
+    console.error('[CompanyDashboard] Employees at risk error:', errorText);
+    throw new Error(
+      `Network response was not ok: ${res.status} - ${errorText}`
+    );
   }
-  return res.json();
+
+  const data = await res.json();
+  console.log('[CompanyDashboard] Employees at risk data received:', data);
+  return data;
 };
 
 const fetchRecentActivity = async (
-  companyId: string
+  companyId?: string | null
 ): Promise<RecentActivity[]> => {
-  const res = await fetch(
-    `/api/company/recent-activity?companyId=${companyId}`
+  console.log(
+    '[CompanyDashboard] Fetching recent activity for companyId:',
+    companyId
   );
+
+  const res = await fetch(`/api/company/recent-activity`, {
+    headers: companyId ? { 'x-company-id': companyId } : undefined,
+  });
+
+  console.log(
+    '[CompanyDashboard] Recent activity response status:',
+    res.status
+  );
+
   if (!res.ok) {
-    throw new Error('Network response was not ok');
+    const errorText = await res.text();
+    console.error('[CompanyDashboard] Recent activity error:', errorText);
+    throw new Error(
+      `Network response was not ok: ${res.status} - ${errorText}`
+    );
   }
-  return res.json();
+
+  const data = await res.json();
+  console.log('[CompanyDashboard] Recent activity data received:', data);
+  return data;
 };
 
 export function CompanyDashboard({ user }: CompanyDashboardProps) {
+  // Get company ID from user properties - try multiple sources
+  const companyId =
+    user.companyId ||
+    user.activeCompanyId ||
+    (user.companyIds && user.companyIds.length > 0 ? user.companyIds[0] : null);
+
+  console.log('[CompanyDashboard] User:', {
+    id: user.id,
+    companyId: user.companyId,
+    activeCompanyId: user.activeCompanyId,
+    companyIds: user.companyIds,
+    companyNames: user.companyNames,
+    resolvedCompanyId: companyId,
+  });
+
   const {
     data: metrics,
     isLoading: isLoadingMetrics,
     error: errorMetrics,
   } = useQuery<DashboardMetrics>({
-    queryKey: ['dashboardMetrics', user.companyId],
-    queryFn: () => fetchDashboardMetrics(user.companyId as string),
-    enabled: !!user.companyId,
+    queryKey: ['dashboardMetrics', companyId],
+    queryFn: () => fetchDashboardMetrics(companyId),
+    // Let the API resolve company context if companyId is not present
+    enabled: true,
+  });
+
+  console.log('[CompanyDashboard] Metrics query state:', {
+    isLoading: isLoadingMetrics,
+    hasError: !!errorMetrics,
+    error: errorMetrics,
+    hasData: !!metrics,
+    data: metrics,
   });
 
   const {
@@ -104,9 +182,17 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
     isLoading: isLoadingEmployeesAtRisk,
     error: errorEmployeesAtRisk,
   } = useQuery<EmployeeAtRisk[]>({
-    queryKey: ['employeesAtRisk', user.companyId],
-    queryFn: () => fetchEmployeesAtRisk(user.companyId as string),
-    enabled: !!user.companyId,
+    queryKey: ['employeesAtRisk', companyId],
+    queryFn: () => fetchEmployeesAtRisk(companyId),
+    enabled: true,
+  });
+
+  console.log('[CompanyDashboard] Employees at risk query state:', {
+    isLoading: isLoadingEmployeesAtRisk,
+    hasError: !!errorEmployeesAtRisk,
+    error: errorEmployeesAtRisk,
+    hasData: !!employeesAtRisk,
+    dataLength: employeesAtRisk?.length,
   });
 
   const {
@@ -114,9 +200,17 @@ export function CompanyDashboard({ user }: CompanyDashboardProps) {
     isLoading: isLoadingRecentActivity,
     error: errorRecentActivity,
   } = useQuery<RecentActivity[]>({
-    queryKey: ['recentActivity', user.companyId],
-    queryFn: () => fetchRecentActivity(user.companyId as string),
-    enabled: !!user.companyId,
+    queryKey: ['recentActivity', companyId],
+    queryFn: () => fetchRecentActivity(companyId),
+    enabled: true,
+  });
+
+  console.log('[CompanyDashboard] Recent activity query state:', {
+    isLoading: isLoadingRecentActivity,
+    hasError: !!errorRecentActivity,
+    error: errorRecentActivity,
+    hasData: !!recentActivity,
+    dataLength: recentActivity?.length,
   });
 
   const getStatusColor = (status: EmployeeAtRisk['status']) => {

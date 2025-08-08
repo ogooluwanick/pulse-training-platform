@@ -238,12 +238,20 @@ export const hasCompanyAccess = async (
  */
 export const getCompanyEmployees = async (companyId: string) => {
   try {
+    console.log(
+      '[getCompanyEmployees] Looking for employees in company:',
+      companyId
+    );
+
     const users = await User.find({
       'memberships.companyId': companyId,
       'memberships.status': 'active',
-    }).select('firstName lastName email memberships');
+      role: 'EMPLOYEE', // Only get employees, not all users
+    }).select('firstName lastName email memberships role');
 
-    return users.map((user) => {
+    console.log('[getCompanyEmployees] Found users:', users.length);
+
+    const employees = users.map((user) => {
       const membership = user.memberships?.find(
         (m: any) =>
           m.companyId.toString() === companyId && m.status === 'active'
@@ -255,8 +263,12 @@ export const getCompanyEmployees = async (companyId: string) => {
         email: user.email,
         department: membership?.department,
         designation: membership?.designation,
+        role: user.role,
       };
     });
+
+    console.log('[getCompanyEmployees] Returning employees:', employees.length);
+    return employees;
   } catch (error) {
     console.error('Error getting company employees:', error);
     return [];
@@ -273,26 +285,40 @@ export async function requireCompanyContext(
 ): Promise<string> {
   let companyId = companyIdFromReq || session?.user?.activeCompanyId;
 
+  try {
+    console.log('[CompanyContext] requireCompanyContext start', {
+      userId: session?.user?.id,
+      companyIdFromReq: companyIdFromReq || null,
+      sessionActiveCompanyId: session?.user?.activeCompanyId || null,
+    });
+  } catch {}
+
   // Try header cookie fallbacks if not provided
   if (!companyId) {
     try {
       const hdrs = headers();
       const headerCompanyId = hdrs.get('x-company-id') || undefined;
       if (headerCompanyId) companyId = headerCompanyId;
+      console.log('[CompanyContext] header x-company-id', { headerCompanyId });
     } catch {}
   }
   if (!companyId) {
     try {
       const ck = cookies().get('activeCompanyId')?.value;
       if (ck) companyId = ck;
+      console.log('[CompanyContext] cookie activeCompanyId', {
+        cookiePresent: !!cookies().get('activeCompanyId'),
+      });
     } catch {}
   }
 
   if (!companyId) {
+    console.warn('[CompanyContext] Missing company context after all sources');
     throw new Error('Missing company context');
   }
 
   const hasAccess = await hasCompanyAccess(session.user.id, companyId);
+  console.log('[CompanyContext] hasCompanyAccess', { companyId, hasAccess });
   if (!hasAccess) {
     throw new Error('You do not have access to this company');
   }
@@ -311,17 +337,39 @@ export function resolveCompanyIdFromRequest(
     // 1) query param ?companyId=
     const url = new URL(req.url);
     const qp = url.searchParams.get('companyId');
-    if (qp) return qp;
+    if (qp) {
+      try {
+        console.log('[CompanyContext] resolve: query companyId found', { qp });
+      } catch {}
+      return qp;
+    }
 
     // 2) header x-company-id
     const headerId = req.headers.get('x-company-id');
-    if (headerId) return headerId;
+    if (headerId) {
+      try {
+        console.log('[CompanyContext] resolve: header x-company-id found', {
+          headerId,
+        });
+      } catch {}
+      return headerId;
+    }
 
     // 3) cookie activeCompanyId
     const cookieId = req.cookies.get('activeCompanyId')?.value;
-    if (cookieId) return cookieId;
+    if (cookieId) {
+      try {
+        console.log('[CompanyContext] resolve: cookie activeCompanyId found');
+      } catch {}
+      return cookieId;
+    }
 
     // 4) fallback to session
+    try {
+      console.log('[CompanyContext] resolve: session fallback', {
+        sessionActiveCompanyId: session?.user?.activeCompanyId || null,
+      });
+    } catch {}
     return session?.user?.activeCompanyId;
   } catch {
     return session?.user?.activeCompanyId;

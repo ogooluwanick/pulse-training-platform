@@ -51,23 +51,23 @@ const navigationItems = [
   },
 ];
 
-const managementItems = [
-  {
-    title: 'Analytics',
-    url: '/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'Team Management',
-    url: '/team',
-    icon: Users,
-  },
-  {
-    title: 'Organization',
-    url: '/organization',
-    icon: Building2,
-  },
-];
+// const managementItems = [
+//   {
+//     title: 'Analytics',
+//     url: '/analytics',
+//     icon: BarChart3,
+//   },
+//   {
+//     title: 'Team Management',
+//     url: '/team',
+//     icon: Users,
+//   },
+//   {
+//     title: 'Organization',
+//     url: '/organization',
+//     icon: Building2,
+//   },
+// ];
 
 const companyItems = [
   {
@@ -326,7 +326,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                       ))}
 
                     {/* Add management items for COMPANY and ADMIN users */}
-                    {(user?.role === 'COMPANY' || user?.role === 'ADMIN') && (
+                    {/* {(user?.role === 'COMPANY' || user?.role === 'ADMIN') && (
                       <>
                         <div className="border-t border-warm-gray/20 my-2"></div>
                         <div className="text-warm-gray font-medium mb-2">
@@ -346,7 +346,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                           </Link>
                         ))}
                       </>
-                    )}
+                    )} */}
                   </div>
                 </div>
 

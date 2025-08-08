@@ -9,9 +9,13 @@ import Course from '@/lib/models/Course';
 import dbConnect from '@/lib/dbConnect';
 import Company from '@/lib/models/Company';
 import mongoose from 'mongoose';
-import { requireCompanyContext, getCompanyEmployees } from '@/lib/user-utils';
+import {
+  requireCompanyContext,
+  getCompanyEmployees,
+  resolveCompanyIdFromRequest,
+} from '@/lib/user-utils';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await dbConnect();
 
@@ -20,7 +24,68 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const activeCompanyId = await requireCompanyContext(session);
+    // Resolve companyId from query/header/cookie/session before enforcing access
+    const { searchParams } = new URL(request.url);
+    const qpCompanyId = searchParams.get('companyId') || undefined;
+    let activeCompanyId =
+      qpCompanyId || resolveCompanyIdFromRequest(request as any, session);
+
+    try {
+      console.log('[CompanyEmployeesAPI] Start', {
+        userId: session.user.id,
+        qpCompanyId: qpCompanyId || null,
+        resolvedCompanyId: activeCompanyId || null,
+      });
+    } catch {}
+
+    // Fallback for COMPANY owners without memberships/cookies: infer by ownership
+    if (!activeCompanyId) {
+      const owned = await Company.findOne({
+        companyAccount: new mongoose.Types.ObjectId(session.user.id),
+      }).select('_id');
+      if (owned?._id) {
+        activeCompanyId = owned._id.toString();
+      }
+      try {
+        console.log('[CompanyEmployeesAPI] Ownership fallback', {
+          owned: owned?._id?.toString() || null,
+        });
+      } catch {}
+    }
+
+    // Legacy fallback to session.user.companyId if present
+    if (!activeCompanyId && (session.user as any).companyId) {
+      activeCompanyId = (session.user as any).companyId as string;
+      try {
+        console.log('[CompanyEmployeesAPI] Legacy session.companyId fallback', {
+          sessionCompanyId: activeCompanyId,
+        });
+      } catch {}
+    }
+
+    // If still no active company, try to find one from memberships
+    if (!activeCompanyId && session.user.id) {
+      const user = await User.findById(session.user.id).select('memberships');
+      const firstActiveMembership = user?.memberships?.find(
+        (m: any) => m.status === 'active'
+      );
+      if (firstActiveMembership) {
+        activeCompanyId = firstActiveMembership.companyId.toString();
+      }
+      try {
+        console.log('[CompanyEmployeesAPI] Memberships fallback', {
+          selectedMembershipCompanyId: activeCompanyId || null,
+        });
+      } catch {}
+    }
+
+    // Final guard
+    if (!activeCompanyId) {
+      activeCompanyId = await requireCompanyContext(session);
+    }
+    try {
+      console.log('[CompanyEmployeesAPI] Using companyId', { activeCompanyId });
+    } catch {}
     const companyId = new mongoose.Types.ObjectId(activeCompanyId);
 
     const company = await Company.findById(companyId);
@@ -31,6 +96,11 @@ export async function GET() {
 
     // Build employees list from memberships
     const filteredEmployees = await getCompanyEmployees(activeCompanyId);
+    try {
+      console.log('[CompanyEmployeesAPI] Employees fetched', {
+        count: filteredEmployees.length,
+      });
+    } catch {}
 
     const employeeData = await Promise.all(
       filteredEmployees.map(async (employee: any) => {

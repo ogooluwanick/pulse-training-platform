@@ -12,16 +12,32 @@ import mongoose from 'mongoose';
 import { getCompanyEmployees, requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET(request: Request) {
+  console.log('[RecentActivity] API endpoint called');
+
   try {
     await dbConnect();
 
     const session = await getServerSession(authOptions);
+
+    console.log('[RecentActivity] Session check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userRole: session?.user?.role,
+      userId: session?.user?.id,
+    });
+
     if (!session || !session.user || session.user.role !== 'COMPANY') {
+      console.log('[RecentActivity] Unauthorized access attempt');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const activeCompanyId = await requireCompanyContext(session);
     const filteredEmployees = await getCompanyEmployees(activeCompanyId);
+
+    console.log('[RecentActivity] Company context:', {
+      activeCompanyId,
+      employeesFound: filteredEmployees.length,
+    });
 
     const activities = await Activity.find({
       userId: { $in: filteredEmployees.map((emp: any) => emp._id) },
@@ -36,6 +52,8 @@ export async function GET(request: Request) {
       })
       .sort({ createdAt: -1 })
       .limit(5);
+
+    console.log('[RecentActivity] Activities found:', activities.length);
 
     const formattedActivities = activities.map((activity) => {
       const user = activity.userId as any;
@@ -61,6 +79,8 @@ export async function GET(request: Request) {
         type: activity.type,
       };
     });
+
+    console.log('[RecentActivity] Formatted activities:', formattedActivities);
 
     return NextResponse.json(formattedActivities);
   } catch (error) {

@@ -11,18 +11,35 @@ import User from '@/lib/models/User';
 import { getCompanyEmployees, requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET(request: Request) {
+  console.log('[EmployeesAtRisk] API endpoint called');
+
   try {
     await dbConnect();
 
     const session = await getServerSession(authOptions);
+
+    console.log('[EmployeesAtRisk] Session check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userRole: session?.user?.role,
+      userId: session?.user?.id,
+    });
+
     if (!session || !session.user || session.user.role !== 'COMPANY') {
+      console.log('[EmployeesAtRisk] Unauthorized access attempt');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const activeCompanyId = await requireCompanyContext(session);
     const companyId = new mongoose.Types.ObjectId(activeCompanyId);
 
+    console.log('[EmployeesAtRisk] Company context:', {
+      activeCompanyId,
+      companyId: companyId.toString(),
+    });
+
     const employees = await getCompanyEmployees(activeCompanyId);
+    console.log('[EmployeesAtRisk] Employees found:', employees.length);
 
     const assignments = await CourseAssignment.find({
       employee: { $in: employees.map((e: any) => e._id) },
@@ -31,6 +48,8 @@ export async function GET(request: Request) {
       path: 'employee',
       model: User,
     });
+
+    console.log('[EmployeesAtRisk] Assignments found:', assignments.length);
 
     // Filter out assignments for company accounts
     const filteredAssignments = assignments.filter((assignment: any) => {
@@ -115,6 +134,12 @@ export async function GET(request: Request) {
     });
 
     const employeesAtRisk = Array.from(employeeRiskMap.values());
+
+    console.log(
+      '[EmployeesAtRisk] Employees at risk found:',
+      employeesAtRisk.length
+    );
+    console.log('[EmployeesAtRisk] Returning data:', employeesAtRisk);
 
     return NextResponse.json(employeesAtRisk);
   } catch (error) {

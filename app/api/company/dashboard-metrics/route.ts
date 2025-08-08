@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import Company from '@/lib/models/Company';
 import CourseAssignment from '@/lib/models/CourseAssignment';
+import User from '@/lib/models/User';
 import dbConnect from '@/lib/dbConnect';
 import mongoose from 'mongoose';
 import {
@@ -14,30 +15,123 @@ import {
 } from '@/lib/user-utils';
 
 export async function GET(request: Request) {
+  console.log('[DashboardMetrics] API endpoint called');
+
   try {
     await dbConnect();
     const session = await getServerSession(authOptions);
+
+    console.log('[DashboardMetrics] Session check:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userRole: session?.user?.role,
+      userId: session?.user?.id,
+    });
+
     if (!session || !session.user || session.user.role !== 'COMPANY') {
+      console.log('[DashboardMetrics] Unauthorized access attempt');
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
     const qpCompanyId = searchParams.get('companyId') || undefined;
-    const resolvedId =
-      qpCompanyId ||
-      resolveCompanyIdFromRequest(request as any, session) ||
-      undefined;
-    const companyId = resolvedId || (await requireCompanyContext(session));
+    let activeCompanyId =
+      qpCompanyId || resolveCompanyIdFromRequest(request as any, session);
+
+    console.log('[DashboardMetrics] Company ID resolution:', {
+      queryParamCompanyId: qpCompanyId || null,
+      resolvedCompanyId: activeCompanyId || null,
+      sessionUser: {
+        companyId: session.user.companyId,
+        activeCompanyId: session.user.activeCompanyId,
+        companyIds: session.user.companyIds,
+      },
+    });
+
+    console.log('[DashboardMetrics] Start', {
+      userId: session.user.id,
+      qpCompanyId: qpCompanyId || null,
+      resolvedCompanyId: activeCompanyId || null,
+    });
+
+    // Fallback for COMPANY owners without memberships/cookies: infer by ownership
+    if (!activeCompanyId) {
+      const owned = await Company.findOne({
+        companyAccount: new mongoose.Types.ObjectId(session.user.id),
+      }).select('_id');
+      if (owned?._id) {
+        activeCompanyId = owned._id.toString();
+      }
+      console.log('[DashboardMetrics] Ownership fallback', {
+        owned: owned?._id?.toString() || null,
+      });
+    }
+
+    // Legacy fallback to session.user.companyId if present
+    if (!activeCompanyId && (session.user as any).companyId) {
+      activeCompanyId = (session.user as any).companyId as string;
+      console.log('[DashboardMetrics] Legacy session.companyId fallback', {
+        sessionCompanyId: activeCompanyId,
+      });
+    }
+
+    // If still no active company, try to find one from memberships
+    if (!activeCompanyId && session.user.id) {
+      const user = await User.findById(session.user.id).select('memberships');
+      const firstActiveMembership = user?.memberships?.find(
+        (m: any) => m.status === 'active'
+      );
+      if (firstActiveMembership) {
+        activeCompanyId = firstActiveMembership.companyId.toString();
+      }
+      console.log('[DashboardMetrics] Memberships fallback', {
+        selectedMembershipCompanyId: activeCompanyId || null,
+      });
+    }
+
+    // Final guard
+    if (!activeCompanyId) {
+      activeCompanyId = await requireCompanyContext(session);
+    }
+
+    console.log('[DashboardMetrics] Using companyId', { activeCompanyId });
+    const companyId = activeCompanyId;
 
     // Get employees via memberships
     const filteredEmployees = await getCompanyEmployees(companyId);
+    console.log('[DashboardMetrics] Company ID:', companyId);
+    console.log(
+      '[DashboardMetrics] Total employees found:',
+      filteredEmployees.length
+    );
 
     const totalEmployees = filteredEmployees.length;
 
+    if (totalEmployees === 0) {
+      console.log(
+        '[DashboardMetrics] No employees found, returning empty metrics'
+      );
+      return NextResponse.json({
+        overallCompliance: 0,
+        totalEmployees: 0,
+        employeesAtRisk: 0,
+        avgCompletionTime: 0,
+        employeesAtRiskPercentage: 0,
+      });
+    }
+
+    const employeeIds = filteredEmployees.map((emp: any) => emp._id);
+    console.log('[DashboardMetrics] Employee IDs:', employeeIds);
+
     const assignments = await CourseAssignment.find({
-      employee: { $in: filteredEmployees.map((emp: any) => emp._id) },
+      employee: { $in: employeeIds },
       companyId: new mongoose.Types.ObjectId(companyId),
     }).populate('employee');
+
+    console.log(
+      '[DashboardMetrics] Course assignments found:',
+      assignments.length
+    );
 
     // Calculate compliance based on completed assignments vs total assignments
     const totalAssignments = assignments.length;
