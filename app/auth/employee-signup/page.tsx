@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+
 import toast from 'react-hot-toast';
 import FullPageLoader from '@/components/full-page-loader';
 import {
@@ -48,7 +48,9 @@ export default function EmployeeSignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [department, setDepartment] = useState('');
+  const [designation, setDesignation] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isTokenValid, setIsTokenValid] = useState(false);
@@ -76,7 +78,9 @@ export default function EmployeeSignupPage() {
           if (data.returningEmployee && data.user) {
             setFirstName(data.user.firstName || '');
             setLastName(data.user.lastName || '');
+            setEmail(data.user.email || '');
             setDepartment(data.user.department || '');
+            setDesignation(data.user.designation || '');
           }
         }
       } catch (error) {
@@ -110,7 +114,9 @@ export default function EmployeeSignupPage() {
           password,
           firstName,
           lastName,
+          email,
           department,
+          designation,
         }),
       });
 
@@ -188,32 +194,16 @@ export default function EmployeeSignupPage() {
             <CardDescription className="text-warm-gray">
               You have been invited to join{' '}
               <strong className="capitalize">{companyName}</strong>.
-              <br />
-              {returningEmployee ? (
+              {returningEmployee && (
                 <>
-                  We found an existing account with this email. Your information
-                  has been pre-filled.
                   <br />
-                  After login, you can switch between companies using the
-                  company selector in the sidebar.
+                  We found an existing account with this email. Your information
+                  has been pre-filled. After login, you can switch between
+                  companies using the company selector in the sidebar.
                 </>
-              ) : (
-                'Please complete your registration below.'
               )}
             </CardDescription>
           </CardHeader>
-
-          {returningEmployee && (
-            <div className="px-6 pb-2">
-              <Alert>
-                <AlertDescription>
-                  <strong>Welcome back!</strong> You already have an account
-                  with this email address. After completing registration, you'll
-                  be able to access multiple companies from your dashboard.
-                </AlertDescription>
-              </Alert>
-            </div>
-          )}
 
           <form onSubmit={handleSubmit}>
             <CardContent className="grid gap-4">
@@ -247,6 +237,20 @@ export default function EmployeeSignupPage() {
                 />
               </div>
               <div className="grid gap-2">
+                <Label className="text-charcoal font-medium" htmlFor="email">
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft pr-10"
+                  required
+                  disabled={returningEmployee}
+                />
+              </div>
+              <div className="grid gap-2">
                 <Label
                   className="text-charcoal font-medium"
                   htmlFor="department"
@@ -265,6 +269,22 @@ export default function EmployeeSignupPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label
+                  className="text-charcoal font-medium"
+                  htmlFor="designation"
+                >
+                  Designation
+                </Label>
+                <Input
+                  id="designation"
+                  type="text"
+                  value={designation}
+                  onChange={(e) => setDesignation(e.target.value)}
+                  className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft pr-10"
+                  placeholder="e.g., Software Engineer, Manager, etc."
+                />
               </div>
               <div className="grid gap-2">
                 <Label className="text-charcoal font-medium" htmlFor="password">

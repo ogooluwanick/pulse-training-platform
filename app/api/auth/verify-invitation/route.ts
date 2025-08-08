@@ -52,7 +52,9 @@ export async function GET(request: Request) {
       responseData.user = {
         firstName: user.firstName,
         lastName: user.lastName,
+        email: user.email,
         department: user.department,
+        designation: user.designation,
       };
     }
 

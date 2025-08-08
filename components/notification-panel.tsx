@@ -112,7 +112,7 @@ export default function NotificationPanel({
         </div>
       </div>
 
-      <ScrollArea className="flex-1">
+      <ScrollArea className="flex-1 ">
         {isLoading && notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400 p-4">
             <Bell className="h-12 w-12 mb-2 opacity-20 animate-pulse" />
@@ -125,7 +125,7 @@ export default function NotificationPanel({
             <p className="text-xs mt-1">Updates will appear here.</p>
           </div>
         ) : (
-          <div className="divide-y dark:divide-gray-700">
+          <div className="divide-y dark:divide-gray-700  max-h-[calc(100vh -100px)] sm:max-h-[calc(65vh)] overflow-y-auto">
             {notifications.map((notification: UINotification) => {
               const NotificationIcon = 
                 notification.level === 'success' ? CheckCircle :

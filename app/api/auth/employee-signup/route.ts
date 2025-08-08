@@ -10,8 +10,15 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
 
-    const { token, password, firstName, lastName, department } =
-      await request.json();
+    const {
+      token,
+      password,
+      firstName,
+      lastName,
+      email,
+      department,
+      designation,
+    } = await request.json();
 
     if (!token || !password || !firstName || !lastName || !department) {
       return new NextResponse('Missing required fields', { status: 400 });
@@ -31,14 +38,21 @@ export async function POST(request: Request) {
     user.password = hashedPassword;
     user.firstName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
     user.lastName = lastName.charAt(0).toUpperCase() + lastName.slice(1);
+    user.email = email;
     user.department = department;
+    user.designation = designation;
     user.status = 'active';
     user.invitationToken = undefined;
     user.invitationTokenExpires = undefined;
     user.emailVerified = new Date(); // Mark email as verified
     const invitedCompanyId = (user as any).invitationTokenCompanyId?.toString();
     if (invitedCompanyId) {
-      await addUserToCompany(user._id.toString(), invitedCompanyId, department);
+      await addUserToCompany(
+        user._id.toString(),
+        invitedCompanyId,
+        department,
+        designation
+      );
       (user as any).invitationTokenCompanyId = undefined;
     }
 
