@@ -7,6 +7,7 @@ import User from '@/lib/models/User';
 import { sendInvitationEmail } from '@/lib/email';
 import crypto from 'crypto';
 import { createWelcomeNotification } from '@/lib/notificationActivityService';
+import { addUserToCompany, requireCompanyContext } from '@/lib/user-utils';
 
 export async function POST(request: Request) {
   try {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
       return new NextResponse('Emails are required', { status: 400 });
     }
 
-    const companyId = session.user.companyId;
+    const companyId = await requireCompanyContext(session);
     const company = await Company.findById(companyId);
     if (!company) {
       return new NextResponse('Company not found', { status: 404 });
@@ -49,11 +50,13 @@ export async function POST(request: Request) {
           await sendInvitationEmail(email, company.name, invitationToken);
           invitedUsers.push(email);
         } else {
-          // User is already active
-          failedInvites.push({
-            email,
-            reason: 'User is already an active member',
-          });
+          // User exists and is active – ensure membership in this company
+          try {
+            await addUserToCompany(existingUser._id.toString(), companyId);
+            invitedUsers.push(email);
+          } catch (e) {
+            failedInvites.push({ email, reason: 'Failed to add membership' });
+          }
         }
         continue;
       }
@@ -64,7 +67,6 @@ export async function POST(request: Request) {
 
       const newUser = new User({
         email,
-        companyId,
         role: 'EMPLOYEE',
         status: 'pending',
         invitationToken,
@@ -72,6 +74,8 @@ export async function POST(request: Request) {
       });
 
       await newUser.save();
+      // Add membership for the invited user
+      await addUserToCompany(newUser._id.toString(), companyId);
       await sendInvitationEmail(email, company.name, invitationToken);
 
       // Create welcome notification for new user
@@ -81,7 +85,7 @@ export async function POST(request: Request) {
           email: newUser.email,
           firstName: newUser.firstName,
           lastName: newUser.lastName,
-          companyId: newUser.companyId?.toString(),
+          companyId: companyId,
         });
 
         notificationResults.push({
@@ -101,11 +105,8 @@ export async function POST(request: Request) {
         // Continue with invitation even if notification fails
       }
 
-      company.employees.push(newUser._id);
       invitedUsers.push(email);
     }
-
-    await company.save();
 
     return NextResponse.json({
       message: 'Invitations sent successfully.',

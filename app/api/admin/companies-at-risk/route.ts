@@ -28,9 +28,10 @@ export async function GET() {
 
     assignments.forEach((assignment) => {
       const employee = assignment.employee as any;
-      if (!employee || !employee.companyId) return;
-
-      const companyId = employee.companyId.toString();
+      if (!employee) return;
+      // Derive company via assignment's companyId
+      const companyId = (assignment.companyId as any)?.toString();
+      if (!companyId) return;
 
       // Skip completed assignments
       if (assignment.status === 'completed') return;
@@ -107,7 +108,11 @@ export async function GET() {
       const company = await Company.findById(companyId);
       if (company) {
         companyRisk.name = company.name;
-        companyRisk.totalEmployees = company.employees.length;
+        // Count employees via memberships
+        const totalEmployees = await User.countDocuments({
+          'memberships.companyId': company._id,
+        });
+        companyRisk.totalEmployees = totalEmployees;
 
         // Count unique employees at risk
         const uniqueEmployeesAtRisk = new Set(

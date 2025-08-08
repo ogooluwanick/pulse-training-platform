@@ -4,6 +4,10 @@ import dbConnect from '@/lib/dbConnect';
 import Course from '@/lib/models/Course';
 import User from '@/lib/models/User'; // Import User model to register it
 import { authOptions } from '../../../auth/[...nextauth]/route';
+import {
+  requireCompanyContext,
+  resolveCompanyIdFromRequest,
+} from '@/lib/user-utils';
 
 // GET: Get a specific culture module by ID
 export async function GET(
@@ -19,7 +23,8 @@ export async function GET(
     await dbConnect();
 
     // Get the correct company ID
-    const companyId = session.user.companyId || session.user.id;
+    const resolvedId = resolveCompanyIdFromRequest(request, session);
+    const companyId = resolvedId || (await requireCompanyContext(session));
 
     const courseModule = await Course.findOne({
       _id: params.id,
@@ -28,7 +33,7 @@ export async function GET(
     })
       .populate('createdBy', 'firstName lastName email')
       .populate('lastModifiedBy', 'firstName lastName email');
-      // .populate('instructor', 'firstName lastName email')
+    // .populate('instructor', 'firstName lastName email')
 
     if (!courseModule) {
       return NextResponse.json(
@@ -78,7 +83,8 @@ export async function PUT(
     await dbConnect();
 
     // Get the correct company ID
-    const companyId = session.user.companyId || session.user.id;
+    const resolvedId = resolveCompanyIdFromRequest(request, session);
+    const companyId = resolvedId || (await requireCompanyContext(session));
 
     // Find the course module and verify ownership
     const courseModule = await Course.findOne({
@@ -110,7 +116,6 @@ export async function PUT(
     if (tags !== undefined) updateData.tags = tags;
     if (status !== undefined) updateData.status = status;
     if (category !== undefined) updateData.category = category;
-
 
     // Handle lessons array
     if (lessons !== undefined && Array.isArray(lessons)) {
@@ -147,7 +152,7 @@ export async function PUT(
         firstLesson.quiz =
           quiz && quiz.questions && quiz.questions.length > 0
             ? {
-                title: quiz.title || 'Module Quiz',
+                title: quiz.title || 'Lesson Quiz',
                 questions: quiz.questions || [],
               }
             : undefined;
@@ -237,7 +242,8 @@ export async function DELETE(
     await dbConnect();
 
     // Get the correct company ID
-    const companyId = session.user.companyId || session.user.id;
+    const resolvedId = resolveCompanyIdFromRequest(request, session);
+    const companyId = resolvedId || (await requireCompanyContext(session));
 
     const deletedModule = await Course.findOneAndDelete({
       _id: params.id,

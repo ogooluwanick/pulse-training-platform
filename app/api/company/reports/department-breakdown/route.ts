@@ -8,6 +8,7 @@ import CourseAssignment from '@/lib/models/CourseAssignment';
 import dbConnect from '@/lib/dbConnect';
 import Company from '@/lib/models/Company';
 import mongoose from 'mongoose';
+import { getCompanyEmployees, requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET() {
   try {
@@ -18,24 +19,10 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const user = session.user as any;
-    const companyId = new mongoose.Types.ObjectId(user.companyId);
+    const activeCompanyId = await requireCompanyContext(session);
+    const companyId = new mongoose.Types.ObjectId(activeCompanyId);
 
-    const company = await Company.findById(companyId).populate({
-      path: 'employees',
-      model: User,
-    });
-
-    if (!company) {
-      return new NextResponse('Company not found', { status: 404 });
-    }
-
-    const employees = company.employees as any[];
-
-    // Filter out company accounts from employees list
-    const filteredEmployees = employees.filter((employee: any) => {
-      return employee.role !== 'COMPANY';
-    });
+    const filteredEmployees = await getCompanyEmployees(activeCompanyId);
 
     const departments = [
       ...new Set(filteredEmployees.map((e) => e.department).filter(Boolean)),

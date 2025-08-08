@@ -8,6 +8,7 @@ import CourseAssignment from '@/lib/models/CourseAssignment';
 import dbConnect from '@/lib/dbConnect';
 import mongoose from 'mongoose';
 import User from '@/lib/models/User';
+import { getCompanyEmployees, requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET(request: Request) {
   try {
@@ -18,20 +19,14 @@ export async function GET(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId');
+    const activeCompanyId = await requireCompanyContext(session);
+    const companyId = new mongoose.Types.ObjectId(activeCompanyId);
 
-    if (!companyId) {
-      return new NextResponse('Company ID is required', { status: 400 });
-    }
-
-    const company = await Company.findById(companyId);
-    if (!company) {
-      return new NextResponse('Company not found', { status: 404 });
-    }
+    const employees = await getCompanyEmployees(activeCompanyId);
 
     const assignments = await CourseAssignment.find({
-      employee: { $in: company.employees },
+      employee: { $in: employees.map((e: any) => e._id) },
+      companyId,
     }).populate({
       path: 'employee',
       model: User,

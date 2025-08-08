@@ -7,6 +7,11 @@ import Company from '@/lib/models/Company';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import dbConnect from '@/lib/dbConnect';
 import mongoose from 'mongoose';
+import {
+  getCompanyEmployees,
+  requireCompanyContext,
+  resolveCompanyIdFromRequest,
+} from '@/lib/user-utils';
 
 export async function GET(request: Request) {
   try {
@@ -17,29 +22,21 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId');
+    const qpCompanyId = searchParams.get('companyId') || undefined;
+    const resolvedId =
+      qpCompanyId ||
+      resolveCompanyIdFromRequest(request as any, session) ||
+      undefined;
+    const companyId = resolvedId || (await requireCompanyContext(session));
 
-    if (!companyId) {
-      return new NextResponse('Company ID is required', { status: 400 });
-    }
-
-    const company = await Company.findById(companyId).populate({
-      path: 'employees',
-      model: 'User',
-    });
-    if (!company) {
-      return new NextResponse('Company not found', { status: 404 });
-    }
-
-    // Filter out company accounts from employees list
-    const filteredEmployees = company.employees.filter((employee: any) => {
-      return employee.role !== 'COMPANY';
-    });
+    // Get employees via memberships
+    const filteredEmployees = await getCompanyEmployees(companyId);
 
     const totalEmployees = filteredEmployees.length;
 
     const assignments = await CourseAssignment.find({
       employee: { $in: filteredEmployees.map((emp: any) => emp._id) },
+      companyId: new mongoose.Types.ObjectId(companyId),
     }).populate('employee');
 
     // Calculate compliance based on completed assignments vs total assignments

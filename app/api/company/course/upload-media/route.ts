@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth';
 import { uploadToCloudinary } from '@/lib/cloudinary_utils';
 import User from '@/lib/models/User'; // Import User model to register it
 import { authOptions } from '../../../auth/[...nextauth]/route';
+import {
+  requireCompanyContext,
+  resolveCompanyIdFromRequest,
+} from '@/lib/user-utils';
 
 export async function POST(request: NextRequest) {
   try {
@@ -66,24 +70,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check file size limits
-    const maxImageSize = 10 * 1024 * 1024; // 10MB for images
-    const maxVideoSize = 100 * 1024 * 1024; // 100MB for videos
-
-    if (lessonType === 'image' && file.size > maxImageSize) {
-      return NextResponse.json(
-        { error: 'Image file too large. Maximum size: 10MB' },
-        { status: 400 }
-      );
-    }
-
-    if (lessonType === 'video' && file.size > maxVideoSize) {
-      return NextResponse.json(
-        { error: 'Video file too large. Maximum size: 100MB' },
-        { status: 400 }
-      );
-    }
-
     console.log('Uploading media file:', {
       fileName: file.name,
       fileSize: file.size,
@@ -103,7 +89,8 @@ export async function POST(request: NextRequest) {
     const fileName = `${moduleId}_${lessonId}_${timestamp}_${sanitizedFileName}`;
 
     // Determine folder and resource type
-    const companyId = session.user.companyId || session.user.id;
+    const resolvedId = resolveCompanyIdFromRequest(request, session);
+    const companyId = resolvedId || (await requireCompanyContext(session));
     const folder = `culture-modules/${companyId}/${lessonType}s`;
     const resourceType = lessonType === 'video' ? 'video' : 'image';
 

@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import mongoose from 'mongoose';
+import { requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
         ? {}
         : {
             companyId: new mongoose.Types.ObjectId(
-              session.user.companyId as string
+              (await requireCompanyContext(session)) as string
             ),
           };
 

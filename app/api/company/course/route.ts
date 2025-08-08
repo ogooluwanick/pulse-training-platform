@@ -4,6 +4,10 @@ import dbConnect from '@/lib/dbConnect';
 import Course from '@/lib/models/Course';
 import User from '@/lib/models/User'; // Import User model to register it
 import { authOptions } from '../../auth/[...nextauth]/route';
+import {
+  requireCompanyContext,
+  resolveCompanyIdFromRequest,
+} from '@/lib/user-utils';
 
 // GET: Get all culture modules for a company
 export async function GET(request: NextRequest) {
@@ -16,7 +20,7 @@ export async function GET(request: NextRequest) {
     console.log('Fetching culture modules for user:', {
       id: session.user.id,
       role: session.user.role,
-      companyId: session.user.companyId,
+      companyId: session.user.activeCompanyId,
     });
 
     const { searchParams } = new URL(request.url);
@@ -26,7 +30,8 @@ export async function GET(request: NextRequest) {
     console.log('Database connected successfully');
 
     // Get the correct company ID
-    const companyId = session.user.companyId || session.user.id;
+    const resolvedId = resolveCompanyIdFromRequest(request, session);
+    const companyId = resolvedId || (await requireCompanyContext(session));
     console.log('Using company ID:', companyId);
 
     // Build query for company's courses
@@ -96,12 +101,13 @@ export async function POST(request: NextRequest) {
     await dbConnect();
 
     // Get the correct company ID
-    const companyId = session.user.companyId || session.user.id;
+    const resolvedId = resolveCompanyIdFromRequest(request, session);
+    const companyId = resolvedId || (await requireCompanyContext(session));
 
     console.log('Creating culture module for user:', {
       id: session.user.id,
       role: session.user.role,
-      companyId: session.user.companyId,
+      companyId: session.user.activeCompanyId,
       finalCompanyId: companyId,
     });
     console.log('Request body:', body);

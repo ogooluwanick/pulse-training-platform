@@ -8,6 +8,7 @@ import CourseAssignment from '@/lib/models/CourseAssignment';
 import dbConnect from '@/lib/dbConnect';
 import Company from '@/lib/models/Company';
 import mongoose from 'mongoose';
+import { getCompanyEmployees, requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET() {
   try {
@@ -18,21 +19,10 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const user = session.user as any;
-    const companyId = new mongoose.Types.ObjectId(user.companyId);
+    const activeCompanyId = await requireCompanyContext(session);
+    const companyId = new mongoose.Types.ObjectId(activeCompanyId);
 
-    const company = await Company.findById(companyId).populate({
-      path: 'employees',
-      model: 'User',
-    });
-    if (!company) {
-      return new NextResponse('Company not found', { status: 404 });
-    }
-
-    // Filter out company accounts from employees list
-    const filteredEmployees = company.employees.filter((employee: any) => {
-      return employee.role !== 'COMPANY';
-    });
+    const filteredEmployees = await getCompanyEmployees(activeCompanyId);
 
     const courses = await Course.find({ companyId: companyId });
 
@@ -41,6 +31,7 @@ export async function GET() {
         const assignments = await CourseAssignment.find({
           course: course._id,
           employee: { $in: filteredEmployees.map((emp: any) => emp._id) },
+          companyId,
         });
         const completedAssignments = assignments.filter(
           (a) => a.status === 'completed'

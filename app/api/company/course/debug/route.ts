@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth';
 import dbConnect from '@/lib/dbConnect';
 import Course from '@/lib/models/Course';
 import { authOptions } from '../../../auth/[...nextauth]/route';
+import {
+  requireCompanyContext,
+  resolveCompanyIdFromRequest,
+} from '@/lib/user-utils';
 
 // GET: Debug culture modules system
 export async function GET(request: NextRequest) {
@@ -14,7 +18,8 @@ export async function GET(request: NextRequest) {
 
     await dbConnect();
 
-    const companyId = session.user.companyId || session.user.id;
+    const resolvedId = resolveCompanyIdFromRequest(request, session);
+    const companyId = resolvedId || (await requireCompanyContext(session));
 
     // Count all courses
     const totalCourses = await Course.countDocuments();
@@ -40,7 +45,7 @@ export async function GET(request: NextRequest) {
         session: {
           userId: session.user.id,
           role: session.user.role,
-          companyId: session.user.companyId,
+          companyId: session.user.activeCompanyId,
           effectiveCompanyId: companyId,
         },
         counts: {
@@ -87,7 +92,8 @@ export async function POST(request: NextRequest) {
 
     await dbConnect();
 
-    const companyId = session.user.companyId || session.user.id;
+    const resolvedId = resolveCompanyIdFromRequest(request, session);
+    const companyId = resolvedId || (await requireCompanyContext(session));
 
     const testModule = new Course({
       title: 'Debug Test Culture Module - ' + new Date().toISOString(),

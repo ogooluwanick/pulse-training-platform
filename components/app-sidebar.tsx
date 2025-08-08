@@ -20,6 +20,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { CompanySwitcher } from '@/components/company-switcher';
 
 // Fetch learning data for badge count
 const fetchLearningData = async () => {
@@ -418,6 +419,10 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                       {user?.role?.toLowerCase()}
                     </p>
                   </div>
+                </div>
+                {/* Company Switcher */}
+                <div className="mb-3">
+                  <CompanySwitcher className="w-full justify-between" />
                 </div>
                 <Button
                   onClick={handleSignOut}

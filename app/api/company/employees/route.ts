@@ -9,6 +9,7 @@ import Course from '@/lib/models/Course';
 import dbConnect from '@/lib/dbConnect';
 import Company from '@/lib/models/Company';
 import mongoose from 'mongoose';
+import { requireCompanyContext, getCompanyEmployees } from '@/lib/user-utils';
 
 export async function GET() {
   try {
@@ -19,22 +20,17 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const user = session.user as any;
-    const companyId = new mongoose.Types.ObjectId(user.companyId);
+    const activeCompanyId = await requireCompanyContext(session);
+    const companyId = new mongoose.Types.ObjectId(activeCompanyId);
 
-    const company = await Company.findById(companyId).populate({
-      path: 'employees',
-      model: User,
-    });
+    const company = await Company.findById(companyId);
 
     if (!company) {
       return new NextResponse('Company not found', { status: 404 });
     }
 
-    // Filter out company accounts from employees list
-    const filteredEmployees = company.employees.filter((employee: any) => {
-      return employee.role !== 'COMPANY';
-    });
+    // Build employees list from memberships
+    const filteredEmployees = await getCompanyEmployees(activeCompanyId);
 
     const employeeData = await Promise.all(
       filteredEmployees.map(async (employee: any) => {
@@ -140,7 +136,7 @@ export async function GET() {
             `${employee.firstName || ''} ${employee.lastName || ''}`.trim() ||
             'Unknown Employee',
           email: employee.email,
-          role: employee.role,
+          role: 'EMPLOYEE',
           department: employee.department || 'N/A',
           overallProgress: Math.round(overallProgress),
           coursesAssigned: assignments.length,

@@ -4,6 +4,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import dbConnect from '@/lib/dbConnect';
 import Company from '@/lib/models/Company';
 import User from '@/lib/models/User';
+import { requireCompanyContext, getCompanyEmployees } from '@/lib/user-utils';
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,17 +30,11 @@ export async function GET(req: NextRequest) {
 
       if (companyId) {
         // Admin is requesting a specific company
-        const company = await Company.findById(companyId)
-          .populate({
-            path: 'companyAccount',
-            model: User,
-            select: 'firstName lastName email',
-          })
-          .populate({
-            path: 'employees',
-            model: User,
-            select: 'firstName lastName email department',
-          });
+        const company = await Company.findById(companyId).populate({
+          path: 'companyAccount',
+          model: User,
+          select: 'firstName lastName email',
+        });
         // .populate({
         //   path: 'savedCourses',
         //   model: 'Course',
@@ -56,17 +51,11 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(company);
       } else {
         // Admin is requesting all companies
-        const companies = await Company.find({})
-          .populate({
-            path: 'companyAccount',
-            model: User,
-            select: 'firstName lastName email',
-          })
-          .populate({
-            path: 'employees',
-            model: User,
-            select: 'firstName lastName email department',
-          });
+        const companies = await Company.find({}).populate({
+          path: 'companyAccount',
+          model: User,
+          select: 'firstName lastName email',
+        });
         // .populate({
         //   path: 'savedCourses',
         //   model: 'Course',
@@ -76,18 +65,13 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(companies);
       }
     } else {
-      // Company user - access their own company
-      const company = await Company.findById(session.user.companyId)
-        .populate({
-          path: 'companyAccount',
-          model: User,
-          select: 'firstName lastName email',
-        })
-        .populate({
-          path: 'employees',
-          model: User,
-          select: 'firstName lastName email department',
-        });
+      // Company user - access their own company (from active company context)
+      const activeCompanyId = await requireCompanyContext(session);
+      const company = await Company.findById(activeCompanyId).populate({
+        path: 'companyAccount',
+        model: User,
+        select: 'firstName lastName email',
+      });
       // .populate({
       //   path: 'savedCourses',
       //   model: 'Course',
@@ -101,7 +85,9 @@ export async function GET(req: NextRequest) {
         );
       }
 
-      return NextResponse.json(company);
+      // Attach employees list via memberships
+      const employees = await getCompanyEmployees(activeCompanyId);
+      return NextResponse.json({ ...company.toObject(), employees });
     }
   } catch (error) {
     console.error('Failed to fetch company:', error);

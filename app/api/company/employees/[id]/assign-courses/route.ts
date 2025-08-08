@@ -9,6 +9,7 @@ import Course from '@/lib/models/Course';
 import Company from '@/lib/models/Company';
 import { scheduleIntervalAssignment } from '@/lib/cron-manager';
 import { handleCourseEnrollment } from '@/lib/notificationActivityService';
+import { requireCompanyContext, hasCompanyAccess } from '@/lib/user-utils';
 
 export async function POST(
   req: NextRequest,
@@ -66,19 +67,26 @@ export async function POST(
       );
     }
 
-    // Check if companyId exists in session
-    if (!session.user.companyId) {
-      return NextResponse.json(
-        { message: 'Company ID not found in session' },
-        { status: 400 }
-      );
-    }
+    // Validate company context from session.activeCompanyId
+    const validatedCompanyId = await requireCompanyContext(session);
 
-    const company = await Company.findById(session.user.companyId);
+    const company = await Company.findById(validatedCompanyId);
     if (!company) {
       return NextResponse.json(
         { message: 'Company not found' },
         { status: 404 }
+      );
+    }
+
+    // Ensure the target employee belongs to this company
+    const employeeBelongs = await hasCompanyAccess(
+      employeeId,
+      validatedCompanyId
+    );
+    if (!employeeBelongs) {
+      return NextResponse.json(
+        { message: 'Employee does not belong to this company' },
+        { status: 400 }
       );
     }
 
@@ -98,7 +106,7 @@ export async function POST(
         assignmentType: finalAssignmentType,
         interval,
         endDate: endDate ? new Date(endDate) : undefined,
-        companyId: session.user.companyId,
+        companyId: validatedCompanyId,
         status: 'not-started',
         lessonProgress: [],
       });
@@ -117,7 +125,7 @@ export async function POST(
               email: employee.email,
               firstName: employee.firstName,
               lastName: employee.lastName,
-              companyId: employee.companyId?.toString(),
+              companyId: validatedCompanyId,
             },
             {
               id: courseId,

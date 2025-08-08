@@ -17,16 +17,14 @@ export async function GET() {
     await dbConnect();
 
     // Get all companies
-    const companies = await Company.find().populate({
-      path: 'employees',
-      model: User,
-      select: 'firstName lastName email department',
-    });
+    const companies = await Company.find();
 
     const companiesAtRisk = [];
 
     for (const company of companies) {
-      const employeeIds = company.employees.map((emp: any) => emp._id);
+      const employeeIds = (
+        await User.find({ 'memberships.companyId': company._id }, '_id')
+      ).map((u) => u._id);
 
       if (employeeIds.length === 0) continue;
 
@@ -50,8 +48,8 @@ export async function GET() {
       assignments.forEach((assignment) => {
         if (assignment.status === 'completed') return;
 
-        const employee = company.employees.find(
-          (emp: any) => emp._id.toString() === assignment.employee.toString()
+        const employee = await User.findById(assignment.employee).select(
+          'firstName lastName'
         );
 
         if (!employee) return;

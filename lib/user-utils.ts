@@ -1,5 +1,6 @@
 import clientPromise from '@/lib/mongodb';
 import { MongoClient } from 'mongodb';
+import type { NextRequest } from 'next/server';
 import { Types } from 'mongoose';
 import User from './models/User';
 import Company from './models/Company';
@@ -236,7 +237,6 @@ export async function getCompanyEmployees(companyId: string) {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        role: membership?.role || 'EMPLOYEE',
         department: membership?.department,
         designation: membership?.designation,
       };
@@ -267,4 +267,32 @@ export async function requireCompanyContext(
   }
 
   return companyId;
+}
+
+/**
+ * Resolve companyId from request (query -> header -> cookie -> session)
+ */
+export function resolveCompanyIdFromRequest(
+  req: NextRequest,
+  session: any
+): string | undefined {
+  try {
+    // 1) query param ?companyId=
+    const url = new URL(req.url);
+    const qp = url.searchParams.get('companyId');
+    if (qp) return qp;
+
+    // 2) header x-company-id
+    const headerId = req.headers.get('x-company-id');
+    if (headerId) return headerId;
+
+    // 3) cookie activeCompanyId
+    const cookieId = req.cookies.get('activeCompanyId')?.value;
+    if (cookieId) return cookieId;
+
+    // 4) fallback to session
+    return session?.user?.activeCompanyId;
+  } catch {
+    return session?.user?.activeCompanyId;
+  }
 }

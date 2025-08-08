@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { hasCompanyAccess } from '@/lib/user-utils';
+import dbConnect from '@/lib/dbConnect';
+import User from '@/lib/models/User';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,10 +30,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update the session with new active company
-    // Note: This is a simplified approach. In a real implementation,
-    // you might want to store the active company in the database
-    // and update it via NextAuth's JWT callback
+    // Persist the active company on the user document
+    await dbConnect();
+    await User.findByIdAndUpdate(session.user.id, {
+      $set: { activeCompanyId: companyId },
+    });
 
     return NextResponse.json({
       message: 'Company switched successfully',

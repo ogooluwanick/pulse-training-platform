@@ -55,7 +55,6 @@ async function migrateToMemberships() {
         // Create new membership
         const newMembership = {
           companyId: user.companyId,
-          role: user.role === 'COMPANY' ? 'MANAGER' : 'EMPLOYEE',
           department: user.department,
           designation: user.designation,
           status: 'active',

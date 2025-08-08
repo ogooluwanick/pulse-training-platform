@@ -9,6 +9,7 @@ import User from '@/lib/models/User';
 import Course from '@/lib/models/Course';
 import Company from '@/lib/models/Company';
 import mongoose from 'mongoose';
+import { getCompanyEmployees, requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET(request: Request) {
   try {
@@ -19,25 +20,8 @@ export async function GET(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const companyId = searchParams.get('companyId');
-
-    if (!companyId) {
-      return new NextResponse('Company ID is required', { status: 400 });
-    }
-
-    const company = await Company.findById(companyId).populate({
-      path: 'employees',
-      model: User,
-    });
-    if (!company) {
-      return new NextResponse('Company not found', { status: 404 });
-    }
-
-    // Filter out company accounts from employees list
-    const filteredEmployees = company.employees.filter((employee: any) => {
-      return employee.role !== 'COMPANY';
-    });
+    const activeCompanyId = await requireCompanyContext(session);
+    const filteredEmployees = await getCompanyEmployees(activeCompanyId);
 
     const activities = await Activity.find({
       userId: { $in: filteredEmployees.map((emp: any) => emp._id) },

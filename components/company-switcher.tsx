@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,28 +31,21 @@ export function CompanySwitcher({ className }: CompanySwitcherProps) {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/user/switch-company', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ companyId }),
-      });
+      // Set cookie (client-side)
+      const cookieValue = encodeURIComponent(companyId);
+      // Cookie available to all paths, expires in 7 days
+      document.cookie = `activeCompanyId=${cookieValue}; path=/; max-age=${7 * 24 * 60 * 60}`;
 
-      if (response.ok) {
-        // Update the session with new active company
-        await update({
-          ...session,
-          user: {
-            ...session?.user,
-            activeCompanyId: companyId,
-            companyId: companyId,
-            companyName: companyNames[companyIds.indexOf(companyId)],
-          },
-        });
-      } else {
-        console.error('Failed to switch company');
-      }
+      // Update the session locally so UI reflects immediately
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          activeCompanyId: companyId,
+          companyId: companyId,
+          companyName: companyNames[companyIds.indexOf(companyId)] ?? '',
+        },
+      });
     } catch (error) {
       console.error('Error switching company:', error);
     } finally {
@@ -60,7 +53,6 @@ export function CompanySwitcher({ className }: CompanySwitcherProps) {
     }
   };
 
-  // Don't render if user has no companies or only one company
   if (companyIds.length <= 1) {
     return null;
   }
