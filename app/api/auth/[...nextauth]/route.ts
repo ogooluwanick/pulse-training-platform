@@ -68,14 +68,21 @@ export const authOptions: NextAuthOptions = {
             })
           );
 
-          // For backward compatibility, use existing companyId if available
-          let activeCompanyId = dbUser.companyId?.toString();
-          let activeCompanyName = dbUser.companyName;
+          // Use activeCompanyId from database, fallback to first membership
+          let activeCompanyId = dbUser.activeCompanyId?.toString();
+          let activeCompanyName = '';
 
           // If no active company set, use first membership
           if (!activeCompanyId && companyIds.length > 0) {
             activeCompanyId = companyIds[0];
             activeCompanyName = companyNames[0];
+          } else if (activeCompanyId) {
+            // Find the company name for the active company
+            const activeCompanyIndex = companyIds.indexOf(activeCompanyId);
+            activeCompanyName =
+              activeCompanyIndex >= 0
+                ? companyNames[activeCompanyIndex]
+                : companyNames[0] || '';
           }
 
           // Return user object without password

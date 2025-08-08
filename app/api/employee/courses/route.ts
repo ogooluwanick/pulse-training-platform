@@ -7,7 +7,7 @@ import Course from '@/lib/models/Course';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -24,8 +24,12 @@ export async function GET() {
 
     await dbConnect();
 
-    // Get active company ID from session or cookie
-    const activeCompanyId = session.user.activeCompanyId;
+    // Get active company ID from cookie
+    const cookies = request.headers.get('cookie') || '';
+    const cookieMatch = cookies.match(/activeCompanyId=([^;]+)/);
+    const activeCompanyId = cookieMatch
+      ? decodeURIComponent(cookieMatch[1])
+      : null;
 
     if (!activeCompanyId) {
       return NextResponse.json(

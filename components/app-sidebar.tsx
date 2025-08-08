@@ -413,7 +413,28 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                       {user.firstName || user.email}
                     </p>
                     <p className="text-xs text-warm-gray capitalize">
-                      {user?.companyName?.toLowerCase()}
+                      {(() => {
+                        const getCookie = (name: string) => {
+                          const value = `; ${document.cookie}`;
+                          const parts = value.split(`; ${name}=`);
+                          if (parts.length === 2)
+                            return parts.pop()?.split(';').shift();
+                          return null;
+                        };
+
+                        const activeCompanyId = getCookie('activeCompanyId');
+                        if (activeCompanyId) {
+                          const companyIndex =
+                            user?.companyIds?.indexOf(
+                              decodeURIComponent(activeCompanyId)
+                            ) || -1;
+                          return (
+                            user?.companyNames?.[companyIndex]?.toLowerCase() ||
+                            user?.companyName?.toLowerCase()
+                          );
+                        }
+                        return user?.companyName?.toLowerCase();
+                      })()}
                     </p>
                     <p className="text-xs text-warm-gray capitalize">
                       {user?.role?.toLowerCase()}

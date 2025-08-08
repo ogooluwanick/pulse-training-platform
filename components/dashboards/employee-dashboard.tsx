@@ -123,9 +123,9 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     LearningApiResponse,
     Error
   >({
-    queryKey: ['learningData', user.id],
+    queryKey: ['learningData', user.id, user.activeCompanyId],
     queryFn: fetchLearningData,
-    enabled: !!user.id,
+    enabled: !!user.id && !!user.activeCompanyId,
     staleTime: 0, // Force fresh data
     gcTime: 0, // Don't cache
   });
@@ -135,9 +135,9 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     CoursesApiResponse,
     Error
   >({
-    queryKey: ['courseAssignments', user.id],
+    queryKey: ['courseAssignments', user.id, user.activeCompanyId],
     queryFn: fetchCourseAssignments,
-    enabled: !!user.id,
+    enabled: !!user.id && !!user.activeCompanyId,
     staleTime: 0, // Force fresh data
     gcTime: 0, // Don't cache
   });

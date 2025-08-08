@@ -36,6 +36,10 @@ const UserSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
+    activeCompanyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+    },
     department: {
       type: String,
     },
