@@ -48,7 +48,7 @@ export default function EmployeeSignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
+
   const [department, setDepartment] = useState('');
   const [designation, setDesignation] = useState('');
   const [error, setError] = useState('');
@@ -79,7 +79,7 @@ export default function EmployeeSignupPage() {
             console.log('Prefilling form with user data:', data.user);
             setFirstName(data.user.firstName || '');
             setLastName(data.user.lastName || '');
-            setEmail(data.user.email || '');
+
             setDepartment(data.user.department || '');
             setDesignation(data.user.designation || '');
           }
@@ -115,7 +115,6 @@ export default function EmployeeSignupPage() {
           password,
           firstName,
           lastName,
-          email,
           department,
           designation,
         }),
@@ -237,20 +236,7 @@ export default function EmployeeSignupPage() {
                   required
                 />
               </div>
-              <div className="grid gap-2">
-                <Label className="text-charcoal font-medium" htmlFor="email">
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft pr-10"
-                  required
-                  disabled={returningEmployee}
-                />
-              </div>
+
               <div className="grid gap-2">
                 <Label
                   className="text-charcoal font-medium"
