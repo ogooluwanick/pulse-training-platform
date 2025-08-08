@@ -1,127 +1,105 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
-import clientPromise from '@/lib/mongodb';
 import bcrypt from 'bcryptjs';
+import clientPromise from '@/lib/mongodb';
 import { MongoClient, ObjectId } from 'mongodb';
-import crypto from 'crypto';
-import { sendVerificationEmail } from '@/lib/email';
+import { getUserMemberships } from '@/lib/user-utils';
 
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise()),
   providers: [
     CredentialsProvider({
-      name: 'Credentials',
+      name: 'credentials',
       credentials: {
-        email: {
-          label: 'Email',
-          type: 'email',
-          placeholder: 'jsmith@example.com',
-        },
+        email: { label: 'Email', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Missing email or password');
+          throw new Error('Missing credentials');
         }
 
-        const client: MongoClient = await clientPromise();
-        const db = client.db();
-        const usersCollection = db.collection('users');
-        const companiesCollection = db.collection('companies');
-        const dbUser = await usersCollection.findOne({
-          email: credentials.email,
-        });
+        try {
+          const client: MongoClient = await clientPromise();
+          const usersCollection = client.db().collection('users');
+          const companiesCollection = client.db().collection('companies');
 
-        if (!dbUser) {
-          throw new Error('No user found with this email');
-        }
+          const dbUser = await usersCollection.findOne({
+            email: credentials.email,
+          });
 
-        // Check if email is verified
-        if (!dbUser.emailVerified) {
-          // Email is not verified, resend verification email
-          const newVerificationToken = crypto.randomBytes(32).toString('hex');
-          const newVerificationTokenExpires = new Date(
-            Date.now() + 24 * 60 * 60 * 1000
+          if (!dbUser) {
+            throw new Error('User not found');
+          }
+
+          if (dbUser.status !== 'active') {
+            throw new Error('Account is not active');
+          }
+
+          const isValidPassword = await bcrypt.compare(
+            credentials.password,
+            dbUser.password
           );
 
+          if (!isValidPassword) {
+            throw new Error('Incorrect password');
+          }
+
+          // Update lastOnline on successful login
           await usersCollection.updateOne(
             { _id: new ObjectId(dbUser._id) },
-            {
-              $set: {
-                verificationToken: newVerificationToken,
-                verificationTokenExpires: newVerificationTokenExpires,
-              },
-            }
+            { $set: { lastOnline: new Date() } }
           );
 
-          try {
-            await sendVerificationEmail(
-              dbUser.email,
-              `${dbUser.firstName} ${dbUser.lastName}`,
-              newVerificationToken,
-              false // Use regular email verification flow
-            );
-            throw new Error(
-              "Your email is not verified. We've sent a new verification link to your email address. Please check your inbox."
-            );
-          } catch (emailError: any) {
-            console.error('Error resending verification email:', emailError);
-            throw new Error(
-              'Your email is not verified. Please check your inbox or try registering again if issues persist.'
-            );
+          // Get session timeout from user settings
+          const sessionTimeoutInHours =
+            dbUser.settings?.session?.sessionTimeout || 4;
+
+          // Get user memberships
+          const memberships = await getUserMemberships(dbUser._id.toString());
+          const companyIds = memberships.map((m) => m.companyId.toString());
+
+          // Get company names for active memberships
+          const companyNames = await Promise.all(
+            companyIds.map(async (companyId) => {
+              const company = await companiesCollection.findOne({
+                _id: new ObjectId(companyId),
+              });
+              return company?.name || 'Unknown Company';
+            })
+          );
+
+          // For backward compatibility, use existing companyId if available
+          let activeCompanyId = dbUser.companyId?.toString();
+          let activeCompanyName = dbUser.companyName;
+
+          // If no active company set, use first membership
+          if (!activeCompanyId && companyIds.length > 0) {
+            activeCompanyId = companyIds[0];
+            activeCompanyName = companyNames[0];
           }
+
+          // Return user object without password
+          return {
+            id: dbUser._id.toString(),
+            name:
+              `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim() ||
+              'User',
+            email: dbUser.email,
+            role: dbUser.role,
+            firstName: dbUser.firstName,
+            lastName: dbUser.lastName,
+            profileImageUrl: dbUser.profileImageUrl,
+            companyName: activeCompanyName,
+            companyId: activeCompanyId,
+            companyIds: companyIds,
+            companyNames: companyNames,
+            activeCompanyId: activeCompanyId,
+            sessionTimeoutInHours: sessionTimeoutInHours,
+          };
+        } catch (error) {
+          console.error('Auth error:', error);
+          throw error;
         }
-
-        const isValidPassword = await bcrypt.compare(
-          credentials.password,
-          dbUser.password as string
-        );
-
-        if (!isValidPassword) {
-          throw new Error('Incorrect password');
-        }
-
-        // Update lastOnline on successful login
-        await usersCollection.updateOne(
-          { _id: new ObjectId(dbUser._id) },
-          { $set: { lastOnline: new Date() } }
-        );
-
-        // Get session timeout from user settings
-        const sessionTimeoutInHours =
-          dbUser.settings?.session?.sessionTimeout || 4;
-
-        let companyName = dbUser.companyName;
-        if (!companyName && dbUser.companyId) {
-          const company = await companiesCollection.findOne({
-            _id: new ObjectId(dbUser.companyId),
-          });
-          if (company) {
-            companyName = company.name;
-            // Update user document with company name
-            await usersCollection.updateOne(
-              { _id: new ObjectId(dbUser._id) },
-              { $set: { companyName: company.name } }
-            );
-          }
-        }
-
-        // Return user object without password
-        return {
-          id: dbUser._id.toString(),
-          name:
-            `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim() ||
-            'User',
-          email: dbUser.email,
-          role: dbUser.role,
-          firstName: dbUser.firstName,
-          lastName: dbUser.lastName,
-          profileImageUrl: dbUser.profileImageUrl,
-          companyName: companyName,
-          companyId: dbUser.companyId ? dbUser.companyId.toString() : null,
-          sessionTimeoutInHours: sessionTimeoutInHours,
-        };
       },
     }),
   ],
@@ -158,6 +136,9 @@ export const authOptions: NextAuthOptions = {
         token.profileImageUrl = user.profileImageUrl;
         token.companyName = user.companyName;
         token.companyId = user.companyId;
+        token.companyIds = user.companyIds;
+        token.companyNames = user.companyNames;
+        token.activeCompanyId = user.activeCompanyId;
 
         // Set JWT expiration based on user's sessionTimeout setting
         const sessionTimeoutInSeconds =
@@ -176,6 +157,9 @@ export const authOptions: NextAuthOptions = {
         session.user.profileImageUrl = token.profileImageUrl as string;
         session.user.companyName = token.companyName as string;
         session.user.companyId = token.companyId as string;
+        session.user.companyIds = token.companyIds as string[];
+        session.user.companyNames = token.companyNames as string[];
+        session.user.activeCompanyId = token.activeCompanyId as string;
       }
       return session;
     },

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import Course from '@/lib/models/Course';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { Types } from 'mongoose';
 
 export async function GET(
   req: Request,
@@ -10,16 +11,36 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
+    console.log('Course API GET - No session found');
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
+
+  console.log(
+    'Course API GET - User:',
+    session.user.id,
+    'Role:',
+    session.user.role,
+    'Course ID:',
+    params.id
+  );
 
   await dbConnect();
 
   try {
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(params.id)) {
+      console.error('Invalid ObjectId format:', params.id);
+      return NextResponse.json(
+        { message: 'Invalid course ID format' },
+        { status: 400 }
+      );
+    }
+
     const course = await Course.findOne({ _id: params.id, status: 'published' })
       // .populate('instructor')
       .lean();
     if (!course) {
+      console.error('Course not found:', params.id);
       return NextResponse.json(
         { message: 'Course not found' },
         { status: 404 }

@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { Types } from 'mongoose';
 
 export async function GET(
   req: NextRequest,
@@ -19,11 +20,29 @@ export async function GET(
   const userId = session.user.id;
 
   try {
+    console.log(
+      'Course Assignment API - Course ID:',
+      courseId,
+      'User ID:',
+      userId
+    );
+
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(courseId)) {
+      console.error('Invalid course ID format:', courseId);
+      return NextResponse.json(
+        { message: 'Invalid course ID format' },
+        { status: 400 }
+      );
+    }
+
     // Find the assignment for this user and course
     const assignment = await CourseAssignment.findOne({
-      course: courseId,
-      employee: userId,
+      course: new Types.ObjectId(courseId),
+      employee: new Types.ObjectId(userId),
     }).populate('course', 'title description lessons finalQuiz');
+
+    console.log('Assignment found:', assignment ? 'YES' : 'NO');
 
     if (!assignment) {
       // Return empty assignment data if no assignment exists
@@ -67,8 +86,8 @@ export async function POST(
   try {
     // Check if assignment already exists
     const existingAssignment = await CourseAssignment.findOne({
-      course: courseId,
-      employee: userId,
+      course: new Types.ObjectId(courseId),
+      employee: new Types.ObjectId(userId),
     });
 
     if (existingAssignment) {

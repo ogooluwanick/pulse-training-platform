@@ -61,6 +61,33 @@ const UserSchema = new Schema(
     emailVerified: {
       type: Date,
     },
+    memberships: [
+      {
+        companyId: {
+          type: Schema.Types.ObjectId,
+          ref: 'Company',
+          required: true,
+        },
+        department: {
+          type: String,
+        },
+        designation: {
+          type: String,
+        },
+        status: {
+          type: String,
+          enum: ['active', 'ended'],
+          default: 'active',
+        },
+        startedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        endedAt: {
+          type: Date,
+        },
+      },
+    ],
     courseAssignments: [
       {
         type: Schema.Types.ObjectId,
@@ -88,6 +115,9 @@ const UserSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Create compound index for memberships to ensure unique user-company combinations
+UserSchema.index({ 'memberships.companyId': 1, _id: 1 }, { unique: true });
 
 const User = models.User || model('User', UserSchema);
 

@@ -7,18 +7,35 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
 async function fetchCourse(courseId: string) {
-  const response = await fetch(`/api/course/${courseId}`);
+  const response = await fetch(`/api/course/${courseId}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   if (!response.ok) {
-    throw new Error('Failed to fetch course data');
+    const errorData = await response.json().catch(() => null);
+    throw new Error(
+      errorData?.message || `Failed to fetch course data: ${response.status}`
+    );
   }
   return response.json();
 }
 
 async function fetchAssignment(courseId: string) {
   // First get the assignment ID for this course and user
-  const response = await fetch(`/api/course-assignment/${courseId}`);
+  const response = await fetch(`/api/course-assignment/${courseId}`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   if (!response.ok) {
-    throw new Error('Failed to fetch assignment data');
+    const errorData = await response.json().catch(() => null);
+    throw new Error(
+      errorData?.message ||
+        `Failed to fetch assignment data: ${response.status}`
+    );
   }
   return response.json();
 }

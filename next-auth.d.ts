@@ -1,9 +1,9 @@
-import NextAuth, { DefaultSession, DefaultUser } from "next-auth";
-import { JWT, DefaultJWT } from "next-auth/jwt";
+import NextAuth, { DefaultSession, DefaultUser } from 'next-auth';
+import { JWT, DefaultJWT } from 'next-auth/jwt';
 
 export type UserRole = 'ADMIN' | 'COMPANY' | 'EMPLOYEE';
 
-declare module "next-auth" {
+declare module 'next-auth' {
   interface Session {
     user: {
       id: string;
@@ -13,7 +13,10 @@ declare module "next-auth" {
       profileImageUrl: string;
       companyName?: string;
       companyId?: string;
-    } & DefaultSession["user"];
+      companyIds?: string[];
+      companyNames?: string[];
+      activeCompanyId?: string;
+    } & DefaultSession['user'];
   }
 
   interface User extends DefaultUser {
@@ -23,10 +26,13 @@ declare module "next-auth" {
     profileImageUrl: string;
     companyName?: string;
     companyId?: string;
+    companyIds?: string[];
+    companyNames?: string[];
+    activeCompanyId?: string;
   }
 }
 
-declare module "next-auth/jwt" {
+declare module 'next-auth/jwt' {
   interface JWT extends DefaultJWT {
     id: string;
     role: UserRole;
@@ -34,5 +40,9 @@ declare module "next-auth/jwt" {
     lastName: string;
     profileImageUrl: string;
     companyName?: string;
+    companyId?: string;
+    companyIds?: string[];
+    companyNames?: string[];
+    activeCompanyId?: string;
   }
 }

@@ -34,6 +34,14 @@ export async function GET() {
     // Transform assignments to match frontend expectations
     const courses = assignments.map((assignment: any) => {
       const course = assignment.course;
+      console.log(
+        'Employee Courses API - Assignment ID:',
+        assignment._id,
+        'Course ID:',
+        course._id,
+        'Type:',
+        typeof course._id
+      );
       const totalLessons = course.lessons?.length || 0;
       const completedLessons =
         assignment.lessonProgress?.filter(
@@ -49,7 +57,7 @@ export async function GET() {
 
       return {
         _id: assignment._id, // Assignment ID
-        courseId: course._id, // Course ID
+        courseId: course._id.toString(), // Course ID - ensure it's a string
         title: course.title,
         description: course.description,
         category: course.category?.toLowerCase(),

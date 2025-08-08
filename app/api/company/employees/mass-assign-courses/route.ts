@@ -7,6 +7,7 @@ import Company from '@/lib/models/Company';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { handleBulkCourseAssignment } from '@/lib/notificationActivityService';
+import { requireCompanyContext, getCompanyEmployees } from '@/lib/user-utils';
 
 export async function POST(request: NextRequest) {
   await dbConnect();
@@ -17,8 +18,14 @@ export async function POST(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { employeeIds, courseIds, assignmentType, interval, endDate } =
-      await request.json();
+    const {
+      employeeIds,
+      courseIds,
+      assignmentType,
+      interval,
+      endDate,
+      companyId,
+    } = await request.json();
 
     if (
       !employeeIds ||
@@ -38,16 +45,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if companyId exists in session
-    if (!session.user.companyId) {
-      return NextResponse.json(
-        { message: 'Company ID not found in session' },
-        { status: 400 }
-      );
-    }
+    // Validate company access using the new membership system
+    const validatedCompanyId = await requireCompanyContext(session, companyId);
 
     // Get company info
-    const company = await Company.findById(session.user.companyId);
+    const company = await Company.findById(validatedCompanyId);
     if (!company) {
       return NextResponse.json(
         { message: 'Company not found' },
@@ -55,8 +57,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get employees for this specific company
+    const companyEmployees = await getCompanyEmployees(validatedCompanyId);
+    const employeeIdsInCompany = companyEmployees.map((emp) =>
+      emp._id.toString()
+    );
+
+    // Filter employeeIds to only include those who are members of this company
+    const validEmployeeIds = employeeIds.filter((id) =>
+      employeeIdsInCompany.includes(id)
+    );
+
+    if (validEmployeeIds.length === 0) {
+      return NextResponse.json(
+        { message: 'No valid employees found for this company' },
+        { status: 400 }
+      );
+    }
+
     // Get employees and courses info
-    const employees = await User.find({ _id: { $in: employeeIds } });
+    const employees = await User.find({ _id: { $in: validEmployeeIds } });
     const courses = await Course.find({ _id: { $in: courseIds } });
 
     if (employees.length === 0) {
@@ -83,7 +103,7 @@ export async function POST(request: NextRequest) {
         email: employee.email,
         firstName: employee.firstName,
         lastName: employee.lastName,
-        companyId: employee.companyId?.toString(),
+        companyId: validatedCompanyId,
       }));
 
       const courseInfo = {
@@ -99,60 +119,47 @@ export async function POST(request: NextRequest) {
           true // Send email notifications
         );
 
-        bulkResults.push({
-          courseId: course._id.toString(),
-          courseTitle: course.title,
-          notifications: result.notifications.length,
-          activities: result.activities.length,
-          emails: result.emails.length,
-        });
-
-        console.log(
-          `[Mass Assignment] Bulk assignment handled for course ${course._id} with ${courseUserInfos.length} employees`
-        );
+        bulkResults.push(result);
       } catch (error) {
-        console.error(
-          `[Mass Assignment] Error handling bulk assignment for course ${course._id}:`,
-          error
-        );
-        // Continue with other courses even if one fails
-      }
-
-      // Create course assignments
-      for (const employee of employees) {
-        // Remove the duplicate check - allow multiple assignments of the same course
-        // const existingAssignment = await CourseAssignment.findOne({
-        //   course: course._id,
-        //   employee: employee._id,
-        // });
-
-        // if (!existingAssignment) {
-        const newAssignment = new CourseAssignment({
-          course: course._id,
-          employee: employee._id,
-          assignmentType: assignmentType || 'one-time',
-          interval: interval || undefined,
-          endDate: endDate ? new Date(endDate) : undefined,
-          companyId: session.user.companyId,
-          status: 'not-started',
-          lessonProgress: [],
+        console.error('Error in bulk course assignment:', error);
+        bulkResults.push({
+          success: false,
+          error: 'Failed to process course assignment',
         });
+      }
+    }
 
-        await newAssignment.save();
-        createdAssignments.push(newAssignment);
-        // }
+    // Create course assignments
+    for (const course of courses) {
+      for (const employee of employees) {
+        try {
+          const assignment = await CourseAssignment.create({
+            course: course._id,
+            employee: employee._id,
+            assignmentType,
+            interval,
+            endDate: endDate ? new Date(endDate) : undefined,
+            companyId: validatedCompanyId,
+            status: 'not-started',
+          });
+
+          createdAssignments.push(assignment);
+        } catch (error) {
+          console.error('Error creating course assignment:', error);
+          // Continue with other assignments even if one fails
+        }
       }
     }
 
     return NextResponse.json({
-      message: 'Courses assigned successfully to all employees',
-      createdAssignments: createdAssignments.length,
+      message: 'Courses assigned successfully',
+      assignmentsCreated: createdAssignments.length,
       bulkResults,
     });
   } catch (error) {
     console.error('Error in mass course assignment:', error);
     return NextResponse.json(
-      { message: 'Internal Server Error' },
+      { message: 'Internal server error' },
       { status: 500 }
     );
   }

@@ -11,12 +11,7 @@ const CompanySchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: 'User',
     },
-    employees: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-      },
-    ],
+    // employees array removed - employees are now tracked via User.memberships
     // savedCourses: [
     //   {
     //     type: Schema.Types.ObjectId,
