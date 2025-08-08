@@ -4,6 +4,8 @@ import CourseAssignment from '@/lib/models/CourseAssignment';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { Types } from 'mongoose';
+import Course from '@/lib/models/Course';
+import { requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET(
   req: NextRequest,
@@ -36,10 +38,14 @@ export async function GET(
       );
     }
 
-    // Find the assignment for this user and course
+    // Resolve active company context (supports header/cookie/session)
+    const activeCompanyId = await requireCompanyContext(session);
+
+    // Find the assignment for this user, course, and company
     const assignment = await CourseAssignment.findOne({
       course: new Types.ObjectId(courseId),
       employee: new Types.ObjectId(userId),
+      companyId: new Types.ObjectId(activeCompanyId),
     }).populate({
       path: 'course',
       model: Course,
@@ -55,6 +61,7 @@ export async function GET(
         _id: null,
         course: courseId,
         employee: userId,
+        companyId: activeCompanyId,
         status: 'not-started',
         lessonProgress: [],
         assignmentType: 'one-time',
@@ -89,10 +96,12 @@ export async function POST(
   const { assignmentType, interval, endDate } = await req.json();
 
   try {
+    const activeCompanyId = await requireCompanyContext(session);
     // Check if assignment already exists
     const existingAssignment = await CourseAssignment.findOne({
       course: new Types.ObjectId(courseId),
       employee: new Types.ObjectId(userId),
+      companyId: new Types.ObjectId(activeCompanyId),
     });
 
     if (existingAssignment) {
@@ -106,6 +115,7 @@ export async function POST(
     const assignment = new CourseAssignment({
       course: courseId,
       employee: userId,
+      companyId: activeCompanyId,
       assignmentType: assignmentType || 'one-time',
       interval: interval || undefined,
       endDate: endDate ? new Date(endDate) : undefined,

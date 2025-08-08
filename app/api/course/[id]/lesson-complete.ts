@@ -3,6 +3,7 @@ import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { requireCompanyContext } from '@/lib/user-utils';
 
 export async function POST(
   req: NextRequest,
@@ -17,11 +18,13 @@ export async function POST(
   const { lessonId, quizResult } = await req.json();
   const courseId = params.id;
   const userId = session.user.id;
+  const activeCompanyId = await requireCompanyContext(session);
 
   // Find the assignment for this user and course
   const assignment = await CourseAssignment.findOne({
     course: courseId,
     employee: userId,
+    companyId: activeCompanyId,
   });
   if (!assignment) {
     return NextResponse.json(

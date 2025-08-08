@@ -7,6 +7,7 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { createCompletionActivity } from '@/lib/activityService';
 import { createCourseCompletionNotification } from '@/lib/notificationService';
 import User from '@/lib/models/User';
+import { requireCompanyContext } from '@/lib/user-utils';
 
 export async function POST(
   req: NextRequest,
@@ -22,10 +23,12 @@ export async function POST(
   const courseId = params.id;
   const userId = session.user.id;
 
-  // Find the assignment for this user and course
+  // Resolve active company context and find the assignment for this user, course, and company
+  const activeCompanyId = await requireCompanyContext(session);
   const assignment = await CourseAssignment.findOne({
     course: courseId,
     employee: userId,
+    companyId: activeCompanyId,
   });
   if (!assignment) {
     return NextResponse.json(
@@ -71,11 +74,7 @@ export async function POST(
 
     if (user && courseData) {
       // Create completion activity
-      await createCompletionActivity(
-        userId,
-        courseId,
-        session.user.activeCompanyId || user.companyId?.toString()
-      );
+      await createCompletionActivity(userId, courseId, activeCompanyId);
 
       // Create course completion notification
       await createCourseCompletionNotification(

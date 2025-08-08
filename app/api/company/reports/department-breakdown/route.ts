@@ -37,6 +37,7 @@ export async function GET() {
 
         const assignments = await CourseAssignment.find({
           employee: { $in: employeeIds },
+          companyId: companyId,
         });
         const completedAssignments = assignments.filter(
           (a) => a.status === 'completed'

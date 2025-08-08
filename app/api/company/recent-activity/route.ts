@@ -25,6 +25,7 @@ export async function GET(request: Request) {
 
     const activities = await Activity.find({
       userId: { $in: filteredEmployees.map((emp: any) => emp._id) },
+      companyId: new mongoose.Types.ObjectId(activeCompanyId),
     })
       .populate({ path: 'userId', model: User, select: 'firstName lastName' })
       .populate({

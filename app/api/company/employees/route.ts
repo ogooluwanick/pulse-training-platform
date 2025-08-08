@@ -39,6 +39,7 @@ export async function GET() {
         // since company users should be able to see all their courses regardless of status
         const assignments = await CourseAssignment.find({
           employee: employee._id,
+          companyId: companyId,
         }).populate({
           path: 'course',
           model: Course,

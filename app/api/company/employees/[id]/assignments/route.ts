@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import mongoose from 'mongoose';
+import Course from '@/lib/models/Course';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { requireCompanyContext } from '@/lib/user-utils';
 
 export async function GET(
   req: NextRequest,
@@ -10,6 +14,12 @@ export async function GET(
   await dbConnect();
 
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user || session.user.role !== 'COMPANY') {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const activeCompanyId = await requireCompanyContext(session);
     const { id: employeeId } = params;
 
     if (!employeeId) {
@@ -29,6 +39,7 @@ export async function GET(
 
     const assignments = await CourseAssignment.find({
       employee: new mongoose.Types.ObjectId(employeeId),
+      companyId: new mongoose.Types.ObjectId(activeCompanyId),
     }).populate({
       path: 'course',
       model: Course,

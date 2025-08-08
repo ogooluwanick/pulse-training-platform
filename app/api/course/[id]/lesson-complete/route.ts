@@ -7,6 +7,7 @@ import { createEnrollmentActivity } from '@/lib/activityService';
 import { createInfoNotification } from '@/lib/notificationService';
 import User from '@/lib/models/User';
 import Course from '@/lib/models/Course';
+import { requireCompanyContext } from '@/lib/user-utils';
 
 export async function POST(
   req: NextRequest,
@@ -39,10 +40,14 @@ export async function POST(
   }
 
   try {
-    // Find or create the course assignment
+    // Resolve active company context first
+    const activeCompanyId = await requireCompanyContext(session);
+
+    // Find or create the course assignment scoped to company
     let assignment = await CourseAssignment.findOne({
       course: courseId,
       employee: userId,
+      companyId: activeCompanyId,
     });
 
     if (!assignment) {
@@ -50,6 +55,7 @@ export async function POST(
       assignment = new CourseAssignment({
         course: courseId,
         employee: userId,
+        companyId: activeCompanyId,
         status: 'in-progress',
         lessonProgress: [],
       });
@@ -130,11 +136,7 @@ export async function POST(
 
       if (user && courseData) {
         // Create activity for lesson completion
-        await createEnrollmentActivity(
-          userId,
-          courseId,
-          session.user.activeCompanyId || user.companyId?.toString()
-        );
+        await createEnrollmentActivity(userId, courseId, activeCompanyId);
 
         // Create notification for lesson completion
         await createInfoNotification(
