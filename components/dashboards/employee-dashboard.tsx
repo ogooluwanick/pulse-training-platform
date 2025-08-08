@@ -32,6 +32,7 @@ import { formatDuration } from '@/lib/duration';
 // Updated interface for course data from the API
 interface CourseWithProgress {
   _id: string;
+  courseId: string;
   title: string;
   description: string;
   category: 'compliance' | 'skills' | 'culture' | 'technical' | 'General';
@@ -647,7 +648,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
 
                     <div className="flex gap-2">
                       <Link
-                        href={`/dashboard/course/${assignment._id}`}
+                        href={`/dashboard/course/${assignment.courseId}`}
                         className="flex-1"
                       >
                         <Button

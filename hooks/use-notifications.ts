@@ -42,8 +42,8 @@ export function useNotifications(
       return fetchedData;
     },
     enabled: !!userId,
-    refetchInterval: 600000, // 10 minutes
-    staleTime: 300000, // 5 minutes
+    refetchInterval: 120000, // 2 minutes
+    staleTime: 60000, // 5 minutes
   });
 
   // Mutation for marking a single notification as read
