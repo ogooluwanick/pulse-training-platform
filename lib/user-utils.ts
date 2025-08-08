@@ -1,6 +1,7 @@
 import clientPromise from '@/lib/mongodb';
 import { MongoClient } from 'mongodb';
 import type { NextRequest } from 'next/server';
+import { cookies, headers } from 'next/headers';
 import { Types } from 'mongoose';
 import User from './models/User';
 import Company from './models/Company';
@@ -82,64 +83,42 @@ export interface Membership {
 /**
  * Add a user to a company with specified role and details
  */
-export async function addUserToCompany(
+export const addUserToCompany = async (
   userId: string,
   companyId: string,
   department?: string,
   designation?: string
-): Promise<boolean> {
+): Promise<boolean> => {
   try {
-    // Validate ObjectIds
-    if (!Types.ObjectId.isValid(userId) || !Types.ObjectId.isValid(companyId)) {
-      console.error('[UserUtils] Invalid ObjectId format');
-      return false;
-    }
-
-    // Check if company exists
-    const company = await Company.findById(companyId);
-    if (!company) {
-      console.error('[UserUtils] Company not found');
-      return false;
-    }
-
-    // Check if user exists
     const user = await User.findById(userId);
-    if (!user) {
-      console.error('[UserUtils] User not found');
-      return false;
-    }
+    if (!user) return false;
 
     // Check if membership already exists
     const existingMembership = user.memberships?.find(
-      (m) => m.companyId.toString() === companyId && m.status === 'active'
+      (m: any) => m.companyId.toString() === companyId && m.status === 'active'
     );
-
-    if (existingMembership) {
-      console.log(
-        '[UserUtils] User already has active membership in this company'
-      );
-      return true; // Already a member
-    }
+    if (existingMembership) return true; // Already a member
 
     // Add new membership
-    const newMembership: Membership = {
-      companyId: new Types.ObjectId(companyId),
+    const newMembership = {
+      companyId,
       department,
       designation,
       status: 'active',
       startedAt: new Date(),
     };
 
-    await User.findByIdAndUpdate(userId, {
-      $push: { memberships: newMembership },
-    });
-
+    if (!user.memberships) {
+      user.memberships = [];
+    }
+    user.memberships.push(newMembership);
+    await user.save();
     return true;
   } catch (error) {
-    console.error('[UserUtils] Error adding user to company:', error);
+    console.error('Error adding user to company:', error);
     return false;
   }
-}
+};
 
 /**
  * Remove a user from a company (end membership)
@@ -181,37 +160,73 @@ export async function removeUserFromCompany(
 /**
  * Get all active memberships for a user
  */
-export async function getUserMemberships(
+export const getUserMemberships = async (
   userId: string
-): Promise<Membership[]> {
+): Promise<Membership[]> => {
   try {
     const user = await User.findById(userId).select('memberships');
-    return user?.memberships?.filter((m) => m.status === 'active') || [];
+    return user?.memberships?.filter((m: any) => m.status === 'active') || [];
   } catch (error) {
-    console.error('[UserUtils] Error getting user memberships:', error);
+    console.error('Error getting user memberships:', error);
     return [];
   }
-}
+};
 
 /**
  * Check if user has active membership in a company
  */
-export async function hasCompanyAccess(
+export const hasCompanyAccess = async (
   userId: string,
   companyId: string
-): Promise<boolean> {
+): Promise<boolean> => {
   try {
-    const user = await User.findById(userId).select('memberships');
-    return (
-      user?.memberships?.some(
-        (m) => m.companyId.toString() === companyId && m.status === 'active'
-      ) || false
+    const user = await User.findById(userId).select(
+      'role companyId memberships'
     );
+    if (!user) return false;
+
+    // ADMIN role has access to all companies
+    if (user.role === 'ADMIN') return true;
+
+    // Check if user has active membership for this company
+    if (user.memberships && Array.isArray(user.memberships)) {
+      const hasMembership = user.memberships.some(
+        (m: any) =>
+          m.companyId.toString() === companyId && m.status === 'active'
+      );
+      if (hasMembership) return true;
+    }
+
+    // For COMPANY role users, check legacy companyId
+    if (user.role === 'COMPANY') {
+      try {
+        // Check if user is the companyAccount for this company
+        const company = await Company.findById(companyId);
+        if (company && company.companyAccount?.toString() === userId) {
+          return true;
+        }
+      } catch {}
+      // Fall back to direct id match (legacy)
+      if (
+        (user as any).companyId &&
+        (user as any).companyId.toString() === companyId
+      ) {
+        return true;
+      }
+      // As a safety, allow if there exists a Company whose companyAccount is this user
+      const ownsCompany = await Company.exists({
+        _id: companyId,
+        companyAccount: user._id,
+      });
+      if (ownsCompany) return true;
+    }
+
+    return false;
   } catch (error) {
-    console.error('[UserUtils] Error checking company access:', error);
+    console.error('Error checking company access:', error);
     return false;
   }
-}
+};
 
 /**
  * Get user's role in a specific company
@@ -221,16 +236,17 @@ export async function hasCompanyAccess(
 /**
  * Get all employees for a company
  */
-export async function getCompanyEmployees(companyId: string) {
+export const getCompanyEmployees = async (companyId: string) => {
   try {
     const users = await User.find({
-      'memberships.companyId': new Types.ObjectId(companyId),
+      'memberships.companyId': companyId,
       'memberships.status': 'active',
     }).select('firstName lastName email memberships');
 
     return users.map((user) => {
       const membership = user.memberships?.find(
-        (m) => m.companyId.toString() === companyId && m.status === 'active'
+        (m: any) =>
+          m.companyId.toString() === companyId && m.status === 'active'
       );
       return {
         _id: user._id,
@@ -242,10 +258,10 @@ export async function getCompanyEmployees(companyId: string) {
       };
     });
   } catch (error) {
-    console.error('[UserUtils] Error getting company employees:', error);
+    console.error('Error getting company employees:', error);
     return [];
   }
-}
+};
 
 /**
  * Validate company access for API routes
@@ -255,7 +271,22 @@ export async function requireCompanyContext(
   session: any,
   companyIdFromReq?: string
 ): Promise<string> {
-  const companyId = companyIdFromReq || session?.user?.activeCompanyId;
+  let companyId = companyIdFromReq || session?.user?.activeCompanyId;
+
+  // Try header cookie fallbacks if not provided
+  if (!companyId) {
+    try {
+      const hdrs = headers();
+      const headerCompanyId = hdrs.get('x-company-id') || undefined;
+      if (headerCompanyId) companyId = headerCompanyId;
+    } catch {}
+  }
+  if (!companyId) {
+    try {
+      const ck = cookies().get('activeCompanyId')?.value;
+      if (ck) companyId = ck;
+    } catch {}
+  }
 
   if (!companyId) {
     throw new Error('Missing company context');

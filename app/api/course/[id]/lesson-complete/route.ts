@@ -133,7 +133,7 @@ export async function POST(
         await createEnrollmentActivity(
           userId,
           courseId,
-          user.companyId?.toString()
+          session.user.activeCompanyId || user.companyId?.toString()
         );
 
         // Create notification for lesson completion

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import User from '@/lib/models/User';
+import Company from '@/lib/models/Company';
+import { addUserToCompany } from '@/lib/user-utils';
 import bcrypt from 'bcryptjs';
 import { createWelcomeNotification } from '@/lib/notificationActivityService';
 
@@ -18,7 +20,7 @@ export async function POST(request: Request) {
     const user = await User.findOne({
       invitationToken: token,
       invitationTokenExpires: { $gt: new Date() },
-    });
+    }).select('+invitationTokenCompanyId');
 
     if (!user) {
       return new NextResponse('Invalid or expired token', { status: 400 });
@@ -34,6 +36,11 @@ export async function POST(request: Request) {
     user.invitationToken = undefined;
     user.invitationTokenExpires = undefined;
     user.emailVerified = new Date(); // Mark email as verified
+    const invitedCompanyId = (user as any).invitationTokenCompanyId?.toString();
+    if (invitedCompanyId) {
+      await addUserToCompany(user._id.toString(), invitedCompanyId, department);
+      (user as any).invitationTokenCompanyId = undefined;
+    }
 
     await user.save();
 
@@ -44,7 +51,7 @@ export async function POST(request: Request) {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        companyId: user.companyId?.toString(),
+        companyId: invitedCompanyId || undefined,
       });
 
       console.log(

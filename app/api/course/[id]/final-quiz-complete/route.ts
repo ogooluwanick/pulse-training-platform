@@ -74,7 +74,7 @@ export async function POST(
       await createCompletionActivity(
         userId,
         courseId,
-        user.companyId?.toString()
+        session.user.activeCompanyId || user.companyId?.toString()
       );
 
       // Create course completion notification

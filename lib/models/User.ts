@@ -58,6 +58,11 @@ const UserSchema = new Schema(
       type: Date,
       select: false,
     },
+    invitationTokenCompanyId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Company',
+      select: false,
+    },
     emailVerified: {
       type: Date,
     },

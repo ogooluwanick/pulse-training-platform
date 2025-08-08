@@ -61,6 +61,7 @@ export async function POST(request: Request) {
       firstName: user.firstName,
       lastName: user.lastName,
       companyId: user.companyId?.toString(),
+      activeCompanyId: session.user.activeCompanyId,
     };
 
     const courseInfo = {
@@ -107,7 +108,7 @@ export async function POST(request: Request) {
         const activity = await createEnrollmentActivity(
           userInfo.id,
           courseInfo.id,
-          userInfo.companyId
+          userInfo.activeCompanyId || userInfo.companyId
         );
 
         result = { notification, activity };
@@ -137,13 +138,13 @@ export async function POST(request: Request) {
             userId: userInfo.id,
             type: 'enrollment',
             courseId: courseInfo.id,
-            companyId: userInfo.companyId,
+            companyId: userInfo.activeCompanyId || userInfo.companyId,
           },
           {
             userId: userInfo.id,
             type: 'completion',
             courseId: courseInfo.id,
-            companyId: userInfo.companyId,
+            companyId: userInfo.activeCompanyId || userInfo.companyId,
           },
         ]);
 

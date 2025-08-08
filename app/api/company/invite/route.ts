@@ -51,10 +51,13 @@ export async function POST(request: Request) {
           invitedUsers.push(email);
         } else {
           // User exists and is active – ensure membership in this company
-          try {
-            await addUserToCompany(existingUser._id.toString(), companyId);
+          const added = await addUserToCompany(
+            existingUser._id.toString(),
+            companyId
+          );
+          if (added) {
             invitedUsers.push(email);
-          } catch (e) {
+          } else {
             failedInvites.push({ email, reason: 'Failed to add membership' });
           }
         }
@@ -71,6 +74,7 @@ export async function POST(request: Request) {
         status: 'pending',
         invitationToken,
         invitationTokenExpires,
+        invitationTokenCompanyId: companyId,
       });
 
       await newUser.save();

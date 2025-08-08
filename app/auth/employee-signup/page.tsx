@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import toast from 'react-hot-toast';
 import FullPageLoader from '@/components/full-page-loader';
 import {
@@ -22,21 +23,21 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from '@/components/ui/select';
 
 const departments = [
-  "Human Resources",
-  "Engineering",
-  "Marketing",
-  "Sales",
-  "Finance",
-  "Customer Support",
-  "Product Management",
-  "Design",
-  "IT",
-  "Operations",
-  "Legal",
-  "Administration",
+  'Human Resources',
+  'Engineering',
+  'Marketing',
+  'Sales',
+  'Finance',
+  'Customer Support',
+  'Product Management',
+  'Design',
+  'IT',
+  'Operations',
+  'Legal',
+  'Administration',
 ];
 
 export default function EmployeeSignupPage() {
@@ -53,6 +54,7 @@ export default function EmployeeSignupPage() {
   const [isTokenValid, setIsTokenValid] = useState(false);
   const [checkingToken, setCheckingToken] = useState(true);
   const [companyName, setCompanyName] = useState('');
+  const [returningEmployee, setReturningEmployee] = useState(false);
 
   useEffect(() => {
     const verifyToken = async () => {
@@ -68,6 +70,14 @@ export default function EmployeeSignupPage() {
         if (response.ok) {
           setIsTokenValid(true);
           setCompanyName(data.companyName);
+          setReturningEmployee(data.returningEmployee);
+
+          // If returning employee, prefill with existing data
+          if (data.returningEmployee && data.user) {
+            setFirstName(data.user.firstName || '');
+            setLastName(data.user.lastName || '');
+            setDepartment(data.user.department || '');
+          }
         }
       } catch (error) {
         // Token is invalid or other error
@@ -110,7 +120,9 @@ export default function EmployeeSignupPage() {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      toast.success('Your account has been created. You will be redirected to the login page shortly.');
+      toast.success(
+        'Your account has been created. You will be redirected to the login page shortly.'
+      );
 
       // Redirect to login page after 5 seconds
       setTimeout(() => {
@@ -159,31 +171,59 @@ export default function EmployeeSignupPage() {
               <span className="text-lg font-bold">P</span>
             </div>
           </div>
-          <h1 className="text-2xl font-bold text-charcoal">
-              Welcome to Pulse
-            </h1>
-            <p className="text-warm-gray">
-              Sign in to your intelligent workspace
-            </p>
+          <h1 className="text-2xl font-bold text-charcoal">Welcome to Pulse</h1>
+          <p className="text-warm-gray">
+            Sign in to your intelligent workspace
+          </p>
         </div>
 
         {/* Sign Up Card */}
         <Card className="bg-parchment border-warm-gray/20 shadow-soft-lg">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl text-charcoal">
-              Create your employee account
+              {returningEmployee
+                ? 'Complete your registration'
+                : 'Create your employee account'}
             </CardTitle>
             <CardDescription className="text-warm-gray">
               You have been invited to join{' '}
               <strong className="capitalize">{companyName}</strong>.
               <br />
-              Please complete your registration below.
+              {returningEmployee ? (
+                <>
+                  We found an existing account with this email. Your information
+                  has been pre-filled.
+                  <br />
+                  After login, you can switch between companies using the
+                  company selector in the sidebar.
+                </>
+              ) : (
+                'Please complete your registration below.'
+              )}
             </CardDescription>
           </CardHeader>
+
+          {returningEmployee && (
+            <div className="px-6 pb-2">
+              <Alert>
+                <AlertDescription>
+                  <strong>Welcome back!</strong> You already have an account
+                  with this email address. After completing registration, you'll
+                  be able to access multiple companies from your dashboard.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit}>
             <CardContent className="grid gap-4">
               <div className="grid gap-2">
-                <Label className="text-charcoal font-medium"  htmlFor="firstName">First Name</Label>
+                <Label
+                  className="text-charcoal font-medium"
+                  htmlFor="firstName"
+                >
+                  First Name
+                </Label>
                 <Input
                   id="firstName"
                   type="text"
@@ -194,7 +234,9 @@ export default function EmployeeSignupPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label className="text-charcoal font-medium"  htmlFor="lastName">Last Name</Label>
+                <Label className="text-charcoal font-medium" htmlFor="lastName">
+                  Last Name
+                </Label>
                 <Input
                   id="lastName"
                   type="text"
@@ -205,7 +247,12 @@ export default function EmployeeSignupPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label className="text-charcoal font-medium" htmlFor="department">Department</Label>
+                <Label
+                  className="text-charcoal font-medium"
+                  htmlFor="department"
+                >
+                  Department
+                </Label>
                 <Select onValueChange={setDepartment} value={department}>
                   <SelectTrigger className="w-full bg-alabaster border-warm-gray/30 focus:border-charcoal transition-soft">
                     <SelectValue placeholder="Select a department" />
@@ -220,7 +267,9 @@ export default function EmployeeSignupPage() {
                 </Select>
               </div>
               <div className="grid gap-2">
-                <Label className="text-charcoal font-medium"  htmlFor="password">Password</Label>
+                <Label className="text-charcoal font-medium" htmlFor="password">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -231,7 +280,12 @@ export default function EmployeeSignupPage() {
                 />
               </div>
               <div className="grid gap-2">
-                <Label className="text-charcoal font-medium"  htmlFor="confirmPassword">Confirm Password</Label>
+                <Label
+                  className="text-charcoal font-medium"
+                  htmlFor="confirmPassword"
+                >
+                  Confirm Password
+                </Label>
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -249,7 +303,11 @@ export default function EmployeeSignupPage() {
                 className="w-full bg-charcoal text-white hover:bg-charcoal/90"
                 disabled={loading}
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
+                {loading
+                  ? 'Creating Account...'
+                  : returningEmployee
+                    ? 'Complete Registration'
+                    : 'Create Account'}
               </Button>
             </CardFooter>
           </form>

@@ -23,6 +23,7 @@ interface UserInfo {
   firstName?: string;
   lastName?: string;
   companyId?: string;
+  activeCompanyId?: string;
 }
 
 interface CourseInfo {
@@ -60,7 +61,7 @@ export const handleCourseEnrollment = async (
     results.activity = await createEnrollmentActivity(
       user.id,
       course.id,
-      user.companyId
+      user.activeCompanyId || user.companyId
     );
 
     // Send email notification if requested
@@ -119,7 +120,7 @@ export const handleCourseCompletion = async (
     results.activity = await createCompletionActivity(
       user.id,
       course.id,
-      user.companyId
+      user.activeCompanyId || user.companyId
     );
 
     // Send email notification if requested
@@ -181,7 +182,7 @@ export const handleDeadlineReminder = async (
     results.activity = await createDeadlineActivity(
       user.id,
       course.id,
-      user.companyId
+      user.activeCompanyId || user.companyId
     );
 
     // Send email notification if requested

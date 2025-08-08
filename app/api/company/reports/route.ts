@@ -294,27 +294,17 @@ export async function POST(request: Request) {
     await dbConnect();
 
     const session = await getServerSession(authOptions);
-    if (!session || !session.user || session.user.role !== 'COMPANY') {
+    if (!session || !session.user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const user = session.user as any;
-    const companyId = new mongoose.Types.ObjectId(user.companyId);
+    const activeCompanyId = await requireCompanyContext(session);
 
     const { action } = await request.json();
 
     if (action === 'getFilterOptions') {
-      // Get company with populated employees
-      const company = await Company.findById(companyId).populate({
-        path: 'employees',
-        model: User,
-      });
-
-      if (!company) {
-        return new NextResponse('Company not found', { status: 404 });
-      }
-
-      const employees = company.employees as any[];
+      // Get employees using the new membership system
+      const employees = await getCompanyEmployees(activeCompanyId);
 
       // Get unique departments
       const departments = [
@@ -326,7 +316,7 @@ export async function POST(request: Request) {
       ].sort();
 
       // Get company courses
-      const courses = await Course.find({ companyId: companyId }).select(
+      const courses = await Course.find({ companyId: activeCompanyId }).select(
         'title _id'
       );
 
