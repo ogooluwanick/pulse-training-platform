@@ -36,19 +36,18 @@ export async function GET(request: Request) {
       }
     }
 
-    // Return company being invited, and whether this user email already exists in other companies
-    const alreadyEmployeeElsewhere =
-      Array.isArray((user as any).memberships) &&
-      (user as any).memberships.length > 0;
+    // Return company being invited, and whether this user has existing data to prefill
+    const hasExistingData =
+      user.firstName || user.lastName || user.department || user.designation;
 
-    // If returning employee, include user data for prefilling
+    // If user has existing data, include it for prefilling
     const responseData: any = {
       message: 'Token is valid',
       companyName: companyName,
-      returningEmployee: alreadyEmployeeElsewhere,
+      returningEmployee: hasExistingData,
     };
 
-    if (alreadyEmployeeElsewhere) {
+    if (hasExistingData) {
       responseData.user = {
         firstName: user.firstName,
         lastName: user.lastName,
@@ -56,6 +55,7 @@ export async function GET(request: Request) {
         department: user.department,
         designation: user.designation,
       };
+      console.log('Returning employee data for prefilling:', responseData.user);
     }
 
     return NextResponse.json(responseData);

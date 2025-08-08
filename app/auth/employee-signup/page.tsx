@@ -76,6 +76,7 @@ export default function EmployeeSignupPage() {
 
           // If returning employee, prefill with existing data
           if (data.returningEmployee && data.user) {
+            console.log('Prefilling form with user data:', data.user);
             setFirstName(data.user.firstName || '');
             setLastName(data.user.lastName || '');
             setEmail(data.user.email || '');
