@@ -191,7 +191,11 @@ export default function CourseCatalogPage() {
   //   saveCourse.mutate({ courseId, save: !isSaved });
   // };
 
-  const { data: assignedCourses = [] } = useQuery<AssignedCourse[]>({
+  const {
+    data: assignedCourses = [],
+    isLoading: isAssignedLoading,
+    isError: isAssignedError,
+  } = useQuery<AssignedCourse[]>({
     queryKey: ['assignedCourses'],
     queryFn: async () => {
       const response = await fetch('/api/course-assignment');
@@ -463,7 +467,15 @@ export default function CourseCatalogPage() {
         </TabsContent>
 
         <TabsContent value="enrolled" className="space-y-6">
-          {assignedCourses.length > 0 ? (
+          {isAssignedLoading ? (
+            <div className="text-center py-12">
+              <p className="text-warm-gray">Loading assigned courses...</p>
+            </div>
+          ) : isAssignedError ? (
+            <div className="text-center py-12">
+              <p className="text-red-500">Failed to load assigned courses.</p>
+            </div>
+          ) : assignedCourses.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {assignedCourses.map((assignment) => (
                 <Card

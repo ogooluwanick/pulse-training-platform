@@ -5,6 +5,7 @@ import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
 import mongoose from 'mongoose';
 import { requireCompanyContext } from '@/lib/user-utils';
+import type { PipelineStage } from 'mongoose';
 
 export async function GET(req: NextRequest) {
   try {
@@ -23,6 +24,8 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
+    // No pagination – return full list (optimized by indexes)
+
     const matchStage =
       session.user.role === 'ADMIN'
         ? {}
@@ -33,25 +36,14 @@ export async function GET(req: NextRequest) {
           };
 
     // Get all course assignments for the company with populated data
-    const assignments = await CourseAssignment.aggregate([
-      {
-        $match: matchStage,
-      },
+    const pipeline: PipelineStage[] = [
+      { $match: matchStage },
+      { $sort: { createdAt: -1 } },
       {
         $lookup: {
           from: 'courses',
-          let: { courseId: '$course' },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ['$_id', '$$courseId'] },
-                // Only filter by published status for employees, allow all statuses for admin/company
-                ...(session.user.role === 'EMPLOYEE'
-                  ? { status: 'published' }
-                  : {}),
-              },
-            },
-          ],
+          localField: 'course',
+          foreignField: '_id',
           as: 'courseDetails',
         },
       },
@@ -64,17 +56,9 @@ export async function GET(req: NextRequest) {
         },
       },
       // Use $unwind with preserveNullAndEmptyArrays to keep assignments even if course/employee not found
+      { $unwind: { path: '$courseDetails', preserveNullAndEmptyArrays: true } },
       {
-        $unwind: {
-          path: '$courseDetails',
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-      {
-        $unwind: {
-          path: '$employeeDetails',
-          preserveNullAndEmptyArrays: true,
-        },
+        $unwind: { path: '$employeeDetails', preserveNullAndEmptyArrays: true },
       },
       {
         $addFields: {
@@ -131,7 +115,6 @@ export async function GET(req: NextRequest) {
             title: { $ifNull: ['$courseDetails.title', 'Course Not Found'] },
             description: { $ifNull: ['$courseDetails.description', ''] },
             category: { $ifNull: ['$courseDetails.category', 'unknown'] },
-
             duration: { $ifNull: ['$courseDetails.duration', 0] },
             lessons: { $ifNull: ['$courseDetails.lessons', []] },
             finalQuiz: { $ifNull: ['$courseDetails.finalQuiz', null] },
@@ -173,10 +156,11 @@ export async function GET(req: NextRequest) {
           completedAt: 1,
         },
       },
-      {
-        $sort: { createdAt: -1 },
-      },
-    ]);
+    ];
+
+    const assignments = await CourseAssignment.aggregate(pipeline).option({
+      allowDiskUse: true,
+    });
 
     return NextResponse.json(assignments, { status: 200 });
   } catch (error) {

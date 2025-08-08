@@ -37,6 +37,45 @@ async function dbConnect() {
     });
   }
   cached.conn = await cached.promise;
+
+  // One-time startup migration: ensure non-unique index for CourseAssignment
+  // Remove later
+  try {
+    const db = mongoose.connection.db;
+    if (db) {
+      const collection = db.collection('courseassignments');
+      const indexes = await collection.indexes();
+      const targetIndexName = 'employee_1_course_1_companyId_1';
+      const existing = indexes.find((idx: any) => idx.name === targetIndexName);
+
+      if (existing && existing.unique) {
+        try {
+          await collection.dropIndex(targetIndexName);
+          // Recreate a non-unique index to preserve query performance
+          await collection.createIndex(
+            { employee: 1, course: 1, companyId: 1 },
+            { background: true }
+          );
+          // eslint-disable-next-line no-console
+          console.log(
+            '[Indexes] Dropped unique index and created non-unique on courseassignments { employee, course, companyId }'
+          );
+        } catch (err: any) {
+          // eslint-disable-next-line no-console
+          console.error(
+            '[Indexes] Failed adjusting courseassignments index:',
+            err?.message || err
+          );
+        }
+      }
+    }
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.error(
+      '[Indexes] Error during index check:',
+      (e as any)?.message || e
+    );
+  }
   return cached.conn;
 }
 

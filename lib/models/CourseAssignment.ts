@@ -88,6 +88,8 @@ const CourseAssignmentSchema = new Schema(
 
 // Create compound index for employee-course-company combinations (non-unique to allow multiple assignments)
 CourseAssignmentSchema.index({ employee: 1, course: 1, companyId: 1 });
+// Optimize company-wide listing sorted by createdAt
+CourseAssignmentSchema.index({ companyId: 1, createdAt: -1 });
 
 const CourseAssignment =
   models.CourseAssignment || model('CourseAssignment', CourseAssignmentSchema);
