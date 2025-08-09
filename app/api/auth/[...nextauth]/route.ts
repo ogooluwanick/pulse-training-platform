@@ -56,9 +56,39 @@ export const authOptions: NextAuthOptions = {
 
           // Get user memberships
           const memberships = await getUserMemberships(dbUser._id.toString());
-          const companyIds = memberships.map((m) => m.companyId.toString());
+          const companyIds: string[] = memberships.map((m) =>
+            m.companyId.toString()
+          );
 
-          // Get company names for active memberships
+          // Ensure company context for COMPANY role or legacy fields
+          // 1) Include legacy user.companyId if present
+          const legacyCompanyId = (dbUser as any).companyId
+            ? (dbUser as any).companyId.toString()
+            : undefined;
+          if (legacyCompanyId && !companyIds.includes(legacyCompanyId)) {
+            companyIds.push(legacyCompanyId);
+          }
+
+          // 2) Include owned company (Company.companyAccount === user._id)
+          if (dbUser.role === 'COMPANY') {
+            const ownedCompany = await companiesCollection.findOne({
+              companyAccount: new ObjectId(dbUser._id),
+            });
+            if (ownedCompany) {
+              const ownedId = ownedCompany._id.toString();
+              if (!companyIds.includes(ownedId)) {
+                companyIds.push(ownedId);
+              }
+            }
+          }
+
+          // 3) Ensure activeCompanyId is part of the list if already set on user
+          let activeCompanyId = dbUser.activeCompanyId?.toString();
+          if (activeCompanyId && !companyIds.includes(activeCompanyId)) {
+            companyIds.push(activeCompanyId);
+          }
+
+          // Get company names for all collected companyIds
           const companyNames = await Promise.all(
             companyIds.map(async (companyId) => {
               const company = await companiesCollection.findOne({
@@ -68,16 +98,12 @@ export const authOptions: NextAuthOptions = {
             })
           );
 
-          // Use activeCompanyId from database, fallback to first membership
-          let activeCompanyId = dbUser.activeCompanyId?.toString();
+          // Determine activeCompanyId/name
           let activeCompanyName = '';
-
-          // If no active company set, use first membership
           if (!activeCompanyId && companyIds.length > 0) {
             activeCompanyId = companyIds[0];
             activeCompanyName = companyNames[0];
           } else if (activeCompanyId) {
-            // Find the company name for the active company
             const activeCompanyIndex = companyIds.indexOf(activeCompanyId);
             activeCompanyName =
               activeCompanyIndex >= 0

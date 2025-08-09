@@ -175,7 +175,7 @@ export function UnifiedLayout({ children }: UnifiedLayoutProps) {
         onToggleSidebar={toggleSidebar}
       />
       <AppSidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 h-[calc(100vh-64px)]">{children}</main>
     </div>
   );
 }

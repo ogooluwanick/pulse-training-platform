@@ -409,7 +409,7 @@ export function AppSidebar({ isOpen, onToggle }: AppSidebarProps) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-charcoal truncate">
+                    <p className="text-sm font-medium text-charcoal truncate capitalize">
                       {user.firstName || user.email}
                     </p>
                     <p className="text-xs text-warm-gray capitalize">

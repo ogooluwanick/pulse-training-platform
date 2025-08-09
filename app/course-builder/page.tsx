@@ -69,9 +69,9 @@ export default function CourseBuilderPage() {
   }
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full max-h-[calc(100vh-64px)]">
       {/* Module List - Left Sidebar */}
-      <div className="w-[25%] max-w-[25%] bg-warm-gray/5 border-r border-warm-gray/20">
+      <div className="w-[25%] h-full overflow-hidden max-w-[25%] bg-warm-gray/5 border-r border-warm-gray/20">
         <ModuleList
           modules={modules}
           selectedModuleId={selectedModuleId}

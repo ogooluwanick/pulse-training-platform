@@ -45,8 +45,8 @@ export default function ModuleList({
   };
 
   return (
-    <div className="p-4 h-full text-charcoal">
-      <div className="flex flex-wrap justify-between items-center mb-6">
+    <div className="p-4 h-full overflow-hidden text-charcoal flex flex-col">
+      <div className="flex flex-wrap justify-between items-center mb-6 shrink-0">
         <h2 className="text-2xl font-bold text-charcoal">Course Modules</h2>
         <button
           onClick={onAddModule}
@@ -66,7 +66,7 @@ export default function ModuleList({
           )}
         </button>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-3 flex-1 min-h-0 overflow-y-auto">
         {modules.map((module) => (
           <div
             key={module.id}
