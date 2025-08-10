@@ -155,7 +155,7 @@ export default function EmployeeProgressTable({
                     className="h-2"
                   />
                   <div className="text-xs text-muted-foreground text-right">
-                    {employee.completionPercentage}%
+                    {employee.completionPercentage.toFixed(1)}%
                   </div>
                 </div>
               </CardContent>
@@ -173,9 +173,7 @@ export default function EmployeeProgressTable({
                   <TableHead className="text-xs sm:text-sm hidden md:table-cell">
                     Email
                   </TableHead>
-                  <TableHead className="text-xs sm:text-sm">
-                    Company
-                  </TableHead>
+                  <TableHead className="text-xs sm:text-sm">Company</TableHead>
                   <TableHead className="text-xs sm:text-sm">Progress</TableHead>
                   <TableHead className="text-xs sm:text-sm">Status</TableHead>
                 </TableRow>
@@ -206,7 +204,7 @@ export default function EmployeeProgressTable({
                           className="h-2"
                         />
                         <div className="text-xs text-muted-foreground text-right mt-1">
-                          {employee.completionPercentage}%
+                          {employee.completionPercentage.toFixed(1)}%
                         </div>
                       </div>
                     </TableCell>

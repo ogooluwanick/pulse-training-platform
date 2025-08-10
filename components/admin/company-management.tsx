@@ -27,6 +27,13 @@ interface Company {
     lastName: string;
     email: string;
   };
+  manager?: {
+    email: string;
+    fullName: string;
+    role: string;
+  } | null;
+  plan?: string;
+  employeeCount?: number;
   employees?: any[];
   // savedCourses?: any[];
   createdAt?: string;
@@ -38,7 +45,7 @@ interface CompanyManagementProps {
 }
 
 const fetchCompanies = async (): Promise<Company[]> => {
-  const res = await fetch('/api/company');
+  const res = await fetch('/api/admin/companies');
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
@@ -118,18 +125,23 @@ export default function CompanyManagement() {
                   </div>
                   <div>
                     <p className="text-sm text-warm-gray">Company Manager</p>
-                    <p className="text-sm text-charcoal">
-                      {`${company.companyAccount?.firstName} ${company.companyAccount?.lastName}`}
+                    <p className="text-sm text-charcoal capitalize">
+                      {company.manager?.fullName ||
+                        `${company.companyAccount?.firstName || ''} ${company.companyAccount?.lastName || ''}`.trim() ||
+                        'Not specified'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-warm-gray">Plan</p>
-                    <p className="text-sm text-charcoal">Pending</p>
+                    <p className="text-sm text-charcoal">
+                      {company.plan || 'Trial'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-warm-gray">Employees</p>
                     <p className="text-sm text-charcoal">
-                      {company.employees?.length || 0}
+                      {company.employeeCount ??
+                        (company.employees?.length || 0)}
                     </p>
                   </div>
                   <div>

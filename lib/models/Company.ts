@@ -23,6 +23,11 @@ const CompanySchema = new Schema(
       enum: ['active', 'deactivated'],
       default: 'active',
     },
+    plan: {
+      // Keep this flexible to avoid breaking unknown existing values
+      type: String,
+      default: 'Trial',
+    },
   },
   { timestamps: true }
 );

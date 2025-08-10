@@ -61,17 +61,18 @@ interface MassAssignCourseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAssign: (employeeIds: string[], assignments: AssignmentDetails[]) => void;
+  userRole?: 'ADMIN' | 'COMPANY' | 'EMPLOYEE';
 }
 
-const fetchCourses = async (): Promise<Course[]> => {
-  const res = await fetch('/api/company/courses');
+const fetchCourses = async (userRole?: string): Promise<Course[]> => {
+  const endpoint =
+    userRole === 'ADMIN' ? '/api/admin/courses' : '/api/company/courses';
+  const res = await fetch(endpoint);
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
   return res.json();
 };
-
-
 
 const getCategoryColor = (category: Course['category']) => {
   switch (category) {
@@ -94,6 +95,7 @@ export default function MassAssignCourseModal({
   onClose,
   onAssign,
   isAssigning,
+  userRole,
 }: MassAssignCourseModalProps & { isAssigning?: boolean }) {
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [selectedAssignments, setSelectedAssignments] = useState<
@@ -101,8 +103,8 @@ export default function MassAssignCourseModal({
   >([]);
   const [searchTerm, setSearchTerm] = useState('');
   const { data: courses, isLoading: isLoadingCourses } = useQuery<Course[]>({
-    queryKey: ['courses'],
-    queryFn: fetchCourses,
+    queryKey: ['courses', userRole],
+    queryFn: () => fetchCourses(userRole),
   });
 
   useEffect(() => {
@@ -299,7 +301,6 @@ export default function MassAssignCourseModal({
                                 {course.category.charAt(0).toUpperCase() +
                                   course.category.slice(1)}
                               </Badge>
-
                             </div>
                             <div>
                               <CardTitle className="text-lg text-charcoal">

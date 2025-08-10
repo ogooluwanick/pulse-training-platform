@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -14,7 +15,13 @@ import { Calendar } from '@/components/ui/calendar';
 import { type DateRange } from 'react-day-picker';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CalendarIcon, FilterIcon, DownloadIcon } from 'lucide-react';
+import {
+  CalendarIcon,
+  FilterIcon,
+  DownloadIcon,
+  Building2,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface FilterBarProps {
   onApplyFilters: (filters: ReportFilters) => void;
@@ -38,9 +45,43 @@ export default function FilterBar({
   onExport,
   loading,
 }: FilterBarProps) {
+  const { data: session } = useSession();
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedCompany, setSelectedCompany] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
+  const [activeCompanyId, setActiveCompanyId] = useState<string>('');
+  const [activeCompanyName, setActiveCompanyName] = useState<string>('');
+
+  // Get active company from cookie
+  useEffect(() => {
+    const getCookie = (name: string) => {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop()?.split(';').shift();
+      return null;
+    };
+
+    const cookieActiveCompanyId = getCookie('activeCompanyId');
+    if (cookieActiveCompanyId) {
+      const decodedCompanyId = decodeURIComponent(cookieActiveCompanyId);
+      setActiveCompanyId(decodedCompanyId);
+
+      // Get company name from session
+      if (session?.user?.companyIds && session?.user?.companyNames) {
+        const companyIndex = session.user.companyIds.indexOf(decodedCompanyId);
+        if (companyIndex >= 0) {
+          setActiveCompanyName(session.user.companyNames[companyIndex]);
+        }
+      }
+    } else if (
+      session?.user?.companyIds &&
+      session?.user?.companyIds.length > 0
+    ) {
+      // Fallback to first company
+      setActiveCompanyId(session.user.companyIds[0]);
+      setActiveCompanyName(session.user.companyNames?.[0] || 'Unknown Company');
+    }
+  }, [session]);
 
   const { data: filterOptions, isLoading: filterOptionsLoading } =
     useQuery<FilterOptions>({
@@ -139,11 +180,21 @@ export default function FilterBar({
   return (
     <Card className="bg-card text-card-foreground shadow-neumorphic">
       <CardHeader className="p-3 sm:p-4 lg:p-6">
-        <div className="flex items-center gap-2">
-          <FilterIcon className="h-5 w-5 text-muted-foreground" />
-          <CardTitle className="text-base sm:text-lg">
-            Filters & Controls
-          </CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FilterIcon className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-base sm:text-lg">
+              Filters & Controls
+            </CardTitle>
+          </div>
+          {activeCompanyName && (
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <Badge variant="outline" className="text-xs">
+                {activeCompanyName}
+              </Badge>
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="p-3 sm:p-4 lg:p-6 pt-0">
@@ -184,13 +235,16 @@ export default function FilterBar({
                     disabled={filterOptionsLoading}
                   >
                     <SelectTrigger className="shadow-neumorphic">
-                      <SelectValue placeholder="All Companies" />
+                      <SelectValue
+                        placeholder={activeCompanyName || 'All Companies'}
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Companies</SelectItem>
                       {filterOptions?.companies.map((company) => (
                         <SelectItem key={company.id} value={company.id}>
                           {company.name}
+                          {company.id === activeCompanyId && ' (Current)'}
                         </SelectItem>
                       ))}
                     </SelectContent>

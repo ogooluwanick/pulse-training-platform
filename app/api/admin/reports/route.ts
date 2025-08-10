@@ -23,20 +23,80 @@ export async function GET(request: Request) {
   const companyId = searchParams.get('companyId');
   const courseId = searchParams.get('courseId');
 
+  // Get active company from session or resolve from request
+  let activeCompanyId = session.user.activeCompanyId;
+
+  // Try to get from cookie if not in session
+  if (!activeCompanyId) {
+    try {
+      const cookieHeader = request.headers.get('cookie');
+      if (cookieHeader) {
+        const cookies = cookieHeader.split(';').reduce(
+          (acc, cookie) => {
+            const [key, value] = cookie.trim().split('=');
+            acc[key] = value;
+            return acc;
+          },
+          {} as Record<string, string>
+        );
+
+        if (cookies.activeCompanyId) {
+          activeCompanyId = decodeURIComponent(cookies.activeCompanyId);
+        }
+      }
+    } catch (error) {
+      console.log('Error parsing cookies:', error);
+    }
+  }
+
+  // If still no active company, use the first available company
+  if (
+    !activeCompanyId &&
+    session.user.companyIds &&
+    session.user.companyIds.length > 0
+  ) {
+    activeCompanyId = session.user.companyIds[0];
+  }
+
+  console.log('[AdminReports] Company context:', {
+    sessionActiveCompanyId: session.user.activeCompanyId,
+    resolvedActiveCompanyId: activeCompanyId,
+    requestedCompanyId: companyId,
+    userCompanyIds: session.user.companyIds,
+  });
+
   try {
     const match: any = {};
     if (startDate)
       match.createdAt = { ...match.createdAt, $gte: new Date(startDate) };
     if (endDate)
       match.createdAt = { ...match.createdAt, $lte: new Date(endDate) };
-    if (companyId) match.company = new mongoose.Types.ObjectId(companyId);
+
+    // Use the active company context if no specific company is requested
+    const targetCompanyId = companyId || activeCompanyId;
+    if (targetCompanyId) {
+      match.companyId = new mongoose.Types.ObjectId(targetCompanyId);
+    }
+
     if (courseId) match.course = new mongoose.Types.ObjectId(courseId);
 
     const assignments = await CourseAssignment.find(match)
       .populate({
         path: 'employee',
         model: User,
-        select: 'firstName lastName email companyName department',
+        select: 'firstName lastName email department',
+        populate: [
+          {
+            path: 'memberships.companyId',
+            model: Company,
+            select: 'name',
+          },
+          {
+            path: 'activeCompanyId',
+            model: Company,
+            select: 'name',
+          },
+        ],
       })
       .populate({
         path: 'course',
@@ -63,13 +123,23 @@ export async function GET(request: Request) {
     } = {};
 
     assignments.forEach((assignment) => {
+      // Get company name from active company or memberships
+      const employee = assignment.employee as any;
+      const activeMembership = employee.memberships?.find(
+        (m: any) => m.status === 'active'
+      );
+      const companyName =
+        employee.activeCompanyId?.name ||
+        activeMembership?.companyId?.name ||
+        'No Company';
+
       if (!employeeProgress[assignment.employee._id]) {
         employeeProgress[assignment.employee._id] = {
           completed: 0,
           total: 0,
           name: `${assignment.employee.firstName} ${assignment.employee.lastName}`,
           email: assignment.employee.email,
-          companyName: assignment.employee.companyName || 'Unknown Company',
+          companyName: companyName,
           status: 'Not Started',
         };
       }

@@ -497,6 +497,7 @@ export default function EmployeeManagementPage() {
         onClose={() => setIsAssignModalOpen(false)}
         onAssign={handleAssign}
         isAssigning={assignMutation.isPending}
+        userRole="COMPANY"
       />
       <MassAssignCourseModal
         employees={employees || []}
@@ -504,6 +505,7 @@ export default function EmployeeManagementPage() {
         onClose={() => setIsMassAssignModalOpen(false)}
         onAssign={handleMassAssign}
         isAssigning={massAssignMutation.isPending}
+        userRole="COMPANY"
       />
     </div>
   );

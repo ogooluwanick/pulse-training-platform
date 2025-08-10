@@ -40,7 +40,7 @@ const assignCourses = async ({
   employeeId: string;
   assignments: AssignmentDetails[];
 }) => {
-  const res = await fetch(`/api/employee/${employeeId}/assign-courses`, {
+  const res = await fetch(`/api/admin/employees/${employeeId}/assign-courses`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ const massAssignCourses = async ({
   employeeIds: string[];
   assignments: AssignmentDetails[];
 }) => {
-  const res = await fetch(`/api/employee/mass-assign-courses`, {
+  const res = await fetch(`/api/admin/employees/mass-assign-courses`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -230,13 +230,19 @@ export default function EmployeeManagement() {
                 key={employee._id}
                 className="flex items-center gap-4 p-4 rounded-lg bg-alabaster border border-warm-gray/20"
               >
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4">
                   <div>
                     <p className="font-medium text-charcoal truncate capitalize">
                       {`${employee.firstName || '-'} ${employee.lastName || '-'}`}
                     </p>
                     <p className="text-sm text-warm-gray truncate">
                       {employee.email}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-warm-gray">Company</p>
+                    <p className="text-sm text-charcoal">
+                      {employee.companyName || '-'}
                     </p>
                   </div>
                   <div>
@@ -302,6 +308,7 @@ export default function EmployeeManagement() {
         onClose={() => setIsAssignModalOpen(false)}
         onAssign={handleAssign}
         isAssigning={assignMutation.isPending}
+        userRole="ADMIN"
       />
       <MassAssignCourseModal
         employees={employees || []}
@@ -309,6 +316,7 @@ export default function EmployeeManagement() {
         onClose={() => setIsMassAssignModalOpen(false)}
         onAssign={handleMassAssign}
         isAssigning={massAssignMutation.isPending}
+        userRole="ADMIN"
       />
     </div>
   );

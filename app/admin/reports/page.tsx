@@ -31,7 +31,9 @@ const fetchReportData = async (filters: ReportFilters): Promise<ReportData> => {
   }
 
   const url = `/api/admin/reports?${params.toString()}`;
-  const response = await fetch(url);
+  const response = await fetch(url, {
+    credentials: 'include', // Include cookies for company context
+  });
 
   if (!response.ok) {
     throw new Error('Failed to fetch report data');
@@ -73,6 +75,7 @@ export default function ReportsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // Include cookies for company context
         body: JSON.stringify(exportFilters),
       });
 
@@ -119,9 +122,7 @@ export default function ReportsPage() {
         }
 
         doc.autoTable({
-          head: [
-            ['Name', 'Email', 'Company', 'Courses', 'Progress', 'Status'],
-          ],
+          head: [['Name', 'Email', 'Company', 'Courses', 'Progress', 'Status']],
           body: exportData.map((emp: any) => [
             emp.Name,
             emp.Email,
@@ -190,7 +191,7 @@ export default function ReportsPage() {
               </Card>
             ))}
           </div>
-          
+
           <Card className="bg-alabaster border-warm-gray/20">
             <CardHeader>
               <Skeleton className="h-6 w-48 bg-charcoal/20" />
@@ -200,7 +201,7 @@ export default function ReportsPage() {
               <Skeleton className="h-64 sm:h-80 w-full bg-warm-gray/20" />
             </CardContent>
           </Card>
-          
+
           <Card className="bg-alabaster border-warm-gray/20">
             <CardHeader>
               <Skeleton className="h-6 w-48 bg-charcoal/20" />

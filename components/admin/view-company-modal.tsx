@@ -31,8 +31,14 @@ interface Company {
     lastName: string;
     email: string;
   };
-  employees?: any[];
-  // savedCourses?: any[];
+  industry?: string;
+  size?: string;
+  website?: string;
+  phone?: string;
+  address?: string;
+  description?: string;
+  plan?: string;
+  employeeCount?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -112,7 +118,82 @@ export default function ViewCompanyModal({
                       : 'Not available'}
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-warm-gray">
+                    <Globe className="h-4 w-4" />
+                    Industry
+                  </div>
+                  <div className="text-charcoal font-medium">
+                    {company.industry || 'Not specified'}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-warm-gray">
+                    <Users className="h-4 w-4" />
+                    Company Size
+                  </div>
+                  <div className="text-charcoal font-medium">
+                    {company.size || 'Not specified'}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-warm-gray">
+                    <Globe className="h-4 w-4" />
+                    Website
+                  </div>
+                  <div className="text-charcoal font-medium">
+                    {company.website ? (
+                      <a
+                        href={company.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {company.website}
+                      </a>
+                    ) : (
+                      'Not specified'
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-warm-gray">
+                    <Mail className="h-4 w-4" />
+                    Phone
+                  </div>
+                  <div className="text-charcoal font-medium">
+                    {company.phone || 'Not specified'}
+                  </div>
+                </div>
               </div>
+
+              {company.address && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-warm-gray">
+                    <Building2 className="h-4 w-4" />
+                    Address
+                  </div>
+                  <div className="text-charcoal font-medium">
+                    {company.address}
+                  </div>
+                </div>
+              )}
+
+              {company.description && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-warm-gray">
+                    <Activity className="h-4 w-4" />
+                    Description
+                  </div>
+                  <div className="text-charcoal font-medium">
+                    {company.description}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -175,7 +256,17 @@ export default function ViewCompanyModal({
                     <span className="text-sm text-warm-gray">Employees</span>
                   </div>
                   <div className="text-2xl font-bold text-charcoal">
-                    {company.employees?.length || 0}
+                    {company.employeeCount || 0}
+                  </div>
+                </div>
+
+                <div className="text-center p-4 bg-parchment rounded-lg border border-warm-gray/20">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Activity className="h-5 w-5 text-charcoal" />
+                    <span className="text-sm text-warm-gray">Plan</span>
+                  </div>
+                  <div className="text-lg font-bold text-charcoal">
+                    {company.plan || 'Trial'}
                   </div>
                 </div>
 

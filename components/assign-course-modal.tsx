@@ -63,10 +63,13 @@ interface AssignCourseModalProps {
   onClose: () => void;
   onAssign: (assignments: AssignmentDetails[]) => void;
   isAssigning?: boolean;
+  userRole?: 'ADMIN' | 'COMPANY' | 'EMPLOYEE';
 }
 
-const fetchCourses = async (): Promise<Course[]> => {
-  const res = await fetch('/api/company/courses');
+const fetchCourses = async (userRole?: string): Promise<Course[]> => {
+  const endpoint =
+    userRole === 'ADMIN' ? '/api/admin/courses' : '/api/company/courses';
+  const res = await fetch(endpoint);
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
@@ -74,9 +77,14 @@ const fetchCourses = async (): Promise<Course[]> => {
 };
 
 const fetchAssignments = async (
-  employeeId: string
+  employeeId: string,
+  userRole?: string
 ): Promise<AssignmentDetails[]> => {
-  const res = await fetch(`/api/company/employees/${employeeId}/assignments`);
+  const endpoint =
+    userRole === 'ADMIN'
+      ? `/api/admin/employees/${employeeId}/assignments`
+      : `/api/company/employees/${employeeId}/assignments`;
+  const res = await fetch(endpoint);
   if (!res.ok) {
     throw new Error('Network response was not ok');
   }
@@ -111,20 +119,21 @@ export default function AssignCourseModal({
   onClose,
   onAssign,
   isAssigning,
+  userRole,
 }: AssignCourseModalProps) {
   const [selectedAssignments, setSelectedAssignments] = useState<
     AssignmentDetails[]
   >([]);
   const [searchTerm, setSearchTerm] = useState('');
   const { data: courses, isLoading: isLoadingCourses } = useQuery<Course[]>({
-    queryKey: ['courses'],
-    queryFn: fetchCourses,
+    queryKey: ['courses', userRole],
+    queryFn: () => fetchCourses(userRole),
   });
 
   const { data: initialAssignments, isLoading: isLoadingAssignments } =
     useQuery<AssignmentDetails[]>({
-      queryKey: ['assignments', employee?.id],
-      queryFn: () => fetchAssignments(employee!.id),
+      queryKey: ['assignments', employee?.id || employee?._id, userRole],
+      queryFn: () => fetchAssignments(employee!.id || employee!._id, userRole),
       enabled: !!employee,
     });
 
@@ -218,7 +227,10 @@ export default function AssignCourseModal({
         <DialogHeader>
           <DialogTitle className="text-3xl text-charcoal font-bold">
             Assign Courses to{' '}
-            <span className="capitalize">{employee?.name}</span>
+            <span className="capitalize">
+              {employee?.name ||
+                `${employee?.firstName || ''} ${employee?.lastName || ''}`.trim()}
+            </span>
           </DialogTitle>
           <DialogDescription className="text-warm-gray">
             Select courses and set assignment schedules.

@@ -23,8 +23,11 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    // Get all employees (users with role EMPLOYEE)
-    const employees = await User.find({ role: 'EMPLOYEE' }).select('-password');
+    // Get all employees (users with role EMPLOYEE) and populate company info
+    const employees = await User.find({ role: 'EMPLOYEE' })
+      .select('-password')
+      .populate('memberships.companyId', 'name')
+      .populate('activeCompanyId', 'name');
 
     // Get detailed employee data with progress and assignments
     const employeeData = await Promise.all(
@@ -90,13 +93,22 @@ export async function GET(req: NextRequest) {
           }
         }
 
+        // Get company name from active company or memberships
+        const activeMembership = employee.memberships?.find(
+          (m: any) => m.status === 'active'
+        );
+        const companyName =
+          employee.activeCompanyId?.name ||
+          activeMembership?.companyId?.name ||
+          'No Company';
+
         return {
           _id: employee._id,
           firstName: employee.firstName,
           lastName: employee.lastName,
           email: employee.email,
           department: employee.department,
-          companyName: employee.companyName,
+          companyName: companyName,
           status: employee.status,
           overallProgress,
           coursesCompleted,

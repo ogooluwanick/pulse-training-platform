@@ -107,7 +107,8 @@ export default function CompletionChart({
                             {payload[0]?.payload?.courseName}
                           </div>
                           <div className="text-xs text-muted-foreground">
-                            Completion Rate: {payload[0]?.value}%
+                            Completion Rate:{' '}
+                            {Number(payload[0]?.value).toFixed(1)}%
                           </div>
                         </div>
                       </CardContent>

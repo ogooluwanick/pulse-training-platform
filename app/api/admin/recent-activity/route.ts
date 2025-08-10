@@ -31,7 +31,7 @@ export async function GET() {
         match: {}, // No status filter for admin users
       })
       .sort({ createdAt: -1 })
-      .limit(10);
+      .limit(5);
 
     const formattedActivities = activities.map((activity) => {
       const user = activity.userId as any;

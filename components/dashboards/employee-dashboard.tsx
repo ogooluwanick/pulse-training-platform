@@ -417,7 +417,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                     <div className="flex justify-between text-sm">
                       <span className="text-warm-gray">Progress</span>
                       <span className="text-charcoal font-medium">
-                        {(data?.completed / data?.total) * 100 || 0}%
+                        {((data?.completed / data?.total) * 100).toFixed(1) || 0}%
                       </span>
                     </div>
                     <Progress

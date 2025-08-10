@@ -46,6 +46,13 @@ interface Company {
     lastName: string;
     email: string;
   };
+  manager?: {
+    email: string;
+    fullName: string;
+    role: string;
+  } | null;
+  plan?: string;
+  employeeCount?: number;
   employees?: any[];
   // savedCourses?: any[];
   createdAt?: string;
@@ -336,13 +343,16 @@ export default function CompanyManagementPage() {
                     <div>
                       <p className="text-sm text-warm-gray">Manager Email</p>
                       <p className="text-sm text-charcoal">
-                        {company.companyAccount?.email || 'Not specified'}
+                        {company.manager?.email ||
+                          company.companyAccount?.email ||
+                          'Not specified'}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-warm-gray">Employees</p>
                       <p className="text-sm text-charcoal">
-                        {company.employees?.length || 0}
+                        {company.employeeCount ??
+                          (company.employees?.length || 0)}
                       </p>
                     </div>
                     {/* <div>
@@ -351,6 +361,12 @@ export default function CompanyManagementPage() {
                         {company.savedCourses?.length || 0}
                       </p>
                     </div> */}
+                    <div>
+                      <p className="text-sm text-warm-gray">Plan</p>
+                      <p className="text-sm text-charcoal">
+                        {company.plan || 'Trial'}
+                      </p>
+                    </div>
                     <div>
                       <p className="text-sm text-warm-gray">Status</p>
                       <Badge
