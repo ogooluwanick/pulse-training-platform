@@ -24,69 +24,7 @@ export async function GET(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Resolve companyId from query/header/cookie/session before enforcing access
-    const { searchParams } = new URL(request.url);
-    const qpCompanyId = searchParams.get('companyId') || undefined;
-    let activeCompanyId =
-      qpCompanyId || resolveCompanyIdFromRequest(request as any, session);
-
-    try {
-      console.log('[CompanyEmployeesAPI] Start', {
-        userId: session.user.id,
-        qpCompanyId: qpCompanyId || null,
-        resolvedCompanyId: activeCompanyId || null,
-      });
-    } catch {}
-
-    // Fallback for COMPANY owners without memberships/cookies: infer by ownership
-    if (!activeCompanyId) {
-      const owned = await Company.findOne({
-        companyAccount: new mongoose.Types.ObjectId(session.user.id),
-      }).select('_id');
-      if (owned?._id) {
-        activeCompanyId = owned._id.toString();
-      }
-      try {
-        console.log('[CompanyEmployeesAPI] Ownership fallback', {
-          owned: owned?._id?.toString() || null,
-        });
-      } catch {}
-    }
-
-    // Legacy fallback to session.user.companyId if present
-    if (!activeCompanyId && (session.user as any).companyId) {
-      activeCompanyId = (session.user as any).companyId as string;
-      try {
-        console.log('[CompanyEmployeesAPI] Legacy session.companyId fallback', {
-          sessionCompanyId: activeCompanyId,
-        });
-      } catch {}
-    }
-
-    // If still no active company, try to find one from memberships
-    if (!activeCompanyId && session.user.id) {
-      const user = await User.findById(session.user.id).select('memberships');
-      const firstActiveMembership = user?.memberships?.find(
-        (m: any) => m.status === 'active'
-      );
-      if (firstActiveMembership) {
-        activeCompanyId = firstActiveMembership.companyId.toString();
-      }
-      try {
-        console.log('[CompanyEmployeesAPI] Memberships fallback', {
-          selectedMembershipCompanyId: activeCompanyId || null,
-        });
-      } catch {}
-    }
-
-    // Final guard
-    if (!activeCompanyId) {
-      activeCompanyId = await requireCompanyContext(session);
-    }
-    try {
-      console.log('[CompanyEmployeesAPI] Using companyId', { activeCompanyId });
-    } catch {}
-    const companyId = new mongoose.Types.ObjectId(activeCompanyId);
+    const companyId = new mongoose.Types.ObjectId(session.user.companyId);
 
     const company = await Company.findById(companyId);
 
@@ -95,7 +33,7 @@ export async function GET(request: Request) {
     }
 
     // Build employees list from memberships
-    const filteredEmployees = await getCompanyEmployees(activeCompanyId);
+    const filteredEmployees = await getCompanyEmployees(companyId.toString());
 
     // Also get pending invitations (users with invitationTokenCompanyId for this company)
     const pendingInvitations = await User.find({
