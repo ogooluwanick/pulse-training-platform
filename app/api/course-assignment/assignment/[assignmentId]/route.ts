@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import CourseAssignment from '@/lib/models/CourseAssignment';
+import User from '@/lib/models/User';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { Types } from 'mongoose';
@@ -20,11 +21,13 @@ export async function GET(
 
   const assignmentId = params.assignmentId;
   const userId = session.user.id;
+  const userRole = session.user.role;
 
   try {
     console.log('[Assignment API] Request received', {
       assignmentId,
       userId,
+      userRole,
       timestamp: new Date().toISOString(),
     });
 
@@ -40,19 +43,53 @@ export async function GET(
       );
     }
 
-    // Find the assignment and populate the course
-    const assignment = await CourseAssignment.findOne({
+    // Build query based on user role
+    let query: any = {
       _id: new Types.ObjectId(assignmentId),
-      employee: new Types.ObjectId(userId),
-    }).populate({
+    };
+
+    if (userRole === 'EMPLOYEE') {
+      // Employees can only view their own assignments
+      query.employee = new Types.ObjectId(userId);
+    } else if (userRole === 'COMPANY' || userRole === 'ADMIN') {
+      // Company users and admins can view assignments within their company
+      // For company users, we need to get their company ID
+      const user = await User.findById(userId);
+      if (!user) {
+        return NextResponse.json(
+          { message: 'User not found' },
+          { status: 404 }
+        );
+      }
+
+      const companyId = user.activeCompanyId || user.companyId;
+      if (!companyId) {
+        return NextResponse.json(
+          { message: 'Company not found' },
+          { status: 404 }
+        );
+      }
+
+      query.companyId = new Types.ObjectId(companyId);
+    } else {
+      return NextResponse.json(
+        { message: 'Unauthorized role' },
+        { status: 403 }
+      );
+    }
+
+    // Find the assignment and populate the course
+    const assignment = await CourseAssignment.findOne(query).populate({
       path: 'course',
       model: Course,
-      match: { status: 'published' }, // Only allow published courses for employees
+      match: { status: 'published' }, // Only allow published courses
     });
 
     console.log('[Assignment API] Assignment query result', {
       assignmentId,
       userId,
+      userRole,
+      query,
       assignmentFound: !!assignment,
       hasCourse: !!assignment?.course,
       courseTitle: assignment?.course?.title,
@@ -63,6 +100,8 @@ export async function GET(
       console.log('[Assignment API] Assignment not found', {
         assignmentId,
         userId,
+        userRole,
+        query,
       });
       return NextResponse.json(
         { message: 'Assignment not found or not accessible' },
@@ -85,6 +124,7 @@ export async function GET(
     console.log('[Assignment API] Assignment found successfully', {
       assignmentId,
       userId,
+      userRole,
       courseId: assignment.course._id,
       courseTitle: assignment.course.title,
       assignmentStatus: assignment.status,
@@ -96,6 +136,7 @@ export async function GET(
     console.error('[Assignment API] Error occurred', {
       assignmentId,
       userId,
+      userRole,
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
     });

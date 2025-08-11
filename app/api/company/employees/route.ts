@@ -96,6 +96,13 @@ export async function GET(request: Request) {
 
     // Build employees list from memberships
     const filteredEmployees = await getCompanyEmployees(activeCompanyId);
+
+    // Also get pending invitations (users with invitationTokenCompanyId for this company)
+    const pendingInvitations = await User.find({
+      invitationTokenCompanyId: companyId,
+      status: 'pending',
+      role: 'EMPLOYEE',
+    }).select('firstName lastName email invitationTokenExpires');
     try {
       console.log('[CompanyEmployeesAPI] Employees fetched', {
         count: filteredEmployees.length,
@@ -222,11 +229,36 @@ export async function GET(request: Request) {
             : 'N/A',
           status: status,
           profileImageUrl: employee.profileImageUrl,
+          isActive: true,
         };
       })
     );
 
-    return NextResponse.json(employeeData);
+    // Add pending invitations to the response
+    const pendingInvitationData = pendingInvitations.map((invitation: any) => ({
+      id: invitation._id,
+      name:
+        `${invitation.firstName || ''} ${invitation.lastName || ''}`.trim() ||
+        'Pending Employee',
+      email: invitation.email,
+      role: 'EMPLOYEE',
+      department: 'Pending',
+      overallProgress: 0,
+      coursesAssigned: 0,
+      coursesCompleted: 0,
+      overdueCourses: 0,
+      timeInvested: 0,
+      lastActivity: 'N/A',
+      status: 'pending' as any,
+      profileImageUrl: invitation.profileImageUrl,
+      isActive: false,
+      isPendingInvitation: true,
+      invitationExpires: invitation.invitationTokenExpires,
+    }));
+
+    const allEmployeeData = [...employeeData, ...pendingInvitationData];
+
+    return NextResponse.json(allEmployeeData);
   } catch (error) {
     console.error(error);
     return new NextResponse('Internal Server Error', { status: 500 });

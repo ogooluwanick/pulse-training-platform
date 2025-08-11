@@ -45,7 +45,10 @@ interface Employee {
   coursesAssigned: number;
   coursesCompleted: number;
   lastActivity: string;
-  status: 'on-track' | 'at-risk' | 'overdue';
+  status: 'on-track' | 'at-risk' | 'overdue' | 'pending';
+  isActive?: boolean;
+  isPendingInvitation?: boolean;
+  invitationExpires?: string;
 }
 
 const updateEmployee = async (employee: Employee): Promise<Employee> => {
@@ -141,6 +144,8 @@ const getStatusColor = (status: Employee['status']) => {
       return 'bg-warning-ochre text-alabaster hover:bg-warning-ochre/90';
     case 'overdue':
       return 'bg-red-500 text-alabaster hover:bg-red-500/90';
+    case 'pending':
+      return 'bg-blue-500 text-alabaster hover:bg-blue-500/90';
     default:
       return 'bg-warm-gray text-alabaster hover:bg-warm-gray/90';
   }
@@ -395,7 +400,11 @@ export default function EmployeeManagementPage() {
               employees.map((employee) => (
                 <div
                   key={employee.id}
-                  className="flex items-center gap-4 p-4 rounded-lg bg-alabaster border border-warm-gray/20"
+                  className={`flex items-center gap-4 p-4 rounded-lg border ${
+                    employee.isPendingInvitation
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-alabaster border-warm-gray/20'
+                  }`}
                 >
                   <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
@@ -437,26 +446,43 @@ export default function EmployeeManagementPage() {
                         {employee.status === 'on-track' && 'On Track'}
                         {employee.status === 'at-risk' && 'At Risk'}
                         {employee.status === 'overdue' && 'Overdue'}
+                        {employee.status === 'pending' && 'Pending'}
                       </Badge>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
-                      onClick={() => handleEditClick(employee)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-transparent border-warm-gray/30"
-                      onClick={() => handleAssignClick(employee)}
-                    >
-                      Assign
-                    </Button>
+                    {employee.isPendingInvitation ? (
+                      <div className="text-sm text-warm-gray">
+                        Invitation pending
+                        {employee.invitationExpires && (
+                          <div className="text-xs">
+                            Expires:{' '}
+                            {new Date(
+                              employee.invitationExpires
+                            ).toLocaleDateString()}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="px-4 py-2 rounded-md bg-charcoal text-white hover:text-white hover:bg-charcoal/90 transition-colors"
+                          onClick={() => handleEditClick(employee)}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-transparent border-warm-gray/30"
+                          onClick={() => handleAssignClick(employee)}
+                        >
+                          Assign
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))
