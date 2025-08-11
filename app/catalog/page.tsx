@@ -418,15 +418,36 @@ export default function CourseCatalogPage() {
                       </div>
                       <div className="flex gap-2">
                         {course.isEnrolled ? (
-                          <Link
-                            href={`/dashboard/course/${course._id}`}
-                            className="flex-1"
+                          <Button
+                            className="w-full bg-success-green hover:bg-success-green/90 text-alabaster"
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(
+                                  `/api/course/${course._id}/redirect-to-assignment`
+                                );
+                                if (response.ok) {
+                                  const data = await response.json();
+                                  window.location.href = data.redirectUrl;
+                                } else {
+                                  console.error(
+                                    'Failed to find assignment for course'
+                                  );
+                                  toast.error(
+                                    'Could not find your assignment for this course'
+                                  );
+                                }
+                              } catch (error) {
+                                console.error(
+                                  'Error redirecting to assignment:',
+                                  error
+                                );
+                                toast.error('Error loading course');
+                              }
+                            }}
                           >
-                            <Button className="w-full bg-success-green hover:bg-success-green/90 text-alabaster">
-                              <Play className="h-4 w-4 mr-2" />
-                              Continue
-                            </Button>
-                          </Link>
+                            <Play className="h-4 w-4 mr-2" />
+                            Continue
+                          </Button>
                         ) : (
                           <Link
                             href={`/dashboard/course/try-out/${course._id}`}
@@ -555,7 +576,7 @@ export default function CourseCatalogPage() {
                     </div>
                     <div className="flex gap-2">
                       <Link
-                        href={`/dashboard/course/view/${assignment.course._id}?assignmentId=${assignment._id}`}
+                        href={`/dashboard/assignment/${assignment._id}`}
                         className="flex-1"
                       >
                         <Button className="w-full bg-charcoal hover:bg-charcoal/90 text-alabaster">

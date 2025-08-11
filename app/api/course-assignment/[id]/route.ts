@@ -22,16 +22,18 @@ export async function GET(
   const userId = session.user.id;
 
   try {
-    console.log(
-      'Course Assignment API - Course ID:',
+    console.log('[CourseAssignment API] Request received', {
       courseId,
-      'User ID:',
-      userId
-    );
+      userId,
+      timestamp: new Date().toISOString(),
+    });
 
     // Validate ObjectId format
     if (!Types.ObjectId.isValid(courseId)) {
-      console.error('Invalid course ID format:', courseId);
+      console.error(
+        '[CourseAssignment API] Invalid course ID format:',
+        courseId
+      );
       return NextResponse.json(
         { message: 'Invalid course ID format' },
         { status: 400 }
@@ -40,6 +42,12 @@ export async function GET(
 
     // Resolve active company context (supports header/cookie/session)
     const activeCompanyId = await requireCompanyContext(session);
+
+    console.log('[CourseAssignment API] Company context resolved', {
+      courseId,
+      userId,
+      activeCompanyId,
+    });
 
     // Find the assignment for this user, course, and company
     const assignment = await CourseAssignment.findOne({
@@ -53,7 +61,14 @@ export async function GET(
       match: {}, // No status filter for course assignments
     });
 
-    console.log('Assignment found:', assignment ? 'YES' : 'NO');
+    console.log('[CourseAssignment API] Assignment query result', {
+      courseId,
+      userId,
+      activeCompanyId,
+      assignmentFound: !!assignment,
+      assignmentId: assignment?._id,
+      assignmentStatus: assignment?.status,
+    });
 
     if (!assignment) {
       // Return empty assignment data if no assignment exists

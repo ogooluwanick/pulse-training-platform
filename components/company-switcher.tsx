@@ -95,6 +95,9 @@ export function CompanySwitcher({ className }: CompanySwitcherProps) {
         queryClient.refetchQueries({ queryKey: ['employeesAtRisk'] }),
         queryClient.refetchQueries({ queryKey: ['recentActivity'] }),
         queryClient.refetchQueries({ queryKey: ['userSettings'] }),
+        queryClient.refetchQueries({ queryKey: ['course'] }), // Invalidate course page queries
+        queryClient.refetchQueries({ queryKey: ['assignment'] }), // Invalidate assignment queries
+        queryClient.refetchQueries({ queryKey: ['assignmentWithCourse'] }), // Invalidate new assignment queries
       ]);
 
       console.log('Queries invalidated and refetched');

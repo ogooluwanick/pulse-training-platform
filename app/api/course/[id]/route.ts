@@ -1,39 +1,84 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/dbConnect';
 import Course from '@/lib/models/Course';
+import CourseAssignment from '@/lib/models/CourseAssignment';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { Types } from 'mongoose';
+import { resolveCompanyIdFromRequest } from '@/lib/user-utils';
 
 export async function GET(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
-    console.log('Course API GET - No session found');
+    console.log('[Course API] No session found');
     return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log(
-    'Course API GET - User:',
-    session.user.id,
-    'Role:',
-    session.user.role,
-    'Course ID:',
-    params.id
-  );
+  console.log('[Course API] Request received', {
+    userId: session.user.id,
+    userRole: session.user.role,
+    courseId: params.id,
+    timestamp: new Date().toISOString(),
+  });
 
   await dbConnect();
 
   try {
     // Validate ObjectId format
     if (!Types.ObjectId.isValid(params.id)) {
-      console.error('Invalid ObjectId format:', params.id);
+      console.error('[Course API] Invalid ObjectId format:', params.id);
       return NextResponse.json(
         { message: 'Invalid course ID format' },
         { status: 400 }
       );
+    }
+
+    // Get company context for employees
+    let activeCompanyId: string | null = null;
+    if (session.user.role === 'EMPLOYEE') {
+      const resolvedCompanyId = resolveCompanyIdFromRequest(req, session);
+      activeCompanyId = resolvedCompanyId || null;
+
+      console.log('[Course API] Company context for employee', {
+        userId: session.user.id,
+        activeCompanyId,
+        courseId: params.id,
+      });
+
+      // For employees, check if they have an assignment for this course in the active company
+      if (activeCompanyId) {
+        const assignment = await CourseAssignment.findOne({
+          course: new Types.ObjectId(params.id),
+          employee: new Types.ObjectId(session.user.id),
+          companyId: new Types.ObjectId(activeCompanyId),
+        });
+
+        if (!assignment) {
+          console.log('[Course API] No assignment found for employee', {
+            userId: session.user.id,
+            courseId: params.id,
+            activeCompanyId,
+          });
+          return NextResponse.json(
+            {
+              message:
+                'Course not found or not assigned to you in the current company',
+            },
+            { status: 404 }
+          );
+        }
+
+        console.log('[Course API] Assignment found for employee', {
+          userId: session.user.id,
+          courseId: params.id,
+          activeCompanyId,
+          assignmentId: assignment._id,
+          assignmentStatus: assignment.status,
+        });
+      }
     }
 
     // For admin and company users, allow access to all courses regardless of status
@@ -41,16 +86,30 @@ export async function GET(
     const statusFilter =
       session.user.role === 'EMPLOYEE' ? { status: 'published' } : {};
 
-    const course = await Course.findOne({ _id: params.id, ...statusFilter })
-      // .populate('instructor')
-      .lean();
+    const course = await Course.findOne({
+      _id: params.id,
+      ...statusFilter,
+    }).lean();
+
     if (!course) {
-      console.error('Course not found:', params.id);
+      console.error('[Course API] Course not found or not published', {
+        courseId: params.id,
+        userRole: session.user.role,
+        statusFilter,
+      });
       return NextResponse.json(
         { message: 'Course not found' },
         { status: 404 }
       );
     }
+
+    console.log('[Course API] Course found successfully', {
+      courseId: params.id,
+      courseTitle: (course as any).title,
+      courseStatus: (course as any).status,
+      userRole: session.user.role,
+      activeCompanyId,
+    });
 
     // Calculate average rating and total ratings
     // const ratings = (course as any).rating || [];

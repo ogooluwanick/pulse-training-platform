@@ -86,8 +86,6 @@ export default function MyLearningPage() {
     queryFn: fetchLearningData,
   });
 
-
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed':
@@ -368,7 +366,7 @@ export default function MyLearningPage() {
                             Completed
                           </Button>
                         ) : (
-                          <Link href={`/dashboard/course/${course._id}`}>
+                          <Link href={`/dashboard/assignment/${course._id}`}>
                             <Button
                               size="sm"
                               className="bg-charcoal hover:bg-charcoal/90 text-alabaster"

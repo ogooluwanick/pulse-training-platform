@@ -126,7 +126,21 @@ export default function CourseView({
       lessonId: string;
       quizResult?: any;
     }) => {
-      const response = await fetch(`/api/course/${courseId}/lesson-complete`, {
+      // Use assignment-based API if we're in assignment mode
+      const isAssignmentMode = mode === 'edit' && assignment?._id;
+      const apiUrl = isAssignmentMode 
+        ? `/api/course-assignment/assignment/${assignment._id}/lesson-complete`
+        : `/api/course/${courseId}/lesson-complete`;
+      
+      console.log('[CourseView] Lesson completion API call:', {
+        apiUrl,
+        isAssignmentMode,
+        assignmentId: assignment?._id,
+        courseId,
+        lessonId
+      });
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -143,8 +157,12 @@ export default function CourseView({
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch assignment data
+      const queryKey = mode === 'edit' && assignment?._id 
+        ? ['assignmentWithCourse', assignment._id]
+        : ['assignment', variables.courseId];
+      
       queryClient.invalidateQueries({
-        queryKey: ['assignment', variables.courseId],
+        queryKey,
       });
       toast.success('Lesson completed successfully!');
     },
@@ -162,16 +180,26 @@ export default function CourseView({
       courseId: string;
       finalQuizResult: any;
     }) => {
-      const response = await fetch(
-        `/api/course/${courseId}/final-quiz-complete`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            finalQuizResult,
-          }),
-        }
-      );
+      // Use assignment-based API if we're in assignment mode
+      const isAssignmentMode = mode === 'edit' && assignment?._id;
+      const apiUrl = isAssignmentMode 
+        ? `/api/course-assignment/assignment/${assignment._id}/final-quiz-complete`
+        : `/api/course/${courseId}/final-quiz-complete`;
+      
+      console.log('[CourseView] Final quiz completion API call:', {
+        apiUrl,
+        isAssignmentMode,
+        assignmentId: assignment?._id,
+        courseId
+      });
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          finalQuizResult,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error('Failed to complete course');
@@ -181,8 +209,12 @@ export default function CourseView({
     },
     onSuccess: (data, variables) => {
       // Invalidate and refetch assignment data
+      const queryKey = mode === 'edit' && assignment?._id 
+        ? ['assignmentWithCourse', assignment._id]
+        : ['assignment', variables.courseId];
+      
       queryClient.invalidateQueries({
-        queryKey: ['assignment', variables.courseId],
+        queryKey,
       });
       toast.success('Congratulations! Course completed successfully!');
     },

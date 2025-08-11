@@ -11,7 +11,15 @@ export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
 
+    console.log('[Employee Courses API] Request received', {
+      timestamp: new Date().toISOString(),
+      hasSession: !!session,
+      userId: session?.user?.id,
+      userRole: session?.user?.role,
+    });
+
     if (!session || !session.user || !session.user.id) {
+      console.log('[Employee Courses API] No session found');
       return NextResponse.json(
         { message: 'Not authenticated' },
         { status: 401 }
@@ -19,6 +27,10 @@ export async function GET(request: Request) {
     }
 
     if (session.user.role !== 'EMPLOYEE') {
+      console.log('[Employee Courses API] User is not an employee', {
+        userId: session.user.id,
+        role: session.user.role,
+      });
       return NextResponse.json({ message: 'Forbidden' }, { status: 403 });
     }
 
@@ -31,12 +43,27 @@ export async function GET(request: Request) {
       ? decodeURIComponent(cookieMatch[1])
       : null;
 
+    console.log('[Employee Courses API] Company context', {
+      userId: session.user.id,
+      activeCompanyId,
+      hasCookie: !!cookieMatch,
+    });
+
     if (!activeCompanyId) {
+      console.error('[Employee Courses API] No active company selected', {
+        userId: session.user.id,
+        cookies: cookies.substring(0, 100) + '...', // Log first 100 chars of cookies
+      });
       return NextResponse.json(
         { message: 'No active company selected' },
         { status: 400 }
       );
     }
+
+    console.log('[Employee Courses API] Querying assignments', {
+      userId: session.user.id,
+      activeCompanyId,
+    });
 
     const assignments = await CourseAssignment.find({
       employee: session.user.id,
@@ -44,6 +71,13 @@ export async function GET(request: Request) {
     }).populate({
       path: 'course',
       model: Course,
+    });
+
+    console.log('[Employee Courses API] Assignments found', {
+      userId: session.user.id,
+      activeCompanyId,
+      assignmentCount: assignments.length,
+      assignmentIds: assignments.map((a) => a._id),
     });
 
     // Transform assignments to match frontend expectations
@@ -126,9 +160,23 @@ export async function GET(request: Request) {
       averageFinalQuizScore,
     };
 
+    console.log('[Employee Courses API] Response prepared', {
+      userId: session.user.id,
+      activeCompanyId,
+      coursesCount: courses.length,
+      timeInvested,
+      completedCoursesCount,
+      uncompletedCoursesCount,
+      averageFinalQuizScore,
+    });
+
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Failed to fetch employee courses:', error);
+    console.error('[Employee Courses API] Error occurred', {
+      userId: session?.user?.id || 'unknown',
+      error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       { message: 'Failed to fetch courses' },
       { status: 500 }

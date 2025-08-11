@@ -97,18 +97,76 @@ interface EmployeeDashboardProps {
   user: ExtendedUser;
 }
 
-const fetchLearningData = async (): Promise<LearningApiResponse> => {
-  const response = await fetch(`/api/employee/learning`);
+const fetchLearningData = async (
+  userId: string,
+  activeCompanyId: string
+): Promise<LearningApiResponse> => {
+  console.log('[EmployeeDashboard] fetchLearningData called', {
+    userId,
+    activeCompanyId,
+    timestamp: new Date().toISOString(),
+  });
+
+  const response = await fetch(`/api/employee/learning`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  console.log('[EmployeeDashboard] fetchLearningData response', {
+    userId,
+    activeCompanyId,
+    status: response.status,
+    ok: response.ok,
+  });
+
   if (!response.ok) {
-    throw new Error('Failed to fetch learning data');
+    const errorData = await response.json().catch(() => null);
+    console.error('[EmployeeDashboard] fetchLearningData error', {
+      userId,
+      activeCompanyId,
+      status: response.status,
+      errorData,
+    });
+    throw new Error(errorData?.message || 'Failed to fetch learning data');
   }
   return response.json();
 };
 
-const fetchCourseAssignments = async (): Promise<CoursesApiResponse> => {
-  const response = await fetch(`/api/employee/courses`);
+const fetchCourseAssignments = async (
+  userId: string,
+  activeCompanyId: string
+): Promise<CoursesApiResponse> => {
+  console.log('[EmployeeDashboard] fetchCourseAssignments called', {
+    userId,
+    activeCompanyId,
+    timestamp: new Date().toISOString(),
+  });
+
+  const response = await fetch(`/api/employee/courses`, {
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  console.log('[EmployeeDashboard] fetchCourseAssignments response', {
+    userId,
+    activeCompanyId,
+    status: response.status,
+    ok: response.ok,
+  });
+
   if (!response.ok) {
-    throw new Error('Failed to fetch course assignments');
+    const errorData = await response.json().catch(() => null);
+    console.error('[EmployeeDashboard] fetchCourseAssignments error', {
+      userId,
+      activeCompanyId,
+      status: response.status,
+      errorData,
+    });
+    throw new Error(errorData?.message || 'Failed to fetch course assignments');
   }
   return response.json();
 };
@@ -118,37 +176,64 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
     'all' | 'not-started' | 'in-progress' | 'completed' | 'overdue'
   >('all');
 
+  console.log('[EmployeeDashboard] Component rendered', {
+    userId: user.id,
+    activeCompanyId: user.activeCompanyId,
+    timestamp: new Date().toISOString(),
+  });
+
   // Fetch learning data for enhanced stats
-  const { data: learningData, isLoading: isLoadingLearning } = useQuery<
-    LearningApiResponse,
-    Error
-  >({
+  const {
+    data: learningData,
+    isLoading: isLoadingLearning,
+    error: learningError,
+  } = useQuery<LearningApiResponse, Error>({
     queryKey: ['learningData', user.id, user.activeCompanyId],
-    queryFn: fetchLearningData,
+    queryFn: () => fetchLearningData(user.id, user.activeCompanyId || ''),
     enabled: !!user.id && !!user.activeCompanyId,
     staleTime: 0, // Force fresh data
     gcTime: 0, // Don't cache
   });
 
   // Fetch course assignments for basic course data
-  const { data: coursesData, isLoading: isLoadingCourses } = useQuery<
-    CoursesApiResponse,
-    Error
-  >({
+  const {
+    data: coursesData,
+    isLoading: isLoadingCourses,
+    error: coursesError,
+  } = useQuery<CoursesApiResponse, Error>({
     queryKey: ['courseAssignments', user.id, user.activeCompanyId],
-    queryFn: fetchCourseAssignments,
+    queryFn: () => fetchCourseAssignments(user.id, user.activeCompanyId || ''),
     enabled: !!user.id && !!user.activeCompanyId,
     staleTime: 0, // Force fresh data
     gcTime: 0, // Don't cache
   });
 
   const isLoading = isLoadingLearning || isLoadingCourses;
-  const error = learningData ? null : new Error('Failed to load data');
+  const error = learningError || coursesError;
+
+  console.log('[EmployeeDashboard] Data fetch status', {
+    isLoadingLearning,
+    isLoadingCourses,
+    hasLearningData: !!learningData,
+    hasCoursesData: !!coursesData,
+    learningError: learningError?.message,
+    coursesError: coursesError?.message,
+    userId: user.id,
+    activeCompanyId: user.activeCompanyId,
+  });
 
   // Use courses data if available, fallback to learning data
   const courseAssignments = coursesData?.courses || learningData?.courses || [];
   const stats = learningData?.stats;
   const skillProgress = learningData?.skillProgress || {};
+
+  console.log('[EmployeeDashboard] Processed data', {
+    courseAssignmentsCount: courseAssignments.length,
+    hasStats: !!stats,
+    skillProgressCategories: Object.keys(skillProgress),
+    userId: user.id,
+    activeCompanyId: user.activeCompanyId,
+  });
 
   // Fallback stats from courses data
   const timeInvested =
@@ -417,7 +502,9 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
                     <div className="flex justify-between text-sm">
                       <span className="text-warm-gray">Progress</span>
                       <span className="text-charcoal font-medium">
-                        {((data?.completed / data?.total) * 100).toFixed(1) || 0}%
+                        {((data?.completed / data?.total) * 100).toFixed(1) ||
+                          0}
+                        %
                       </span>
                     </div>
                     <Progress
@@ -648,7 +735,7 @@ export function EmployeeDashboard({ user }: EmployeeDashboardProps) {
 
                     <div className="flex gap-2">
                       <Link
-                        href={`/dashboard/course/${assignment.courseId}`}
+                        href={`/dashboard/assignment/${assignment._id}`}
                         className="flex-1"
                       >
                         <Button
