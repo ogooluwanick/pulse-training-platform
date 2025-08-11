@@ -31,11 +31,16 @@ export default function CourseTryOutPage({ params }: { params: { id: string } })
 
   if (isError) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: '#f5f4ed' }}>
+      <div
+        className="flex-1 h-full flex items-center justify-center"
+        style={{ backgroundColor: '#f5f4ed' }}
+      >
         <Alert className="max-w-md mx-auto">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            {error instanceof Error ? error.message : 'An unknown error occurred.'}
+            {error instanceof Error
+              ? error.message
+              : 'An unknown error occurred.'}
           </AlertDescription>
         </Alert>
       </div>

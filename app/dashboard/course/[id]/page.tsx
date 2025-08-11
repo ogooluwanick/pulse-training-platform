@@ -197,7 +197,7 @@ export default function CoursePage({ params }: { params: { id: string } }) {
 
     return (
       <div
-        className="flex-1 flex items-center justify-center"
+        className="flex-1 h-full flex items-center justify-center"
         style={{ backgroundColor: '#f5f4ed' }}
       >
         <Alert className="max-w-md mx-auto">

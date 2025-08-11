@@ -55,7 +55,7 @@ export default function CourseViewPage({ params }: { params: { id: string } }) {
   if (!assignmentId) {
     return (
       <div
-        className="flex-1 flex items-center justify-center"
+        className="flex-1 h-full flex items-center justify-center"
         style={{ backgroundColor: '#f5f4ed' }}
       >
         <Alert className="max-w-md mx-auto">
@@ -76,7 +76,7 @@ export default function CourseViewPage({ params }: { params: { id: string } }) {
   if (assignmentError || courseError) {
     return (
       <div
-        className="flex-1 flex items-center justify-center min-h-[80vh]"
+        className="flex-1 h-full flex items-center justify-center"
         style={{ backgroundColor: '#f5f4ed' }}
       >
         <Alert className="max-w-md mx-auto">

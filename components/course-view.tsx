@@ -826,7 +826,7 @@ export default function CourseView({
   if (!course) {
     return (
       <div
-        className="flex-1 flex items-center justify-center"
+        className="flex-1 h-full flex items-center justify-center"
         style={{ backgroundColor: '#f5f4ed' }}
       >
         <div className="text-center space-y-4">
