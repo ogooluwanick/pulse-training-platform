@@ -206,39 +206,117 @@ export function LearningProgressChart({
 
       <Card className="bg-card border-warm-gray/20">
         <CardHeader>
-          <CardTitle className="text-charcoal">Skill Development</CardTitle>
+          <CardTitle className="text-charcoal">Learning Activity</CardTitle>
           <CardDescription className="text-warm-gray">
-            Categories and areas of expertise you're building
+            Your recent learning milestones and achievements
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Areas of Expertise */}
+          {/* Recent Achievements */}
           <div className="space-y-3">
             <h4 className="text-sm font-medium text-charcoal">
-              Areas of Expertise
+              Recent Achievements
             </h4>
-            {Object.keys(skillProgress).map((category) => (
-              <div
-                key={category}
-                className="flex items-center justify-between p-3 rounded-lg bg-alabaster border border-warm-gray/20"
-              >
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-alabaster border border-warm-gray/20">
                 <div className="flex items-center gap-2">
-                  {getCategoryIcon(category)}
-                  <span className="text-sm font-medium text-charcoal capitalize">
-                    {category}
+                  <Clock className="h-4 w-4 text-charcoal" />
+                  <span className="text-sm font-medium text-charcoal">
+                    Learning Hours
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-warm-gray">
-                    {skillProgress[category].completed}/
-                    {skillProgress[category].total}
-                  </span>
-                  <span className="text-xs font-medium text-charcoal">
-                    {skillProgress[category].averageProgress}%
-                  </span>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-charcoal">
+                    {Math.round(totalTimeInvested / 60)} hours
+                  </div>
+                  <div className="text-xs text-warm-gray">Total invested</div>
                 </div>
               </div>
-            ))}
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-alabaster border border-warm-gray/20">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-success-green" />
+                  <span className="text-sm font-medium text-charcoal">
+                    This Month
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-charcoal">
+                    {completedThisMonth} courses
+                  </div>
+                  <div className="text-xs text-warm-gray">Completed</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between p-3 rounded-lg bg-alabaster border border-warm-gray/20">
+                <div className="flex items-center gap-2">
+                  <Award className="h-4 w-4 text-warning-ochre" />
+                  <span className="text-sm font-medium text-charcoal">
+                    Completion Rate
+                  </span>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-charcoal">
+                    {Object.keys(skillProgress).length > 0
+                      ? Math.round(
+                          (Object.values(skillProgress).reduce(
+                            (sum, cat) => sum + cat.completed,
+                            0
+                          ) /
+                            Object.values(skillProgress).reduce(
+                              (sum, cat) => sum + cat.total,
+                              0
+                            )) *
+                            100
+                        )
+                      : 0}
+                    %
+                  </div>
+                  <div className="text-xs text-warm-gray">Overall</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Learning Streak */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-charcoal">
+              Learning Insights
+            </h4>
+            <div className="p-3 rounded-lg bg-gradient-to-r from-success-green/10 to-charcoal/10 border border-success-green/20">
+              <div className="flex items-center gap-2 mb-2">
+                <BookOpen className="h-4 w-4 text-success-green" />
+                <span className="text-sm font-medium text-charcoal">
+                  Top Performing Category
+                </span>
+              </div>
+              {Object.keys(skillProgress).length > 0 ? (
+                <div>
+                  <div className="text-lg font-bold text-charcoal">
+                    {Object.entries(skillProgress)
+                      .sort(
+                        ([, a], [, b]) => b.averageProgress - a.averageProgress
+                      )[0]?.[0]
+                      ?.charAt(0)
+                      .toUpperCase() +
+                      Object.entries(skillProgress)
+                        .sort(
+                          ([, a], [, b]) =>
+                            b.averageProgress - a.averageProgress
+                        )[0]?.[0]
+                        ?.slice(1) || 'None'}
+                  </div>
+                  <div className="text-xs text-warm-gray">
+                    {Object.entries(skillProgress).sort(
+                      ([, a], [, b]) => b.averageProgress - a.averageProgress
+                    )[0]?.[1]?.averageProgress || 0}
+                    % average progress
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm text-warm-gray">No data available</div>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

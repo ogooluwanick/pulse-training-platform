@@ -265,15 +265,24 @@ export default function MyLearningPage() {
         <Card className="bg-card border-warm-gray/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-warm-gray">
-              Certificates
+              Completion Rate
             </CardTitle>
-            <Award className="h-4 w-4 text-warning-ochre" />
+            <CheckCircle className="h-4 w-4 text-success-green" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-charcoal">
-              {data?.stats.certificatesEarned || 0}
+              {data?.stats.totalCourses && data.stats.totalCourses > 0
+                ? Math.round(
+                    (data.stats.completedCourses / data.stats.totalCourses) *
+                      100
+                  )
+                : 0}
+              %
             </div>
-            <p className="text-xs text-warm-gray">Ready to download</p>
+            <p className="text-xs text-warm-gray">
+              {data?.stats.completedCourses || 0} of{' '}
+              {data?.stats.totalCourses || 0} completed
+            </p>
           </CardContent>
         </Card>
       </div>

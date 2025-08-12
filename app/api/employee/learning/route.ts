@@ -89,13 +89,22 @@ export async function GET(request: Request) {
           (lp: any) => lp.status === 'completed'
         ).length || 0;
 
+      // Calculate progress based on completed lessons
+      const calculatedProgress =
+        totalLessons > 0
+          ? Math.round((completedLessons / totalLessons) * 100)
+          : 0;
+
+      // Use calculated progress or fall back to assignment progress
+      const progress = calculatedProgress || assignment.progress || 0;
+
       return {
         _id: assignment._id,
         title: course.title,
         description: course.description,
         category: course.category?.toLowerCase(),
         duration: course.duration || 0,
-        progress: assignment.progress || 0,
+        progress: progress,
         status: assignment.status,
         totalLessons,
         completedLessons,
@@ -159,6 +168,13 @@ export async function GET(request: Request) {
       const data = skillProgress[category];
       data.averageProgress =
         data.total > 0 ? Math.round(data.progress / data.total) : 0;
+
+      console.log(`[Employee Learning API] Category ${category} progress:`, {
+        total: data.total,
+        completed: data.completed,
+        totalProgress: data.progress,
+        averageProgress: data.averageProgress,
+      });
     });
 
     // Calculate total time invested (sum of completed courses duration)
