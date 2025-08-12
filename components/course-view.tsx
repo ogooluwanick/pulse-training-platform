@@ -1069,7 +1069,7 @@ export default function CourseView({
                         <div className="flex items-center gap-4 text-sm text-warm-gray mt-1">
                           <span>{lesson.type}</span>
                           <span>{lesson.duration} min</span>
-                          {lesson.quiz && (
+                          {lesson.quiz && lesson.quiz.questions && lesson.quiz.questions.length > 0 && (
                             <Badge variant="outline" className="text-xs">
                               Quiz
                             </Badge>
