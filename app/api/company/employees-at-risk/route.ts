@@ -30,20 +30,25 @@ export async function GET(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const activeCompanyId = await requireCompanyContext(session);
-    const companyId = new mongoose.Types.ObjectId(activeCompanyId);
+    const companyId = session.user.companyId;
+
+    if (!companyId) {
+      return new NextResponse('Company ID not found in session', {
+        status: 400,
+      });
+    }
 
     console.log('[EmployeesAtRisk] Company context:', {
-      activeCompanyId,
       companyId: companyId.toString(),
     });
 
-    const employees = await getCompanyEmployees(activeCompanyId);
+    const employees = await getCompanyEmployees(companyId);
+    const mongooseCompanyId = new mongoose.Types.ObjectId(companyId);
     console.log('[EmployeesAtRisk] Employees found:', employees.length);
 
     const assignments = await CourseAssignment.find({
       employee: { $in: employees.map((e: any) => e._id) },
-      companyId,
+      companyId: mongooseCompanyId,
     }).populate({
       path: 'employee',
       model: User,

@@ -33,69 +33,13 @@ export async function GET(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const qpCompanyId = searchParams.get('companyId') || undefined;
-    let activeCompanyId =
-      qpCompanyId || resolveCompanyIdFromRequest(request as any, session);
+    const companyId = session.user.companyId;
 
-    console.log('[DashboardMetrics] Company ID resolution:', {
-      queryParamCompanyId: qpCompanyId || null,
-      resolvedCompanyId: activeCompanyId || null,
-      sessionUser: {
-        companyId: session.user.companyId,
-        activeCompanyId: session.user.activeCompanyId,
-        companyIds: session.user.companyIds,
-      },
-    });
-
-    console.log('[DashboardMetrics] Start', {
-      userId: session.user.id,
-      qpCompanyId: qpCompanyId || null,
-      resolvedCompanyId: activeCompanyId || null,
-    });
-
-    // Fallback for COMPANY owners without memberships/cookies: infer by ownership
-    if (!activeCompanyId) {
-      const owned = await Company.findOne({
-        companyAccount: new mongoose.Types.ObjectId(session.user.id),
-      }).select('_id');
-      if (owned?._id) {
-        activeCompanyId = owned._id.toString();
-      }
-      console.log('[DashboardMetrics] Ownership fallback', {
-        owned: owned?._id?.toString() || null,
+    if (!companyId) {
+      return new NextResponse('Company ID not found in session', {
+        status: 400,
       });
     }
-
-    // Legacy fallback to session.user.companyId if present
-    if (!activeCompanyId && (session.user as any).companyId) {
-      activeCompanyId = (session.user as any).companyId as string;
-      console.log('[DashboardMetrics] Legacy session.companyId fallback', {
-        sessionCompanyId: activeCompanyId,
-      });
-    }
-
-    // If still no active company, try to find one from memberships
-    if (!activeCompanyId && session.user.id) {
-      const user = await User.findById(session.user.id).select('memberships');
-      const firstActiveMembership = user?.memberships?.find(
-        (m: any) => m.status === 'active'
-      );
-      if (firstActiveMembership) {
-        activeCompanyId = firstActiveMembership.companyId.toString();
-      }
-      console.log('[DashboardMetrics] Memberships fallback', {
-        selectedMembershipCompanyId: activeCompanyId || null,
-      });
-    }
-
-    // Final guard
-    if (!activeCompanyId) {
-      activeCompanyId = await requireCompanyContext(session);
-    }
-
-    console.log('[DashboardMetrics] Using companyId', { activeCompanyId });
-    const companyId = activeCompanyId;
 
     // Get employees via memberships
     const filteredEmployees = await getCompanyEmployees(companyId);

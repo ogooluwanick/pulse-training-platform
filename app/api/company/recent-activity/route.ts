@@ -31,17 +31,24 @@ export async function GET(request: Request) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const activeCompanyId = await requireCompanyContext(session);
-    const filteredEmployees = await getCompanyEmployees(activeCompanyId);
+    const companyId = session.user.companyId;
+
+    if (!companyId) {
+      return new NextResponse('Company ID not found in session', {
+        status: 400,
+      });
+    }
+
+    const filteredEmployees = await getCompanyEmployees(companyId);
 
     console.log('[RecentActivity] Company context:', {
-      activeCompanyId,
+      companyId,
       employeesFound: filteredEmployees.length,
     });
 
     const activities = await Activity.find({
       userId: { $in: filteredEmployees.map((emp: any) => emp._id) },
-      companyId: new mongoose.Types.ObjectId(activeCompanyId),
+      companyId: new mongoose.Types.ObjectId(companyId),
     })
       .populate({ path: 'userId', model: User, select: 'firstName lastName' })
       .populate({
