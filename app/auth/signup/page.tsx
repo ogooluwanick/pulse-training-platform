@@ -141,7 +141,7 @@ export default function SignUpPage() {
           </div>
           <h1 className="text-2xl font-bold text-charcoal">Welcome to Pulse</h1>
           <p className="text-warm-gray">
-            Sign in to your intelligent workspace
+            Sign up to our intelligent workspace
           </p>
         </div>
 

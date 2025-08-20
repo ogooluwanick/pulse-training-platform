@@ -29,7 +29,11 @@ export async function POST(req: NextRequest) {
   await usersCollection.updateOne(
     { _id: user._id },
     {
-      $set: { password: hashedPassword },
+      $set: {
+        password: hashedPassword,
+        emailVerified: new Date(),
+        status: 'active',
+      },
       $unset: { passwordResetToken: '', passwordResetExpires: '' },
     }
   );

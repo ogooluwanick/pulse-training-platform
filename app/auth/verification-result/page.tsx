@@ -46,7 +46,7 @@ export default function VerificationResultPage() {
               Welcome to Pulse
             </h1>
             <p className="text-warm-gray">
-              Sign in to your intelligent workspace
+              Verify your account
             </p>
           </div>
       <Card className="w-full max-w-md">

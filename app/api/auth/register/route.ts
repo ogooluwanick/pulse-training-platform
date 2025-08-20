@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
       email,
       `${firstName} ${lastName}`,
       verificationToken,
-      true // isNewUser = true for registration flow
+      role !== 'COMPANY' // COMPANY should go to verify-email; set-password is only for employee signup
     );
 
     // Create welcome notification for new user

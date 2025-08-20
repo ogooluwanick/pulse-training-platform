@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs';
 import clientPromise from '@/lib/mongodb';
 import { MongoClient, ObjectId } from 'mongodb';
 import { getUserMemberships } from '@/lib/user-utils';
+import crypto from 'crypto';
+import { sendVerificationEmail } from '@/lib/email';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -31,10 +33,6 @@ export const authOptions: NextAuthOptions = {
             throw new Error('User not found');
           }
 
-          if (dbUser.status !== 'active') {
-            throw new Error('Account is not active');
-          }
-
           const isValidPassword = await bcrypt.compare(
             credentials.password,
             dbUser.password
@@ -42,6 +40,54 @@ export const authOptions: NextAuthOptions = {
 
           if (!isValidPassword) {
             throw new Error('Incorrect password');
+          }
+
+          if (dbUser.status !== 'active') {
+            // If email is already verified but status is pending, auto-activate
+            if (dbUser.emailVerified) {
+              await usersCollection.updateOne(
+                { _id: new ObjectId(dbUser._id) },
+                { $set: { status: 'active' } }
+              );
+              dbUser.status = 'active';
+            } else {
+              // Resend verification email with a fresh token
+              const newVerificationToken = crypto
+                .randomBytes(32)
+                .toString('hex');
+              const newVerificationTokenExpires = new Date(
+                Date.now() + 24 * 60 * 60 * 1000
+              );
+
+              await usersCollection.updateOne(
+                { _id: new ObjectId(dbUser._id) },
+                {
+                  $set: {
+                    verificationToken: newVerificationToken,
+                    verificationTokenExpires: newVerificationTokenExpires,
+                  },
+                }
+              );
+
+              try {
+                const fullName =
+                  `${dbUser.firstName || ''} ${dbUser.lastName || ''}`.trim() ||
+                  'User';
+                await sendVerificationEmail(
+                  dbUser.email,
+                  fullName,
+                  newVerificationToken,
+                  false
+                );
+              } catch (e) {
+                // Non-fatal; still instruct user
+                console.error('Failed to send verification email:', e);
+              }
+
+              throw new Error(
+                'Account not verified. We have sent a new verification email.'
+              );
+            }
           }
 
           // Update lastOnline on successful login

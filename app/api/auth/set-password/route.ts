@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
         $set: {
           password: hashedPassword,
           emailVerified: new Date(),
+          status: 'active',
           updatedAt: new Date(),
         },
         $unset: {

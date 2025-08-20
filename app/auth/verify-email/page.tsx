@@ -69,7 +69,7 @@ export default function VerifyEmailPage() {
               Welcome to Pulse
             </h1>
             <p className="text-warm-gray">
-              Sign in to your intelligent workspace
+              Verify your account to access your intelligent workspace
             </p>
         </div>
 

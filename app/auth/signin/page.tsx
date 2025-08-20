@@ -182,7 +182,7 @@ export default function SignInPage() {
               </form>
 
               {/* Divider */}
-              <div className="relative">
+              {/* <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t border-warm-gray/30" />
                 </div>
@@ -191,10 +191,10 @@ export default function SignInPage() {
                     Or continue with
                   </span>
                 </div>
-              </div>
+              </div> */}
 
               {/* Social Sign In Options */}
-              <div className="space-y-3">
+              {/* <div className="space-y-3">
                 <Button
                   variant="outline"
                   className="w-full border-warm-gray/30 text-charcoal hover:bg-alabaster transition-soft"
@@ -219,7 +219,7 @@ export default function SignInPage() {
                   </svg>
                   Continue with Google
                 </Button>
-              </div>
+              </div> */}
 
               {/* Sign Up Link */}
               <div className="text-center text-sm text-warm-gray">
